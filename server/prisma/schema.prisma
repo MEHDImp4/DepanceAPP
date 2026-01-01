@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int           @id @default(autoincrement())
+  email         String        @unique
+  password_hash String
+  created_at    DateTime      @default(now())
+  accounts      Account[]
+  transactions  Transaction[]
+  templates     Template[]
+}
+
+model Account {
+  id           Int           @id @default(autoincrement())
+  name         String
+  type         String        // "normal" | "savings"
+  balance      Float         @default(0.0)
+  user_id      Int
+  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at   DateTime      @default(now())
+  transactions Transaction[]
+  templates    Template[]
+}
+
+model Transaction {
+  id          Int      @id @default(autoincrement())
+  amount      Float
+  description String
+  type        String   // "income" | "expense"
+  account_id  Int
+  account     Account  @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  user_id     Int
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  transfer_id String?  // UUID to link two transactions (debit/credit) for transfers
+  created_at  DateTime @default(now())
+}
+
+model Template {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  amount             Float
+  description        String
+  default_account_id Int?
+  default_account    Account? @relation(fields: [default_account_id], references: [id])
+  user_id            Int
+  user               User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at         DateTime @default(now())
+}
