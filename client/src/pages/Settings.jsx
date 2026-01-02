@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useUI } from '../context/UIContext';
@@ -6,13 +6,20 @@ import api from '../services/api';
 import { currencies } from '../utils/currencyUtils';
 import {
     Sun, Moon, Coins, User, Shield, Bell, Globe,
-    Github, ChevronRight, LogOut, Mail
+    Github, ChevronRight, LogOut, Mail, Tag
 } from 'lucide-react';
+import CategoryManager from '../components/CategoryManager';
+import BudgetManager from '../components/BudgetManager';
+import RecurringManager from '../components/RecurringManager';
+import { PieChart, Repeat } from 'lucide-react';
 
 const Settings = () => {
     const { theme, toggleTheme } = useTheme();
     const { user, logout, updateUser } = useAuth();
     const { showToast } = useUI();
+    const [showCategories, setShowCategories] = useState(false);
+    const [showBudgets, setShowBudgets] = useState(false);
+    const [showRecurring, setShowRecurring] = useState(false);
 
     const handleCurrencyChange = async (e) => {
         const newCurrency = e.target.value;
@@ -59,10 +66,18 @@ const Settings = () => {
             ]
         },
         {
+            title: 'Management',
+            items: [
+                { icon: <Tag size={20} />, iconColor: '#FF2D55', label: 'Categories', arrow: true, onClick: () => setShowCategories(true) },
+                { icon: <PieChart size={20} />, iconColor: '#5AC8FA', label: 'Budgets', arrow: true, onClick: () => setShowBudgets(true) },
+                { icon: <Repeat size={20} />, iconColor: '#BF5AF2', label: 'Recurring', arrow: true, onClick: () => setShowRecurring(true) },
+            ]
+        },
+        {
             title: 'About',
             items: [
                 { icon: <Globe size={20} />, iconColor: '#AF52DE', label: 'Website', arrow: true },
-                { icon: <Github size={20} />, iconColor: '#1C1C1E', label: 'GitHub', arrow: true },
+                { icon: <Github size={20} />, iconColor: '#FFFFFF', label: 'GitHub', arrow: true },
             ]
         }
     ];
@@ -87,7 +102,7 @@ const Settings = () => {
                                     borderBottom: i < section.items.length - 1 ? '1px solid var(--color-border)' : 'none',
                                     cursor: 'pointer',
                                     backgroundColor: 'var(--color-bg-card)'
-                                }} onClick={item.arrow ? () => showToast('Feature coming soon') : undefined}>
+                                }} onClick={item.onClick ? item.onClick : (item.arrow ? () => showToast('Feature coming soon') : undefined)}>
                                     <div className="flex items-center gap-sm" style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center' }}>
                                         <div className="flex-center" style={{
                                             width: '32px', height: '32px', borderRadius: '8px',
@@ -97,10 +112,10 @@ const Settings = () => {
                                         }}>
                                             {React.cloneElement(item.icon, { size: 18 })}
                                         </div>
-                                        <span className="text-sm font-bold text-primary truncate" style={{ lineHeight: 1 }}>{item.label}</span>
+                                        <span className="text-sm font-bold text-primary truncate">{item.label}</span>
                                     </div>
                                     <div className="flex items-center gap-sm text-secondary" style={{ flexShrink: 0, marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
-                                        {item.value && <span className="text-xs truncate" style={{ maxWidth: '100px', lineHeight: 1 }}>{item.value}</span>}
+                                        {item.value && <span className="text-xs truncate" style={{ maxWidth: '100px' }}>{item.value}</span>}
                                         {item.action}
                                         {item.arrow && <ChevronRight size={18} color="var(--color-text-tertiary)" />}
                                     </div>
@@ -124,6 +139,10 @@ const Settings = () => {
                     Depance v1.0.0
                 </p>
             </div>
+
+            {showCategories && <CategoryManager onClose={() => setShowCategories(false)} />}
+            {showBudgets && <BudgetManager onClose={() => setShowBudgets(false)} />}
+            {showRecurring && <RecurringManager onClose={() => setShowRecurring(false)} />}
 
             <style>{`
                 .toggle-switch {

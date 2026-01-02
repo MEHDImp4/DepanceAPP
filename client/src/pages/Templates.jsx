@@ -7,8 +7,9 @@ import { formatCurrency } from '../utils/currencyUtils';
 const Templates = () => {
     const [templates, setTemplates] = useState([]);
     const [accounts, setAccounts] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [showForm, setShowForm] = useState(false);
-    const [newTemplate, setNewTemplate] = useState({ name: '', amount: '', description: '', default_account_id: '' });
+    const [newTemplate, setNewTemplate] = useState({ name: '', amount: '', description: '', default_account_id: '', category_id: '' });
     const { showToast, showConfirm } = useUI();
 
     // Icon selection helper could be added, for now random or default
@@ -24,9 +25,15 @@ const Templates = () => {
 
     const fetchData = async () => {
         try {
-            const [tplRes, accRes] = await Promise.all([api.get('/templates'), api.get('/accounts')]);
+            const [tplRes, accRes, catRes] = await Promise.all([
+                api.get('/templates'),
+                api.get('/accounts'),
+                api.get('/categories') // Fetch categories
+            ]);
             setTemplates(tplRes.data);
             setAccounts(accRes.data);
+            setCategories(catRes.data);
+
             if (accRes.data.length > 0) {
                 setNewTemplate(prev => ({ ...prev, default_account_id: accRes.data[0].id }));
             }
@@ -38,7 +45,7 @@ const Templates = () => {
         try {
             await api.post('/templates', newTemplate);
             setShowForm(false);
-            setNewTemplate({ name: '', amount: '', description: '', default_account_id: accounts[0]?.id || '' });
+            setNewTemplate({ name: '', amount: '', description: '', default_account_id: accounts[0]?.id || '', category_id: '' });
             fetchData();
             showToast('Shortcut saved', 'success');
         } catch (e) { showToast('Failed to save shortcut', 'error'); }
@@ -54,7 +61,8 @@ const Templates = () => {
                     amount: template.amount,
                     description: template.description,
                     type: 'expense',
-                    account_id: template.default_account_id
+                    account_id: template.default_account_id,
+                    category_id: template.category_id || null // Pass category
                 });
                 showToast('Payment Sent!', 'success');
             } catch (e) { showToast('Failed to execute template', 'error'); }
@@ -77,23 +85,64 @@ const Templates = () => {
             </div>
 
             {showForm && (
-                <div className="card animate-slide-up" style={{ marginBottom: '24px' }}>
-                    <h3 className="text-sm font-bold text-secondary uppercase" style={{ marginBottom: '16px' }}>New Shortcut</h3>
+                <div className="card animate-slide-up" style={{ marginBottom: '24px', padding: '24px' }}>
+                    <h3 className="text-sm font-bold text-secondary uppercase mb-md">New Shortcut</h3>
                     <form onSubmit={handleCreate}>
-                        <div className="input-group" style={{ marginBottom: '16px' }}>
-                            <input className="input" placeholder="Name (e.g. Coffee)" value={newTemplate.name} onChange={e => setNewTemplate({ ...newTemplate, name: e.target.value })} required />
-                            <div className="flex items-center gap-sm">
-                                <input type="number" step="0.01" className="input" placeholder="Amount" value={newTemplate.amount} onChange={e => setNewTemplate({ ...newTemplate, amount: e.target.value })} required style={{ flex: 1 }} />
-                                <span className="text-sm font-bold text-secondary">{accounts.find(a => a.id == newTemplate.default_account_id)?.currency}</span>
+                        <div className="input-group" style={{ marginBottom: '24px', padding: '0 16px' }}>
+                            <input
+                                className="input"
+                                placeholder="Name (e.g. Coffee)"
+                                value={newTemplate.name}
+                                onChange={e => setNewTemplate({ ...newTemplate, name: e.target.value })}
+                                required
+                            />
+
+                            <div className="flex items-center" style={{ borderBottom: '0.5px solid var(--color-separator)' }}>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    className="input"
+                                    placeholder="Amount"
+                                    value={newTemplate.amount}
+                                    onChange={e => setNewTemplate({ ...newTemplate, amount: e.target.value })}
+                                    required
+                                    style={{ flex: 1, borderBottom: 'none' }}
+                                />
+                                <span className="text-sm font-bold text-secondary" style={{ paddingLeft: '8px' }}>
+                                    {accounts.find(a => a.id == newTemplate.default_account_id)?.currency || 'USD'}
+                                </span>
                             </div>
-                            <input className="input" placeholder="Description for transaction" value={newTemplate.description} onChange={e => setNewTemplate({ ...newTemplate, description: e.target.value })} required />
-                            <select className="input" value={newTemplate.default_account_id} onChange={e => setNewTemplate({ ...newTemplate, default_account_id: e.target.value })}>
+
+                            <input
+                                className="input"
+                                placeholder="Description"
+                                value={newTemplate.description}
+                                onChange={e => setNewTemplate({ ...newTemplate, description: e.target.value })}
+                                required
+                            />
+
+                            <select
+                                className="input"
+                                value={newTemplate.category_id}
+                                onChange={e => setNewTemplate({ ...newTemplate, category_id: e.target.value })}
+                            >
+                                <option value="">No Category</option>
+                                {categories.filter(c => c.type === 'expense').map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </select>
+
+                            <select
+                                className="input"
+                                value={newTemplate.default_account_id}
+                                onChange={e => setNewTemplate({ ...newTemplate, default_account_id: e.target.value })}
+                                style={{ borderBottom: 'none' }}
+                            >
                                 {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
                             </select>
                         </div>
-                        <div className="flex gap-sm">
-                            <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Save Shortcut</button>
-                            <button type="button" className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setShowForm(false)}>Cancel</button>
+
+                        <div className="flex gap-md">
+                            <button type="button" className="btn btn-secondary flex-1" onClick={() => setShowForm(false)}>Cancel</button>
+                            <button type="submit" className="btn btn-primary flex-1">Save Shortcut</button>
                         </div>
                     </form>
                 </div>

@@ -8,41 +8,63 @@ datasource db {
 }
 
 model User {
-  id            Int           @id @default(autoincrement())
-  email         String        @unique
-  username      String        @unique
+  id            Int                    @id @default(autoincrement())
+  email         String                 @unique
+  username      String                 @unique
   password_hash String
-  currency      String        @default("USD") // Preferred currency
-  created_at    DateTime      @default(now())
+  currency      String                 @default("USD") // Preferred currency
+  created_at    DateTime               @default(now())
   accounts      Account[]
   transactions  Transaction[]
+  // ... (User model updates)
   templates     Template[]
+  categories    Category[]
+  budgets       Budget[]
+  recurring     RecurringTransaction[]
 }
 
 model Account {
-  id           Int           @id @default(autoincrement())
+  id                   Int                    @id @default(autoincrement())
+  name                 String
+  type                 String // "normal" | "savings"
+  currency             String                 @default("USD")
+  balance              Float                  @default(0.0)
+  user_id              Int
+  user                 User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at           DateTime               @default(now())
+  transactions         Transaction[]
+  templates            Template[]
+  RecurringTransaction RecurringTransaction[]
+}
+
+model Category {
+  id           Int                    @id @default(autoincrement())
   name         String
-  type         String        // "normal" | "savings"
-  currency     String        @default("USD")
-  balance      Float         @default(0.0)
+  type         String // "income" | "expense"
+  color        String?
+  icon         String?
   user_id      Int
-  user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  created_at   DateTime      @default(now())
+  user         User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at   DateTime               @default(now())
   transactions Transaction[]
+  budget       Budget?
+  recurring    RecurringTransaction[]
   templates    Template[]
 }
 
 model Transaction {
-  id          Int      @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   amount      Float
   description String
-  type        String   // "income" | "expense"
+  type        String // "income" | "expense"
   account_id  Int
-  account     Account  @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  account     Account   @relation(fields: [account_id], references: [id], onDelete: Cascade)
   user_id     Int
-  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  transfer_id String?  // UUID to link two transactions (debit/credit) for transfers
-  created_at  DateTime @default(now())
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  category_id Int?
+  category    Category? @relation(fields: [category_id], references: [id])
+  transfer_id String? // UUID to link two transactions (debit/credit) for transfers
+  created_at  DateTime  @default(now())
 }
 
 model Template {
@@ -52,7 +74,41 @@ model Template {
   description        String
   default_account_id Int?
   default_account    Account? @relation(fields: [default_account_id], references: [id])
+  category_id        Int?
+  category           Category? @relation(fields: [category_id], references: [id])
   user_id            Int
   user               User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   created_at         DateTime @default(now())
+}
+
+model Budget {
+  id          Int      @id @default(autoincrement())
+  amount      Float
+  period      String   @default("monthly")
+  category_id Int?     @unique
+  user_id     Int
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  category Category? @relation(fields: [category_id], references: [id])
+  user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model RecurringTransaction {
+  id            Int      @id @default(autoincrement())
+  amount        Float
+  description   String
+  type          String // "income" | "expense"
+  interval      String // "weekly" | "monthly" | "yearly"
+  next_run_date DateTime
+  active        Boolean  @default(true)
+  category_id   Int?
+  account_id    Int
+  user_id       Int
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  category Category? @relation(fields: [category_id], references: [id])
+  account  Account   @relation(fields: [account_id], references: [id])
+  user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }

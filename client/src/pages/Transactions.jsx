@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import api from '../services/api';
+import { getCategories } from '../services/categoryService';
 import { format, isToday, isYesterday } from 'date-fns';
-import { ArrowUp, ArrowDown, Repeat, Plus, X } from 'lucide-react';
+import { ArrowUp, ArrowDown, Repeat, Plus, X, Tag } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 import { formatCurrency, getCurrencySymbol } from '../utils/currencyUtils';
 
@@ -10,6 +11,7 @@ const Transactions = () => {
     const location = useLocation();
     const [transactions, setTransactions] = useState([]);
     const [accounts, setAccounts] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [userCurrency, setUserCurrency] = useState('USD');
     const [formMode, setFormMode] = useState(null); // 'transaction' | 'transfer' | null
@@ -20,6 +22,7 @@ const Transactions = () => {
     const [description, setDescription] = useState('');
     const [accountId, setAccountId] = useState('');
     const [toAccountId, setToAccountId] = useState('');
+    const [categoryId, setCategoryId] = useState('');
 
     useEffect(() => {
         fetchData();
@@ -30,13 +33,15 @@ const Transactions = () => {
 
     const fetchData = async () => {
         try {
-            const [txRes, accRes, profileRes] = await Promise.all([
+            const [txRes, accRes, profileRes, catRes] = await Promise.all([
                 api.get('/transactions'),
                 api.get('/accounts'),
-                api.get('/auth/profile')
+                api.get('/auth/profile'),
+                getCategories()
             ]);
             setTransactions(txRes.data);
             setAccounts(accRes.data);
+            setCategories(catRes);
             setUserCurrency(profileRes.data.currency || 'USD');
             if (accRes.data.length > 0) {
                 setAccountId(accRes.data[0].id);
@@ -48,9 +53,18 @@ const Transactions = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            if (formMode === 'transaction') await api.post('/transactions', { amount, description, type, account_id: accountId });
-            else await api.post('/transfers', { amount, description, from_account_id: accountId, to_account_id: toAccountId });
-            setFormMode(null); setAmount(''); setDescription(''); fetchData();
+            if (formMode === 'transaction') {
+                await api.post('/transactions', {
+                    amount,
+                    description,
+                    type,
+                    account_id: accountId,
+                    category_id: categoryId || null
+                });
+            } else {
+                await api.post('/transfers', { amount, description, from_account_id: accountId, to_account_id: toAccountId });
+            }
+            setFormMode(null); setAmount(''); setDescription(''); setCategoryId(''); fetchData();
             showToast('Transaction saved', 'success');
         } catch (e) { showToast('Operation failed', 'error'); }
     };
@@ -149,18 +163,43 @@ const Transactions = () => {
                             </div>
 
                             {formMode === 'transaction' && (
-                                <div className="flex gap-md" style={{ marginBottom: '32px' }}>
-                                    <button type="button" className="btn flex-1" onClick={() => setType('expense')} style={{
-                                        backgroundColor: type === 'expense' ? 'var(--color-bg-input)' : 'transparent',
-                                        color: type === 'expense' ? 'var(--color-danger)' : 'var(--color-text-secondary)',
-                                        border: type === 'expense' ? '1px solid var(--color-danger)' : '1px solid var(--color-border)'
-                                    }}>Expense</button>
-                                    <button type="button" className="btn flex-1" onClick={() => setType('income')} style={{
-                                        backgroundColor: type === 'income' ? 'var(--color-bg-input)' : 'transparent',
-                                        color: type === 'income' ? 'var(--color-success)' : 'var(--color-text-secondary)',
-                                        border: type === 'income' ? '1px solid var(--color-success)' : '1px solid var(--color-border)'
-                                    }}>Income</button>
-                                </div>
+                                <>
+                                    <div className="flex gap-md" style={{ marginBottom: '24px' }}>
+                                        <button type="button" className="btn flex-1" onClick={() => setType('expense')} style={{
+                                            backgroundColor: type === 'expense' ? 'var(--color-bg-input)' : 'transparent',
+                                            color: type === 'expense' ? 'var(--color-danger)' : 'var(--color-text-secondary)',
+                                            border: type === 'expense' ? '1px solid var(--color-danger)' : '1px solid var(--color-border)'
+                                        }}>Expense</button>
+                                        <button type="button" className="btn flex-1" onClick={() => setType('income')} style={{
+                                            backgroundColor: type === 'income' ? 'var(--color-bg-input)' : 'transparent',
+                                            color: type === 'income' ? 'var(--color-success)' : 'var(--color-text-secondary)',
+                                            border: type === 'income' ? '1px solid var(--color-success)' : '1px solid var(--color-border)'
+                                        }}>Income</button>
+                                    </div>
+
+                                    <div style={{ marginBottom: '24px' }}>
+                                        <label className="text-xs font-bold text-secondary uppercase" style={{ display: 'block', marginBottom: '8px' }}>Category</label>
+                                        <div className="flex gap-sm overflow-x-auto no-scrollbar" style={{ paddingBottom: '4px' }}>
+                                            <button type="button" onClick={() => setCategoryId('')} className="btn" style={{
+                                                padding: '6px 12px', borderRadius: '20px', fontSize: '12px',
+                                                backgroundColor: categoryId === '' ? 'var(--color-text-primary)' : 'var(--color-bg-input)',
+                                                color: categoryId === '' ? 'var(--color-bg-body)' : 'var(--color-text-secondary)',
+                                                border: 'none', flexShrink: 0
+                                            }}>None</button>
+
+                                            {categories.filter(c => c.type === type).map(cat => (
+                                                <button key={cat.id} type="button" onClick={() => setCategoryId(cat.id)} className="btn" style={{
+                                                    padding: '6px 12px', borderRadius: '20px', fontSize: '12px',
+                                                    backgroundColor: categoryId === cat.id ? (cat.color || 'var(--color-primary)') : 'var(--color-bg-input)',
+                                                    color: categoryId === cat.id ? '#fff' : 'var(--color-text-secondary)',
+                                                    border: 'none', flexShrink: 0
+                                                }}>
+                                                    {cat.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
                             )}
 
                             <button type="submit" className="btn btn-primary btn-block">
@@ -179,7 +218,7 @@ const Transactions = () => {
                             <h3 className="text-sm font-bold text-secondary uppercase" style={{ marginBottom: '12px', paddingLeft: '8px' }}>
                                 {getDateLabel(date)}
                             </h3>
-                            <div className="flex-col gap-sm"> {/* Changed from card to flex-col gap-sm */}
+                            <div className="flex-col gap-sm">
                                 {groupedTransactions[date].map((tx, i) => (
                                     <div key={tx.id} className="card" style={{
                                         padding: '12px 16px',
@@ -189,23 +228,39 @@ const Transactions = () => {
                                         justifyContent: 'space-between',
                                         gap: '12px',
                                         backgroundColor: 'var(--color-bg-card)',
-                                        marginBottom: '0px' // Removed margin-bottom from here, added gap to parent
+                                        marginBottom: '0px'
                                     }}>
                                         <div className="flex" style={{ gap: '12px', alignItems: 'center', flex: 1, minWidth: 0 }}>
                                             <div className="flex-center" style={{
                                                 width: '40px', height: '40px', borderRadius: '12px',
-                                                backgroundColor: tx.type === 'income' ? 'rgba(52, 199, 89, 0.12)' : 'rgba(255, 59, 48, 0.12)',
-                                                flexShrink: 0
+                                                backgroundColor: tx.category?.color ? `${tx.category.color}20` : (tx.type === 'income' ? 'rgba(52, 199, 89, 0.12)' : 'rgba(255, 59, 48, 0.12)'),
+                                                flexShrink: 0,
+                                                color: tx.category?.color || (tx.type === 'income' ? 'var(--color-success)' : 'var(--color-danger)')
                                             }}>
-                                                {tx.type === 'income'
-                                                    ? <ArrowUp size={18} color="var(--color-success)" strokeWidth={3} />
-                                                    : <ArrowDown size={18} color="var(--color-danger)" strokeWidth={3} />
-                                                }
+                                                {tx.category ? <Tag size={18} /> : (tx.type === 'income'
+                                                    ? <ArrowUp size={18} strokeWidth={3} />
+                                                    : <ArrowDown size={18} strokeWidth={3} />
+                                                )}
                                             </div>
                                             <div style={{ flex: 1, minWidth: 0 }}>
                                                 <div className="text-sm font-bold truncate" style={{ color: 'var(--color-text-primary)', lineHeight: 1.2 }}>{tx.description}</div>
-                                                <div className="text-xs text-secondary" style={{ marginTop: '2px', opacity: 0.8 }}>
-                                                    {tx.account?.name}
+                                                <div className="text-xs text-secondary flex items-center" style={{ marginTop: '4px', opacity: 0.8 }}>
+                                                    <span>{tx.account?.name}</span>
+                                                    {tx.category && (
+                                                        <span style={{
+                                                            color: tx.category.color,
+                                                            backgroundColor: `${tx.category.color}15`,
+                                                            fontWeight: '700',
+                                                            fontSize: '10px',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '6px',
+                                                            marginLeft: '8px',
+                                                            letterSpacing: '0.3px',
+                                                            display: 'inline-block'
+                                                        }}>
+                                                            {tx.category.name}
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

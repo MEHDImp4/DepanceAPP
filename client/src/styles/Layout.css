@@ -26,8 +26,8 @@
     display: flex;
     justify-content: space-around;
     align-items: center; /* Center items vertically */
-    padding-top: 10px;
-    padding-bottom: 24px; /* Sufficient safe bottom area */
+    padding-top: 8px;
+    padding-bottom: 12px; /* Adjusted safe bottom area */
     background: rgba(255, 255, 255, 0.92); /* Higher opacity for cleaner look */
     border-top: 0.5px solid var(--color-separator); /* Thinner iOS separator */
   }

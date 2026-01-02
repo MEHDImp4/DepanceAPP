@@ -2,7 +2,7 @@ const prisma = require('../utils/prisma');
 
 exports.createTemplate = async (req, res) => {
     try {
-        const { name, amount, description, default_account_id } = req.body;
+        const { name, amount, description, default_account_id, category_id } = req.body;
         const userId = req.user.userId;
 
         const template = await prisma.template.create({
@@ -11,6 +11,7 @@ exports.createTemplate = async (req, res) => {
                 amount: parseFloat(amount),
                 description,
                 default_account_id: default_account_id ? parseInt(default_account_id) : null,
+                category_id: category_id ? parseInt(category_id) : null,
                 user_id: userId
             }
         });
@@ -23,7 +24,10 @@ exports.getTemplates = async (req, res) => {
         const userId = req.user.userId;
         const templates = await prisma.template.findMany({
             where: { user_id: userId },
-            include: { default_account: { select: { name: true, currency: true } } }
+            include: {
+                default_account: { select: { name: true, currency: true } },
+                category: { select: { name: true, color: true, icon: true } }
+            }
         });
         res.json(templates);
     } catch (e) { res.status(500).json({ error: e.message }); }

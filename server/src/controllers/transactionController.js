@@ -2,7 +2,7 @@ const prisma = require('../utils/prisma');
 
 exports.createTransaction = async (req, res) => {
     try {
-        const { amount, description, type, account_id } = req.body;
+        const { amount, description, type, account_id, category_id } = req.body;
         const userId = req.user.userId;
 
         const account = await prisma.account.findFirst({ where: { id: parseInt(account_id), user_id: userId } });
@@ -18,7 +18,8 @@ exports.createTransaction = async (req, res) => {
                     description,
                     type,
                     account_id: parseInt(account_id),
-                    user_id: userId
+                    user_id: userId,
+                    category_id: category_id ? parseInt(category_id) : null
                 }
             }),
             prisma.account.update({
@@ -46,7 +47,10 @@ exports.getTransactions = async (req, res) => {
                     ...(accountId ? { account_id: parseInt(accountId) } : {})
                 },
                 orderBy: { created_at: 'desc' },
-                include: { account: { select: { name: true, currency: true } } }
+                include: {
+                    account: { select: { name: true, currency: true } },
+                    category: true
+                }
             })
         ]);
 

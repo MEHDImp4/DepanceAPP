@@ -16,6 +16,9 @@ app.use('/accounts', require('./routes/accountRoutes'));
 app.use('/transactions', require('./routes/transactionRoutes'));
 app.use('/transfers', require('./routes/transferRoutes'));
 app.use('/templates', require('./routes/templateRoutes'));
+app.use('/categories', require('./routes/categoryRoutes'));
+app.use('/budgets', require('./routes/budgetRoutes'));
+app.use('/recurring', require('./routes/recurringRoutes'));
 
 app.get('/', (req, res) => {
     res.send('DepanceAPP API is running');

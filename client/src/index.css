@@ -53,7 +53,7 @@
   --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.08);
 
   /* Layout */
-  --nav-height-mobile: 92px; /* Generous touch area */
+  --nav-height-mobile: 70px; /* More compact */
   --sidebar-width: 280px;
   --max-width-desktop: 1024px;
 }
