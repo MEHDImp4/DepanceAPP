@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { UIProvider } from './context/UIContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -38,11 +39,13 @@ const AppRoutes = () => {
 function App() {
   return (
     <AuthProvider>
-      <ThemeProvider>
-        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <AppRoutes />
-        </Router>
-      </ThemeProvider>
+      <UIProvider> {/* UIProvider wrapped inside AuthProvider */}
+        <ThemeProvider>
+          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <AppRoutes />
+          </Router>
+        </ThemeProvider>
+      </UIProvider>
     </AuthProvider>
   );
 }

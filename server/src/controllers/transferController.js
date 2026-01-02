@@ -1,5 +1,5 @@
 const prisma = require('../utils/prisma');
-const { v4: uuidv4 } = require('uuid'); // Need to install uuid, or just use Date.now() + random
+const { convertCurrency } = require('../utils/currencyService');
 
 exports.createTransfer = async (req, res) => {
     try {
@@ -13,22 +13,28 @@ exports.createTransfer = async (req, res) => {
         if (!fromAccount || !toAccount) return res.status(404).json({ error: 'One or both accounts not found' });
         if (fromAccount.id === toAccount.id) return res.status(400).json({ error: 'Cannot transfer to same account' });
 
-        const val = parseFloat(amount);
-        if (isNaN(val) || val <= 0) return res.status(400).json({ error: 'Invalid amount' });
+        const originalAmount = parseFloat(amount);
+        if (isNaN(originalAmount) || originalAmount <= 0) return res.status(400).json({ error: 'Invalid amount' });
 
-        // Use a unique transfer ID string
+        // Handle Currency Conversion
+        let creditedAmount = originalAmount;
+        let conversionRate = 1;
+        let isConversion = false;
+
+        if (fromAccount.currency !== toAccount.currency) {
+            creditedAmount = await convertCurrency(originalAmount, fromAccount.currency, toAccount.currency);
+            conversionRate = creditedAmount / originalAmount;
+            isConversion = true;
+        }
+
         const transferId = 'sf-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
 
-        // Create Debit (Exepnse) from sender
-        // Create Credit (Income) to receiver
-        // Update balances
-
         await prisma.$transaction([
-            // Debit
+            // Debit from source (in source currency)
             prisma.transaction.create({
                 data: {
-                    amount: val,
-                    description: description || `Transfer to ${toAccount.name}`,
+                    amount: originalAmount,
+                    description: description || `Transfer to ${toAccount.name} (${toAccount.currency})`,
                     type: 'expense',
                     account_id: fromAccount.id,
                     user_id: userId,
@@ -37,13 +43,13 @@ exports.createTransfer = async (req, res) => {
             }),
             prisma.account.update({
                 where: { id: fromAccount.id },
-                data: { balance: { decrement: val } }
+                data: { balance: { decrement: originalAmount } }
             }),
-            // Credit
+            // Credit to destination (in destination currency)
             prisma.transaction.create({
                 data: {
-                    amount: val,
-                    description: description || `Transfer from ${fromAccount.name}`,
+                    amount: creditedAmount,
+                    description: description || `Transfer from ${fromAccount.name} (${fromAccount.currency})` + (isConversion ? ` @ ${conversionRate.toFixed(4)}` : ''),
                     type: 'income',
                     account_id: toAccount.id,
                     user_id: userId,
@@ -52,11 +58,16 @@ exports.createTransfer = async (req, res) => {
             }),
             prisma.account.update({
                 where: { id: toAccount.id },
-                data: { balance: { increment: val } }
+                data: { balance: { increment: creditedAmount } }
             })
         ]);
 
-        res.status(201).json({ message: 'Transfer successful', transferId });
+        res.status(201).json({
+            message: 'Transfer successful',
+            transferId,
+            creditedAmount,
+            rate: conversionRate
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

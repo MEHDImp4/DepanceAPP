@@ -1,14 +1,38 @@
 const prisma = require('../utils/prisma');
+const { convertCurrency } = require('../utils/currencyService');
+
+exports.getSummary = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const [user, accounts] = await Promise.all([
+            prisma.user.findUnique({ where: { id: userId } }),
+            prisma.account.findMany({ where: { user_id: userId } })
+        ]);
+
+        let totalBalance = 0;
+        const targetCurrency = user.currency || 'USD';
+
+        for (const acc of accounts) {
+            const convertedAmount = await convertCurrency(acc.balance, acc.currency, targetCurrency);
+            totalBalance += convertedAmount;
+        }
+
+        res.json({ totalBalance, currency: targetCurrency, accountCount: accounts.length });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
 
 exports.createAccount = async (req, res) => {
     try {
-        const { name, type, balance } = req.body;
+        const { name, type, balance, currency } = req.body;
         const userId = req.user.userId;
 
         const account = await prisma.account.create({
             data: {
                 name,
                 type: type || 'normal',
+                currency: currency || 'USD',
                 balance: parseFloat(balance) || 0,
                 user_id: userId
             }
@@ -36,7 +60,7 @@ exports.getAccounts = async (req, res) => {
 exports.updateAccount = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, type } = req.body;
+        const { name, type, currency } = req.body;
         const userId = req.user.userId;
 
         // Verify ownership
@@ -45,7 +69,7 @@ exports.updateAccount = async (req, res) => {
 
         const updated = await prisma.account.update({
             where: { id: parseInt(id) },
-            data: { name, type }
+            data: { name, type, currency }
         });
         res.json(updated);
     } catch (error) {

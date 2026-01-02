@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Plus, Zap, ShoppingBag, Coffee, Car, Home } from 'lucide-react';
+import { useUI } from '../context/UIContext';
+import { formatCurrency } from '../utils/currencyUtils';
 
 const Templates = () => {
     const [templates, setTemplates] = useState([]);
     const [accounts, setAccounts] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [newTemplate, setNewTemplate] = useState({ name: '', amount: '', description: '', default_account_id: '' });
+    const { showToast, showConfirm } = useUI();
 
     // Icon selection helper could be added, for now random or default
     const getIcon = (name) => {
@@ -37,20 +40,25 @@ const Templates = () => {
             setShowForm(false);
             setNewTemplate({ name: '', amount: '', description: '', default_account_id: accounts[0]?.id || '' });
             fetchData();
-        } catch (e) { alert('Failed'); }
+            showToast('Shortcut saved', 'success');
+        } catch (e) { showToast('Failed to save shortcut', 'error'); }
     };
 
-    const executeTemplate = async (template) => {
-        if (!confirm(`Pay $${template.amount} for ${template.name}?`)) return;
-        try {
-            await api.post('/transactions', {
-                amount: template.amount,
-                description: template.description,
-                type: 'expense',
-                account_id: template.default_account_id
-            });
-            alert('Payment Sent!');
-        } catch (e) { alert('Failed to execute template'); }
+    const executeTemplate = (template) => {
+        const acc = accounts.find(a => a.id == template.default_account_id);
+        const amountStr = formatCurrency(template.amount, acc?.currency);
+
+        showConfirm('Confirm Payment', `Pay ${amountStr} for ${template.name}?`, async () => {
+            try {
+                await api.post('/transactions', {
+                    amount: template.amount,
+                    description: template.description,
+                    type: 'expense',
+                    account_id: template.default_account_id
+                });
+                showToast('Payment Sent!', 'success');
+            } catch (e) { showToast('Failed to execute template', 'error'); }
+        });
     };
 
     return (
@@ -59,12 +67,12 @@ const Templates = () => {
                 <h2 className="text-xl">Quick Pay</h2>
                 <button className="flex-center" onClick={() => setShowForm(!showForm)}
                     style={{
-                        width: '32px', height: '32px',
+                        width: '28px', height: '28px',
                         borderRadius: '50%',
                         backgroundColor: 'var(--color-bg-input)',
                         color: 'var(--color-primary)'
                     }}>
-                    <Plus size={20} />
+                    <Plus size={18} />
                 </button>
             </div>
 
@@ -74,10 +82,13 @@ const Templates = () => {
                     <form onSubmit={handleCreate}>
                         <div className="input-group" style={{ marginBottom: '16px' }}>
                             <input className="input" placeholder="Name (e.g. Coffee)" value={newTemplate.name} onChange={e => setNewTemplate({ ...newTemplate, name: e.target.value })} required />
-                            <input type="number" step="0.01" className="input" placeholder="Amount ($)" value={newTemplate.amount} onChange={e => setNewTemplate({ ...newTemplate, amount: e.target.value })} required />
+                            <div className="flex items-center gap-sm">
+                                <input type="number" step="0.01" className="input" placeholder="Amount" value={newTemplate.amount} onChange={e => setNewTemplate({ ...newTemplate, amount: e.target.value })} required style={{ flex: 1 }} />
+                                <span className="text-sm font-bold text-secondary">{accounts.find(a => a.id == newTemplate.default_account_id)?.currency}</span>
+                            </div>
                             <input className="input" placeholder="Description for transaction" value={newTemplate.description} onChange={e => setNewTemplate({ ...newTemplate, description: e.target.value })} required />
                             <select className="input" value={newTemplate.default_account_id} onChange={e => setNewTemplate({ ...newTemplate, default_account_id: e.target.value })}>
-                                {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                                {accounts.map(a => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
                             </select>
                         </div>
                         <div className="flex gap-sm">
@@ -88,56 +99,64 @@ const Templates = () => {
                 </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-                {templates.map(t => (
-                    <button key={t.id} onClick={() => executeTemplate(t)} style={{
-                        backgroundColor: 'var(--color-bg-card)',
-                        borderRadius: 'var(--radius-lg)',
-                        padding: '16px',
-                        height: '140px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between',
-                        alignItems: 'flex-start',
-                        border: 'none',
-                        boxShadow: 'var(--shadow-sm)',
-                        cursor: 'pointer',
-                        transition: 'transform 0.1s ease'
-                    }}
-                        onMouseDown={e => e.currentTarget.style.transform = 'scale(0.96)'}
-                        onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
-                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                    >
-                        <div style={{
-                            width: '40px', height: '40px', borderRadius: '50%',
-                            backgroundColor: 'var(--color-bg-input)', color: 'var(--color-accent)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}>
-                            {getIcon(t.name)}
-                        </div>
-                        <div style={{ textAlign: 'left', width: '100%' }}>
-                            <div className="text-base font-bold text-primary">{t.name}</div>
-                            <div className="text-sm font-bold text-secondary">${t.amount.toFixed(2)}</div>
-                        </div>
-                    </button>
-                ))}
+            {/* Template List - Stacked for easy one-handed tap */}
+            <div className="flex-col gap-md">
+                {templates.map(t => {
+                    const acc = accounts.find(a => a.id == t.default_account_id);
+                    return (
+                        <button key={t.id} onClick={() => executeTemplate(t)} className="card" style={{
+                            padding: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            border: 'none',
+                            cursor: 'pointer',
+                            transition: 'transform 0.1s ease',
+                            width: '100%',
+                            borderRadius: 'var(--radius-lg)'
+                        }}
+                            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
+                            onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                            <div className="flex items-center gap-md">
+                                <div className="flex-center" style={{
+                                    width: '48px', height: '48px', borderRadius: '50%',
+                                    backgroundColor: 'var(--color-bg-input)', color: 'var(--color-accent)'
+                                }}>
+                                    {getIcon(t.name)}
+                                </div>
+                                <div style={{ textAlign: 'left' }}>
+                                    <div className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>{t.name}</div>
+                                    <div className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+                                        {acc?.name || 'Account'}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="text-lg font-bold" style={{ color: 'var(--color-text-primary)' }}>
+                                {formatCurrency(t.amount, acc?.currency)}
+                            </div>
+                        </button>
+                    );
+                })}
 
-                {/* Add New Placeholder */}
+                {/* Add New Button */}
                 <button onClick={() => setShowForm(true)} style={{
                     backgroundColor: 'transparent',
                     borderRadius: 'var(--radius-lg)',
                     border: '2px dashed var(--color-border)',
                     padding: '16px',
-                    height: '140px',
+                    width: '100%',
                     display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
                     alignItems: 'center',
-                    cursor: 'pointer',
-                    color: 'var(--color-text-tertiary)'
+                    justifyContent: 'center',
+                    gap: '8px',
+                    color: 'var(--color-text-secondary)',
+                    fontWeight: '600',
+                    marginTop: '8px'
                 }}>
-                    <Plus size={32} />
-                    <span className="text-xs font-bold" style={{ marginTop: '8px' }}>Add New</span>
+                    <Plus size={20} />
+                    <span>Create New Shortcut</span>
                 </button>
             </div>
         </div>

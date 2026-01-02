@@ -38,15 +38,31 @@ exports.getTransactions = async (req, res) => {
         const userId = req.user.userId;
         const { accountId } = req.query;
 
-        const where = { user_id: userId };
-        if (accountId) where.account_id = parseInt(accountId);
+        const [user, transactions] = await Promise.all([
+            prisma.user.findUnique({ where: { id: userId }, select: { currency: true } }),
+            prisma.transaction.findMany({
+                where: {
+                    user_id: userId,
+                    ...(accountId ? { account_id: parseInt(accountId) } : {})
+                },
+                orderBy: { created_at: 'desc' },
+                include: { account: { select: { name: true, currency: true } } }
+            })
+        ]);
 
-        const transactions = await prisma.transaction.findMany({
-            where,
-            orderBy: { created_at: 'desc' },
-            include: { account: { select: { name: true } } }
-        });
-        res.json(transactions);
+        const targetCurrency = user.currency || 'USD';
+        const { convertCurrency } = require('../utils/currencyService');
+
+        const txsWithConversion = await Promise.all(transactions.map(async (tx) => {
+            const convertedAmount = await convertCurrency(tx.amount, tx.account?.currency || 'USD', targetCurrency);
+            return {
+                ...tx,
+                convertedAmount,
+                convertedCurrency: targetCurrency
+            };
+        }));
+
+        res.json(txsWithConversion);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }

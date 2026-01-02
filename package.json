@@ -1,0 +1,14 @@
+{
+  "name": "depance-app",
+  "version": "1.0.0",
+  "description": "Depance Finances App",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

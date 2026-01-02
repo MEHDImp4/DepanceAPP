@@ -1,42 +1,44 @@
 :root {
+  color-scheme: light dark;
   /* =========================================
-     Palette - Apple-like Minimalist
+     Palette - Apple-like Senior Mobile Spec
      ========================================= */
   
   /* Base Colors - Light Mode */
-  --color-bg-body: #F5F5F7;  /* Apple's light gray background */
-  --color-bg-card: #FFFFFF;
-  --color-bg-input: #F2F2F7; /* Secondary background for inputs/grouped tables */
+  --color-bg-body: #F2F2F7;  /* Official iOS System Grey 6 */
+  --color-bg-card: #FFFFFF;  /* Pure White */
+  --color-bg-input: #E5E5EA; /* iOS System Grey 5 for inputs */
   
   /* Text Colors */
-  --color-text-primary: #1D1D1F; /* Almost black, softer than #000 */
-  --color-text-secondary: #86868B;
-  --color-text-tertiary: #AEAEB2;
+  --color-text-primary: #000000;
+  --color-text-secondary: #8E8E93; /* iOS System Grey */
+  --color-text-tertiary: #C7C7CC;
   --color-text-inverse: #FFFFFF;
 
   /* Accents */
-  --color-accent: #007AFF;   /* Apple Blue */
-  --color-success: #34C759;  /* Apple Green */
-  --color-warning: #FF9500;  /* Apple Orange */
-  --color-danger: #FF3B30;   /* Apple Red */
+  --color-accent: #007AFF;   /* iOS Blue */
+  --color-success: #34C759;  /* iOS Green */
+  --color-warning: #FF9500;  /* iOS Orange */
+  --color-danger: #FF3B30;   /* iOS Red */
   
   /* Borders & Separators */
-  --color-border: rgba(0, 0, 0, 0.1);
-  --color-separator: #C6C6C8;
+  --color-border: rgba(60, 60, 67, 0.12); /* iOS Separator */
+  --color-separator: rgba(60, 60, 67, 0.18); /* Opaque Separator */
 
   /* Typography */
   --font-family-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  /* Typography - Responsive via clamp(min, preferred, max) */
   --font-size-xs: 11px;
-  --font-size-sm: 13px;
-  --font-size-base: 17px; /* Apple standard body size */
-  --font-size-lg: 20px;
-  --font-size-xl: 28px;
-  --font-size-xxl: 34px;
+  --font-size-sm: clamp(12px, 1.5vw + 8px, 14px);
+  --font-size-base: clamp(15px, 1vw + 12px, 17px);
+  --font-size-lg: clamp(18px, 2vw + 14px, 22px);
+  --font-size-xl: clamp(24px, 4vw + 18px, 32px);
+  --font-size-xxl: clamp(32px, 6vw + 24px, 48px);
 
   /* Metrics */
-  --radius-sm: 8px;
+  --radius-sm: 10px;
   --radius-md: 12px;
-  --radius-lg: 18px; /* Smooth corners */
+  --radius-lg: 16px; /* Strict 16px requirement */
   --radius-full: 9999px;
   
   --spacing-xs: 4px;
@@ -45,30 +47,28 @@
   --spacing-lg: 24px;
   --spacing-xl: 32px;
   
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.1);
-  --shadow-neu: 5px 5px 10px #d1d1d6, -5px -5px 10px #ffffff; /* Subtle neomorphism if needed, but keeping flat mostly */
+  /* Shadows - Very subtle */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05); /* Softer */
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.08);
 
   /* Layout */
-  --nav-height-mobile: 84px; /* Taller for touch targets */
+  --nav-height-mobile: 92px; /* Generous touch area */
   --sidebar-width: 280px;
   --max-width-desktop: 1024px;
 }
 
 /* Dark Mode Support (System Preferred) */
-/* Dark Mode Support (Manual Toggle via data-theme attribute) */
 [data-theme='dark'] {
   --color-bg-body: #000000;
   --color-bg-card: #1C1C1E;
   --color-bg-input: #2C2C2E;
   
-  --color-text-primary: #F5F5F7;
-  --color-text-secondary: #86868B; /* Stays similar */
-  --color-text-tertiary: #48484A;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #98989D; /* Lighter grey for better contrast */
+  --color-text-tertiary: #5A5A5F;
   
-  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border: rgba(255, 255, 255, 0.15);
   --color-separator: #38383A;
   
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -118,6 +118,12 @@ input, select, textarea {
   font-size: var(--font-size-base);
   border: none;
   background: transparent;
+  color: var(--color-text-primary);
+}
+
+select option {
+    background-color: var(--color-bg-card);
+    color: var(--color-text-primary);
 }
 
 /* =========================================
@@ -134,6 +140,7 @@ input, select, textarea {
 .text-accent { color: var(--color-accent); }
 .text-center { text-align: center; }
 .text-right { text-align: right; }
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .font-bold { font-weight: 600; }
 
 /* Layout */
@@ -181,7 +188,7 @@ input, select, textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 14px 20px;
+  padding: 12px 18px;
   border-radius: var(--radius-md); /* Slightly more rounded than standard inputs */
   font-weight: 600;
   transition: all 0.2s ease;
@@ -222,7 +229,7 @@ input, select, textarea {
 
 .input {
   width: 100%;
-  padding: 16px 0;
+  padding: 14px 0;
   color: var(--color-text-primary);
   border-bottom: 0.5px solid var(--color-separator);
 }

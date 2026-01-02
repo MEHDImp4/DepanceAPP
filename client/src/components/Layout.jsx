@@ -57,7 +57,7 @@ const Layout = ({ children }) => {
 
             <main className="main-content">
                 {/* Mobile Header */}
-                <header className="mobile-only flex-between" style={{ marginBottom: '20px', paddingTop: '10px' }}>
+                <header className="mobile-only flex-center" style={{ marginBottom: '8px', paddingTop: '4px', paddingLeft: '8px', paddingRight: '8px' }}>
                     <h1 className="text-xl" style={{
                         background: 'linear-gradient(135deg, var(--color-accent) 0%, #5856D6 100%)',
                         WebkitBackgroundClip: 'text',
@@ -65,9 +65,6 @@ const Layout = ({ children }) => {
                     }}>
                         Depance
                     </h1>
-                    <button onClick={logout} style={{ padding: '8px', color: 'var(--color-text-secondary)' }}>
-                        <LogOut size={20} />
-                    </button>
                 </header>
 
                 {children}

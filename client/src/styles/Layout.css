@@ -12,7 +12,8 @@
 }
 
 [data-theme='dark'] .nav-bar {
-  background-color: rgba(28, 28, 30, 0.85);
+  background-color: rgba(28, 28, 30, 0.92);
+  border-top: 0.5px solid rgba(255, 255, 255, 0.15);
 }
 
 /* Mobile: Bottom Navigation */
@@ -24,22 +25,38 @@
     height: var(--nav-height-mobile);
     display: flex;
     justify-content: space-around;
-    align-items: flex-start; /* Align to top to give space for home indicator */
-    padding-top: 12px;
-    padding-bottom: 34px; /* Safe area for iOS home indicator */
+    align-items: center; /* Center items vertically */
+    padding-top: 10px;
+    padding-bottom: 24px; /* Sufficient safe bottom area */
+    background: rgba(255, 255, 255, 0.92); /* Higher opacity for cleaner look */
+    border-top: 0.5px solid var(--color-separator); /* Thinner iOS separator */
+  }
+  
+  .nav-container {
+    display: flex;
+    width: 100%;
+    justify-content: space-around;
+    height: 100%;
   }
 
+  /* Increase touch target size */
   .nav-item {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     flex: 1;
+    height: 100%; /* Fill container */
     color: var(--color-text-tertiary);
     font-size: 10px;
     font-weight: 500;
-    gap: 4px;
-    transition: color 0.2s ease;
+    gap: 6px;
+    transition: color 0.2s ease, transform 0.1s;
+    user-select: none;
+  }
+  
+  .nav-item:active {
+    transform: scale(0.95);
   }
 
   .nav-item.active {
@@ -109,6 +126,8 @@
   flex: 1;
   width: 100%;
   animation: fadeIn 0.5s ease-out;
+  padding: var(--spacing-md); /* Add default padding for mobile */
+  padding-bottom: 120px; /* Ensure content doesn't get hidden behind bottom nav */
 }
 
 @media (min-width: 768px) {

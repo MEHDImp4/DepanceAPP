@@ -10,7 +10,9 @@ datasource db {
 model User {
   id            Int           @id @default(autoincrement())
   email         String        @unique
+  username      String        @unique
   password_hash String
+  currency      String        @default("USD") // Preferred currency
   created_at    DateTime      @default(now())
   accounts      Account[]
   transactions  Transaction[]
@@ -21,6 +23,7 @@ model Account {
   id           Int           @id @default(autoincrement())
   name         String
   type         String        // "normal" | "savings"
+  currency     String        @default("USD")
   balance      Float         @default(0.0)
   user_id      Int
   user         User          @relation(fields: [user_id], references: [id], onDelete: Cascade)

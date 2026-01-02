@@ -17,14 +17,14 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     }, []);
 
-    const login = async (email, password) => {
-        const data = await apiLogin(email, password);
+    const login = async (identifier, password) => {
+        const data = await apiLogin(identifier, password);
         setUser(data.user);
         return data;
     };
 
-    const register = async (email, password) => {
-        return await apiRegister(email, password);
+    const register = async (email, username, password) => {
+        return await apiRegister(email, username, password);
     };
 
     const logout = () => {
@@ -32,8 +32,14 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
     };
 
+    const updateUser = (newData) => {
+        const updated = { ...user, ...newData };
+        setUser(updated);
+        localStorage.setItem('user', JSON.stringify(updated));
+    };
+
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, register, logout, loading, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

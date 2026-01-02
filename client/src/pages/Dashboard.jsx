@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import api from '../services/api';
 import { format } from 'date-fns';
 import { ArrowUp, ArrowDown, Send, Plus, CreditCard, MoreHorizontal } from 'lucide-react';
+import { formatCurrency } from '../utils/currencyUtils';
 
 const Dashboard = () => {
     const [balance, setBalance] = useState(0);
+    const [currency, setCurrency] = useState('USD');
     const [recentTx, setRecentTx] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -15,12 +17,12 @@ const Dashboard = () => {
 
     const fetchData = async () => {
         try {
-            const [accRes, txRes] = await Promise.all([
-                api.get('/accounts'),
+            const [summaryRes, txRes] = await Promise.all([
+                api.get('/accounts/summary'),
                 api.get('/transactions')
             ]);
-            const total = accRes.data.reduce((sum, acc) => sum + acc.balance, 0);
-            setBalance(total);
+            setBalance(summaryRes.data.totalBalance);
+            setCurrency(summaryRes.data.currency);
             setRecentTx(txRes.data.slice(0, 5));
         } catch (e) {
             console.error(e);
@@ -32,15 +34,15 @@ const Dashboard = () => {
     const QuickAction = ({ icon, label, to }) => (
         <Link to={to} className="flex-col flex-center gap-sm" style={{ textDecoration: 'none' }}>
             <div className="flex-center" style={{
-                width: '60px',
-                height: '60px',
+                width: '50px',
+                height: '50px',
                 borderRadius: '50%',
                 backgroundColor: 'var(--color-bg-card)',
                 boxShadow: 'var(--shadow-sm)',
                 color: 'var(--color-accent)',
                 transition: 'all 0.2s ease'
             }}>
-                {icon}
+                {React.cloneElement(icon, { size: 20 })}
             </div>
             <span className="text-xs font-bold text-secondary">{label}</span>
         </Link>
@@ -49,24 +51,36 @@ const Dashboard = () => {
     return (
         <div className="animate-fade-in">
             {/* Header / Balance */}
-            <div style={{ padding: '24px 0 40px', textAlign: 'center' }}>
-                <h2 className="text-sm text-secondary font-bold" style={{ marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Balance</h2>
+            <div style={{ padding: '8px 0 24px', textAlign: 'center' }}>
+                <h2 className="text-sm text-secondary font-bold" style={{ marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '1px' }}>Total Balance</h2>
                 <h1 style={{
-                    fontSize: '48px',
+                    fontSize: 'var(--font-size-xxl)',
                     fontWeight: '800',
-                    letterSpacing: '-1px',
+                    letterSpacing: '-2px',
                     color: 'var(--color-text-primary)'
                 }}>
-                    ${balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {formatCurrency(balance, currency)}
                 </h1>
             </div>
 
-            {/* Quick Actions */}
-            <div className="flex-between" style={{ padding: '0 20px 40px', maxWidth: '400px', margin: '0 auto' }}>
-                <QuickAction icon={<Send size={24} />} label="Transfer" to="/transactions" />
-                <QuickAction icon={<Plus size={24} />} label="Add" to="/transactions" />
-                <QuickAction icon={<CreditCard size={24} />} label="Cards" to="/accounts" />
-                <QuickAction icon={<MoreHorizontal size={24} />} label="More" to="/settings" />
+            {/* Dashboard Actions */}
+            <div style={{ padding: '0 20px 40px', display: 'flex', justifyContent: 'center' }}>
+                <Link to="/transactions" state={{ openModal: 'transaction' }} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '12px 32px',
+                    backgroundColor: 'var(--color-accent)',
+                    borderRadius: 'var(--radius-full)',
+                    color: 'white',
+                    fontWeight: '700',
+                    fontSize: 'var(--font-size-sm)',
+                    boxShadow: '0 8px 16px rgba(0, 122, 255, 0.3)',
+                    textDecoration: 'none'
+                }}>
+                    <Plus size={20} strokeWidth={3} />
+                    <span>Add Transaction</span>
+                </Link>
             </div>
 
             {/* Recent Activity */}
@@ -78,28 +92,46 @@ const Dashboard = () => {
 
                 <div className="flex-col gap-md">
                     {recentTx.map(tx => (
-                        <div key={tx.id} className="card flex-between" style={{ padding: '16px', borderRadius: 'var(--radius-lg)' }}>
-                            <div className="flex" style={{ gap: '16px', alignItems: 'center' }}>
+                        <div key={tx.id} className="card" style={{
+                            padding: '12px 16px',
+                            borderRadius: 'var(--radius-lg)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '12px'
+                        }}>
+                            <div className="flex" style={{ gap: '12px', alignItems: 'center', flex: 1, minWidth: 0 }}>
                                 <div className="flex-center" style={{
-                                    width: '44px', height: '44px', borderRadius: '50%',
-                                    backgroundColor: tx.type === 'income' ? 'rgba(52, 199, 89, 0.1)' : 'rgba(255, 59, 48, 0.1)',
+                                    width: '40px', height: '40px', borderRadius: '12px',
+                                    backgroundColor: tx.type === 'income' ? 'rgba(52, 199, 89, 0.12)' : 'rgba(255, 59, 48, 0.12)',
+                                    flexShrink: 0
                                 }}>
                                     {tx.type === 'income'
-                                        ? <ArrowUp size={20} color="var(--color-success)" strokeWidth={2.5} />
-                                        : <ArrowDown size={20} color="var(--color-danger)" strokeWidth={2.5} />
+                                        ? <ArrowUp size={18} color="var(--color-success)" strokeWidth={3} />
+                                        : <ArrowDown size={18} color="var(--color-danger)" strokeWidth={3} />
                                     }
                                 </div>
-                                <div>
-                                    <div className="text-base font-bold" style={{ color: 'var(--color-text-primary)' }}>{tx.description}</div>
-                                    <div className="text-xs text-secondary" style={{ marginTop: '2px' }}>
-                                        {format(new Date(tx.created_at), 'MMM d, yyyy')}
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div className="text-sm font-bold truncate" style={{ color: 'var(--color-text-primary)', lineHeight: 1.2 }}>{tx.description}</div>
+                                    <div className="text-xs text-secondary" style={{ marginTop: '2px', opacity: 0.8 }}>
+                                        {tx.account?.name} • {format(new Date(tx.created_at), 'MMM d')}
                                     </div>
                                 </div>
                             </div>
-                            <div className="text-base font-bold" style={{
-                                color: tx.type === 'income' ? 'var(--color-success)' : 'var(--color-text-primary)'
+                            <div style={{
+                                color: tx.type === 'income' ? 'var(--color-success)' : 'var(--color-danger)',
+                                textAlign: 'right',
+                                flexShrink: 0,
+                                marginLeft: '8px'
                             }}>
-                                {tx.type === 'income' ? '+' : ''}${tx.amount.toFixed(2)}
+                                <div style={{ fontSize: '15px', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.convertedAmount || tx.amount, currency)}
+                                </div>
+                                {tx.account?.currency !== currency && (
+                                    <div className="text-secondary" style={{ fontSize: '10px', fontWeight: '500', whiteSpace: 'nowrap', marginTop: '1px' }}>
+                                        {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount, tx.account?.currency)}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}

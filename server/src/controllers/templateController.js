@@ -23,7 +23,7 @@ exports.getTemplates = async (req, res) => {
         const userId = req.user.userId;
         const templates = await prisma.template.findMany({
             where: { user_id: userId },
-            include: { default_account: { select: { name: true } } }
+            include: { default_account: { select: { name: true, currency: true } } }
         });
         res.json(templates);
     } catch (e) { res.status(500).json({ error: e.message }); }

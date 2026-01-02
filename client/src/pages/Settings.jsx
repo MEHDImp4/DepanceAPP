@@ -1,11 +1,27 @@
 import React from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
-import { Moon, Sun, User, Shield, Bell, ChevronRight, LogOut, Github, Globe } from 'lucide-react';
+import { useUI } from '../context/UIContext';
+import api from '../services/api';
+import { currencies } from '../utils/currencyUtils';
+import {
+    Sun, Moon, Coins, User, Shield, Bell, Globe,
+    Github, ChevronRight, LogOut, Mail
+} from 'lucide-react';
 
 const Settings = () => {
     const { theme, toggleTheme } = useTheme();
-    const { user, logout } = useAuth();
+    const { user, logout, updateUser } = useAuth();
+    const { showToast } = useUI();
+
+    const handleCurrencyChange = async (e) => {
+        const newCurrency = e.target.value;
+        try {
+            await api.put('/auth/profile', { currency: newCurrency });
+            updateUser({ currency: newCurrency });
+            showToast('Currency updated');
+        } catch (e) { showToast('Failed to update currency', 'error'); }
+    };
 
     const sections = [
         {
@@ -18,13 +34,26 @@ const Settings = () => {
                     action: <div className={`toggle-switch ${theme === 'dark' ? 'active' : ''}`} onClick={toggleTheme}>
                         <div className="toggle-knob" />
                     </div>
+                },
+                {
+                    icon: <Coins size={20} />,
+                    iconColor: '#FFCC00',
+                    label: 'Primary Currency',
+                    action: <select
+                        value={user?.currency || 'USD'}
+                        onChange={handleCurrencyChange}
+                        style={{ border: 'none', background: 'transparent', color: 'var(--color-primary)', fontWeight: 'bold' }}
+                    >
+                        {currencies.map(c => <option key={c.code} value={c.code}>{c.code} ({c.symbol})</option>)}
+                    </select>
                 }
             ]
         },
         {
             title: 'Account',
             items: [
-                { icon: <User size={20} />, iconColor: '#007AFF', label: 'Profile', value: user?.email },
+                { icon: <User size={20} />, iconColor: '#007AFF', label: 'Username', value: user?.username || 'Not set' },
+                { icon: <Mail size={20} />, iconColor: '#5856D6', label: 'Email', value: user?.email },
                 { icon: <Shield size={20} />, iconColor: '#34C759', label: 'Security', arrow: true },
                 { icon: <Bell size={20} />, iconColor: '#FF9500', label: 'Notifications', arrow: true },
             ]
@@ -40,7 +69,7 @@ const Settings = () => {
 
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '40px' }}>
-            <div style={{ padding: '24px 0 32px' }}>
+            <div style={{ padding: '8px 0 20px' }}>
                 <h2 className="text-xl">Settings</h2>
             </div>
 
@@ -58,19 +87,20 @@ const Settings = () => {
                                     borderBottom: i < section.items.length - 1 ? '1px solid var(--color-border)' : 'none',
                                     cursor: 'pointer',
                                     backgroundColor: 'var(--color-bg-card)'
-                                }} onClick={item.arrow ? () => alert('Not implemented yet') : undefined}>
-                                    <div className="flex items-center gap-md">
+                                }} onClick={item.arrow ? () => showToast('Feature coming soon') : undefined}>
+                                    <div className="flex items-center gap-sm" style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center' }}>
                                         <div className="flex-center" style={{
                                             width: '32px', height: '32px', borderRadius: '8px',
-                                            backgroundColor: item.iconColor ? `${item.iconColor}20` : 'var(--color-bg-input)', // 20 opacity
-                                            color: item.iconColor || 'var(--color-primary)'
+                                            backgroundColor: item.iconColor ? `${item.iconColor}20` : 'var(--color-bg-input)',
+                                            color: item.iconColor || 'var(--color-primary)',
+                                            flexShrink: 0
                                         }}>
                                             {React.cloneElement(item.icon, { size: 18 })}
                                         </div>
-                                        <span className="text-base font-bold text-primary">{item.label}</span>
+                                        <span className="text-sm font-bold text-primary truncate" style={{ lineHeight: 1 }}>{item.label}</span>
                                     </div>
-                                    <div className="flex items-center gap-sm text-secondary">
-                                        {item.value && <span className="text-sm">{item.value}</span>}
+                                    <div className="flex items-center gap-sm text-secondary" style={{ flexShrink: 0, marginLeft: '4px', display: 'flex', alignItems: 'center' }}>
+                                        {item.value && <span className="text-xs truncate" style={{ maxWidth: '100px', lineHeight: 1 }}>{item.value}</span>}
                                         {item.action}
                                         {item.arrow && <ChevronRight size={18} color="var(--color-text-tertiary)" />}
                                     </div>

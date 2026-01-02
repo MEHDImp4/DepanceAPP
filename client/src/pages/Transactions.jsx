@@ -1,27 +1,43 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ArrowUp, ArrowDown, Repeat, Plus, X } from 'lucide-react';
+import { useUI } from '../context/UIContext';
+import { formatCurrency, getCurrencySymbol } from '../utils/currencyUtils';
 
 const Transactions = () => {
+    const location = useLocation();
     const [transactions, setTransactions] = useState([]);
     const [accounts, setAccounts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [userCurrency, setUserCurrency] = useState('USD');
     const [formMode, setFormMode] = useState(null); // 'transaction' | 'transfer' | null
+    const { showToast } = useUI();
 
+    const [type, setType] = useState('expense');
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
-    const [type, setType] = useState('expense');
     const [accountId, setAccountId] = useState('');
     const [toAccountId, setToAccountId] = useState('');
 
-    useEffect(() => { fetchData(); }, []);
+    useEffect(() => {
+        fetchData();
+        if (location.state?.openModal) {
+            setFormMode(location.state.openModal);
+        }
+    }, [location]);
 
     const fetchData = async () => {
         try {
-            const [txRes, accRes] = await Promise.all([api.get('/transactions'), api.get('/accounts')]);
+            const [txRes, accRes, profileRes] = await Promise.all([
+                api.get('/transactions'),
+                api.get('/accounts'),
+                api.get('/auth/profile')
+            ]);
             setTransactions(txRes.data);
             setAccounts(accRes.data);
+            setUserCurrency(profileRes.data.currency || 'USD');
             if (accRes.data.length > 0) {
                 setAccountId(accRes.data[0].id);
                 if (accRes.data.length > 1) setToAccountId(accRes.data[1].id);
@@ -35,8 +51,11 @@ const Transactions = () => {
             if (formMode === 'transaction') await api.post('/transactions', { amount, description, type, account_id: accountId });
             else await api.post('/transfers', { amount, description, from_account_id: accountId, to_account_id: toAccountId });
             setFormMode(null); setAmount(''); setDescription(''); fetchData();
-        } catch (e) { alert('Operation failed'); }
+            showToast('Transaction saved', 'success');
+        } catch (e) { showToast('Operation failed', 'error'); }
     };
+
+    const selectedAccount = accounts.find(a => a.id == accountId);
 
     // Group transactions by date
     const groupedTransactions = transactions.reduce((groups, tx) => {
@@ -56,14 +75,14 @@ const Transactions = () => {
     return (
         <div className="animate-fade-in" style={{ paddingBottom: '80px' }}>
             {/* Header with Actions */}
-            <div className="flex-between" style={{ padding: '24px 0 24px' }}>
+            <div className="flex-between" style={{ padding: '8px 0 20px' }}>
                 <h2 className="text-xl">Transactions</h2>
                 <div className="flex gap-sm">
-                    <button className="btn btn-secondary flex-center" onClick={() => setFormMode('transfer')} style={{ padding: '10px' }}>
-                        <Repeat size={20} />
+                    <button className="btn btn-secondary flex-center" onClick={() => setFormMode('transfer')} style={{ padding: '8px' }}>
+                        <Repeat size={18} />
                     </button>
-                    <button className="btn btn-primary flex-center" onClick={() => setFormMode('transaction')} style={{ padding: '10px' }}>
-                        <Plus size={20} />
+                    <button className="btn btn-primary flex-center" onClick={() => setFormMode('transaction')} style={{ padding: '8px' }}>
+                        <Plus size={18} />
                     </button>
                 </div>
             </div>
@@ -74,11 +93,11 @@ const Transactions = () => {
                     position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
                     zIndex: 2000,
                     backgroundColor: 'rgba(0,0,0,0.5)',
-                    display: 'flex', alignItems: 'flex-end', justifyContent: 'center'
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px'
                 }} onClick={() => setFormMode(null)}>
                     <div className="card animate-slide-up" style={{
                         width: '100%', maxWidth: '500px',
-                        borderBottomLeftRadius: 0, borderBottomRightRadius: 0,
+                        borderRadius: 'var(--radius-lg)',
                         margin: 0, padding: '24px',
                         maxHeight: '90vh', overflowY: 'auto'
                     }} onClick={e => e.stopPropagation()}>
@@ -92,7 +111,6 @@ const Transactions = () => {
 
                         <form onSubmit={handleSubmit}>
                             <div className="flex-center" style={{ marginBottom: '32px' }}>
-                                <span style={{ fontSize: '32px', fontWeight: '600', color: 'var(--color-text-tertiary)', marginRight: '4px' }}>$</span>
                                 <input
                                     type="number"
                                     value={amount}
@@ -102,11 +120,14 @@ const Transactions = () => {
                                     autoFocus
                                     step="0.01"
                                     style={{
-                                        fontSize: '48px', fontWeight: '700', textAlign: 'center',
-                                        border: 'none', background: 'transparent', width: '200px', padding: 0
+                                        fontSize: 'var(--font-size-xxl)', fontWeight: '700', textAlign: 'center',
+                                        border: 'none', background: 'transparent', width: '180px', padding: 0
                                     }}
                                     required
                                 />
+                                <span style={{ fontSize: 'var(--font-size-lg)', fontWeight: '600', color: 'var(--color-text-tertiary)', marginLeft: '8px' }}>
+                                    {getCurrencySymbol(selectedAccount?.currency)}
+                                </span>
                             </div>
 
                             <div className="input-group" style={{ marginBottom: '24px' }}>
@@ -114,14 +135,14 @@ const Transactions = () => {
                                 <div style={{ padding: '16px 0', borderBottom: '0.5px solid var(--color-separator)' }}>
                                     <label className="text-xs font-bold text-secondary uppercase" style={{ display: 'block', marginBottom: '8px' }}>Account</label>
                                     <select className="input" value={accountId} onChange={e => setAccountId(e.target.value)} style={{ padding: 0, border: 'none' }}>
-                                        {accounts.map(acc => <option key={acc.id} value={acc.id}>{formMode === 'transfer' ? 'From: ' : ''}{acc.name}</option>)}
+                                        {accounts.map(acc => <option key={acc.id} value={acc.id}>{formMode === 'transfer' ? 'From: ' : ''}{acc.name} ({acc.currency})</option>)}
                                     </select>
                                 </div>
                                 {formMode === 'transfer' && (
                                     <div style={{ padding: '16px 0' }}>
                                         <label className="text-xs font-bold text-secondary uppercase" style={{ display: 'block', marginBottom: '8px' }}>To</label>
                                         <select className="input" value={toAccountId} onChange={e => setToAccountId(e.target.value)} style={{ padding: 0, border: 'none' }}>
-                                            {accounts.filter(a => a.id != accountId).map(acc => <option key={acc.id} value={acc.id}>To: {acc.name}</option>)}
+                                            {accounts.filter(a => a.id != accountId).map(acc => <option key={acc.id} value={acc.id}>To: {acc.name} ({acc.currency})</option>)}
                                         </select>
                                     </div>
                                 )}
@@ -158,32 +179,49 @@ const Transactions = () => {
                             <h3 className="text-sm font-bold text-secondary uppercase" style={{ marginBottom: '12px', paddingLeft: '8px' }}>
                                 {getDateLabel(date)}
                             </h3>
-                            <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+                            <div className="flex-col gap-sm"> {/* Changed from card to flex-col gap-sm */}
                                 {groupedTransactions[date].map((tx, i) => (
-                                    <div key={tx.id} className="flex-between" style={{
-                                        padding: '16px',
-                                        borderBottom: i === groupedTransactions[date].length - 1 ? 'none' : '1px solid var(--color-border)',
-                                        cursor: 'pointer' // For potential detail view in check
+                                    <div key={tx.id} className="card" style={{
+                                        padding: '12px 16px',
+                                        borderRadius: 'var(--radius-lg)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        gap: '12px',
+                                        backgroundColor: 'var(--color-bg-card)',
+                                        marginBottom: '0px' // Removed margin-bottom from here, added gap to parent
                                     }}>
-                                        <div className="flex items-center gap-md">
+                                        <div className="flex" style={{ gap: '12px', alignItems: 'center', flex: 1, minWidth: 0 }}>
                                             <div className="flex-center" style={{
-                                                width: '36px', height: '36px', borderRadius: '50%',
-                                                backgroundColor: tx.type === 'income' ? 'rgba(52, 199, 89, 0.1)' : 'rgba(255, 59, 48, 0.1)',
+                                                width: '40px', height: '40px', borderRadius: '12px',
+                                                backgroundColor: tx.type === 'income' ? 'rgba(52, 199, 89, 0.12)' : 'rgba(255, 59, 48, 0.12)',
+                                                flexShrink: 0
                                             }}>
                                                 {tx.type === 'income'
-                                                    ? <ArrowUp size={18} color="var(--color-success)" strokeWidth={2.5} />
-                                                    : <ArrowDown size={18} color="var(--color-danger)" strokeWidth={2.5} />
+                                                    ? <ArrowUp size={18} color="var(--color-success)" strokeWidth={3} />
+                                                    : <ArrowDown size={18} color="var(--color-danger)" strokeWidth={3} />
                                                 }
                                             </div>
-                                            <div>
-                                                <div className="text-base font-bold text-primary">{tx.description}</div>
-                                                <div className="text-xs text-secondary">{tx.account?.name}</div>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div className="text-sm font-bold truncate" style={{ color: 'var(--color-text-primary)', lineHeight: 1.2 }}>{tx.description}</div>
+                                                <div className="text-xs text-secondary" style={{ marginTop: '2px', opacity: 0.8 }}>
+                                                    {tx.account?.name}
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="text-base font-bold" style={{
-                                            color: tx.type === 'income' ? 'var(--color-success)' : 'var(--color-text-primary)'
+                                        <div style={{
+                                            color: tx.type === 'income' ? 'var(--color-success)' : 'var(--color-danger)',
+                                            textAlign: 'right',
+                                            flexShrink: 0
                                         }}>
-                                            {tx.type === 'income' ? '+' : ''}{tx.amount.toFixed(2)}
+                                            <div style={{ fontSize: '15px', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                                                {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.convertedAmount || tx.amount, userCurrency)}
+                                            </div>
+                                            {tx.account?.currency !== userCurrency && (
+                                                <div className="text-secondary" style={{ fontSize: '10px', fontWeight: '500', whiteSpace: 'nowrap', marginTop: '1px' }}>
+                                                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount, tx.account?.currency)}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
