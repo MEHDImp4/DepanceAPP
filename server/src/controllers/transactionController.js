@@ -8,13 +8,13 @@ exports.createTransaction = async (req, res) => {
         const account = await prisma.account.findFirst({ where: { id: parseInt(account_id), user_id: userId } });
         if (!account) return res.status(404).json({ error: 'Account not found' });
 
-        const val = parseFloat(amount);
-        const balanceChange = type === 'income' ? val : -val;
+        const transactionAmount = parseFloat(amount);
+        const balanceChange = type === 'income' ? transactionAmount : -transactionAmount;
 
         const [transaction, updatedAccount] = await prisma.$transaction([
             prisma.transaction.create({
                 data: {
-                    amount: val,
+                    amount: transactionAmount,
                     description,
                     type,
                     account_id: parseInt(account_id),

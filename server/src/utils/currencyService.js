@@ -9,9 +9,7 @@ let ratesCache = {
 
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
 
-/**
- * Fetch exchange rates (Base: USD)
- */
+
 const getRates = async () => {
     const now = Date.now();
     if (ratesCache.rates && (now - ratesCache.timestamp < CACHE_DURATION)) {
@@ -30,7 +28,7 @@ const getRates = async () => {
     } catch (error) {
         console.error('Currency API Error:', error.message);
         // Fallback or rethrow? For now, if no cache and fail, we can't convert.
-        if (ratesCache.rates) return ratesCache.rates; // return stale if available
+        if (ratesCache.rates) return ratesCache.rates;
         throw error;
     }
 };

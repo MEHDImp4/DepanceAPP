@@ -66,34 +66,6 @@ const updateCategory = async (req, res) => {
 const deleteCategory = async (req, res) => {
     try {
         const { id } = req.params;
-        // Optional: Check if used in transactions before delete? 
-        // Prisma cascade delete on User is set, but what about Transactions?
-        // In schema: `category Category? @relation...`
-        // If we delete category, `category_id` in transaction should probably be set to null or restrict.
-        // Currently schema doesn't specify onDelete for Category relation in Transaction! 
-        // Default is usually restrictive or failure.
-        // Ideally we update transactions to have null category.
-
-        // Let's use delete and handle potential error or update dependencies.
-        // Since category_id is optional, we could set it to null.
-        // But for now let's just create the delete method.
-
-        const category = await prisma.category.delete({
-            where: { id: parseInt(id) }, // logic needs to ensure it belongs to user
-        });
-
-        // Wait, delete by ID alone is risky if we don't check user_id. 
-        // Prisma delete expects unique where.
-        // We should verify ownership first.
-    } catch (error) {
-        // ...
-    }
-};
-
-// Refined delete with ownership check
-const deleteCategoryS = async (req, res) => {
-    try {
-        const { id } = req.params;
         const category = await prisma.category.findUnique({
             where: { id: parseInt(id) }
         });
@@ -119,12 +91,12 @@ const deleteCategoryS = async (req, res) => {
         console.error(error);
         res.status(500).json({ error: 'Error deleting category' });
     }
-}
+};
 
 
 module.exports = {
     getCategories,
     createCategory,
     updateCategory,
-    deleteCategory: deleteCategoryS
+    deleteCategory
 };

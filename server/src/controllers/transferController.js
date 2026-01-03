@@ -27,7 +27,8 @@ exports.createTransfer = async (req, res) => {
             isConversion = true;
         }
 
-        const transferId = 'sf-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+        const RADIX_36 = 36;
+        const transferId = 'sf-' + Date.now() + '-' + Math.random().toString(RADIX_36).substr(2, 9);
 
         await prisma.$transaction([
             // Debit from source (in source currency)
