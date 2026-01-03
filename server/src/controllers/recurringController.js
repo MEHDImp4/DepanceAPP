@@ -118,16 +118,12 @@ exports.processRecurring = async (req, res) => {
             }
         });
 
-        const createdTransactions = [];
-
-        for (const rule of dueRules) {
-            const txs = await processRuleCycles(rule, userId, now);
-            createdTransactions.push(...txs);
-        }
+        const results = await Promise.all(dueRules.map(rule => processRuleCycles(rule, userId, now)));
+        const createdTransactions = results.flat();
 
         res.json({ processed: createdTransactions.length, transactions: createdTransactions });
     } catch (error) {
-        console.error("Auto-process error:", error);
+        // console.error("Auto-process error:", error);
         res.status(500).json({ error: error.message });
     }
 };

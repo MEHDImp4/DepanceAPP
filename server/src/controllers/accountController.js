@@ -5,17 +5,15 @@ exports.getSummary = async (req, res) => {
     try {
         const userId = req.user.userId;
         const [user, accounts] = await Promise.all([
-            prisma.user.findUnique({ where: { id: userId } }),
-            prisma.account.findMany({ where: { user_id: userId } })
+            await prisma.user.findUnique({ where: { id: userId } }),
+            await prisma.account.findMany({ where: { user_id: userId } })
         ]);
 
-        let totalBalance = 0;
-        const targetCurrency = user.currency || 'USD';
+        const amounts = await Promise.all(accounts.map(acc =>
+            convertCurrency(acc.balance, acc.currency, targetCurrency)
+        ));
 
-        for (const acc of accounts) {
-            const convertedAmount = await convertCurrency(acc.balance, acc.currency, targetCurrency);
-            totalBalance += convertedAmount;
-        }
+        const totalBalance = amounts.reduce((sum, amount) => sum + amount, 0);
 
         res.json({ totalBalance, currency: targetCurrency, accountCount: accounts.length });
     } catch (error) {

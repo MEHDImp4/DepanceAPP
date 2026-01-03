@@ -45,6 +45,10 @@ app.get('/', (req, res) => {
     res.send('DepanceAPP API is running');
 });
 
-app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-});
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+}
+
+module.exports = app;

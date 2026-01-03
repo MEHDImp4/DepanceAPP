@@ -8,10 +8,10 @@ const prisma = new PrismaClient({
     }
 });
 async function main() {
-    console.log('Connecting to', process.env.DATABASE_URL);
+    if (process.env.DEBUG) console.log('Connecting to', process.env.DATABASE_URL);
     await prisma.$connect();
-    console.log('Connected!');
+    if (process.env.DEBUG) console.log('Connected!');
     const users = await prisma.user.findMany();
-    console.log('Users:', users);
+    if (process.env.DEBUG) console.log('Users:', users);
 }
 main().catch(console.error).finally(() => prisma.$disconnect());
