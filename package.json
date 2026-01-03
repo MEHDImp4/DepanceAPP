@@ -4,9 +4,10 @@
   "description": "Depance Finances App",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently -n server,client \"npm run server\" \"npm run client\"",
+    "dev": "concurrently -n server,mobile \"npm run server\" \"npm run mobile\"",
     "server": "npm run dev --prefix server",
-    "client": "npm run dev --prefix client"
+    "client": "npm run dev --prefix client",
+    "mobile": "npm start --prefix mobile"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"
