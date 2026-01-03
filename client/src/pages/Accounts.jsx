@@ -10,7 +10,7 @@ const Accounts = () => {
     const [newAccount, setNewAccount] = useState({ name: '', type: 'normal', balance: '', currency: 'USD' });
     const [loading, setLoading] = useState(true);
     const [editingAccount, setEditingAccount] = useState(null);
-    const { showToast, showConfirm } = useUI();
+    const { showToast, showConfirm, isPrivacyMode } = useUI();
 
     useEffect(() => { fetchAccounts(); }, []);
 
@@ -185,7 +185,7 @@ const Accounts = () => {
 
                             <div>
                                 <div style={{ fontSize: 'var(--font-size-xl)', fontWeight: '700', letterSpacing: '-1.5px' }}>
-                                    {formatCurrency(acc.balance, acc.currency)}
+                                    {isPrivacyMode ? '••••' : formatCurrency(acc.balance, acc.currency)}
                                 </div>
                             </div>
                         </div>

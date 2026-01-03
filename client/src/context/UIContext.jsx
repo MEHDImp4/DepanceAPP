@@ -8,6 +8,17 @@ export const useUI = () => useContext(UIContext);
 export const UIProvider = ({ children }) => {
     const [toast, setToast] = useState(null); // { message, type }
     const [modal, setModal] = useState(null); // { title, message, onConfirm, isDestructive, confirmText }
+    const [isPrivacyMode, setIsPrivacyMode] = useState(() => {
+        return localStorage.getItem('depance_privacy_mode') === 'true';
+    });
+
+    const togglePrivacyMode = useCallback(() => {
+        setIsPrivacyMode(prev => {
+            const newValue = !prev;
+            localStorage.setItem('depance_privacy_mode', String(newValue));
+            return newValue;
+        });
+    }, []);
 
     const showToast = useCallback((message, type = 'info') => {
         setToast({ message, type });
@@ -40,7 +51,7 @@ export const UIProvider = ({ children }) => {
     }, []);
 
     return (
-        <UIContext.Provider value={{ showToast, showConfirm, showAlert }}>
+        <UIContext.Provider value={{ showToast, showConfirm, showAlert, isPrivacyMode, togglePrivacyMode }}>
             {children}
             {toast && <ThemeToast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
             {modal && (

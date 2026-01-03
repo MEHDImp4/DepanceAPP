@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import api from '../services/api';
 import { getCategories } from '../services/categoryService';
 import { format, isToday, isYesterday } from 'date-fns';
-import { ArrowUp, ArrowDown, Repeat, Plus, X, Tag } from 'lucide-react';
+import { ArrowUp, ArrowDown, Repeat, Plus, X, Tag, Search, Filter } from 'lucide-react';
 import { useUI } from '../context/UIContext';
 import { formatCurrency, getCurrencySymbol } from '../utils/currencyUtils';
 
@@ -15,7 +15,7 @@ const Transactions = () => {
     const [loading, setLoading] = useState(true);
     const [userCurrency, setUserCurrency] = useState('USD');
     const [formMode, setFormMode] = useState(null); // 'transaction' | 'transfer' | null
-    const { showToast } = useUI();
+    const { showToast, isPrivacyMode } = useUI();
 
     const [type, setType] = useState('expense');
     const [amount, setAmount] = useState('');
@@ -23,6 +23,11 @@ const Transactions = () => {
     const [accountId, setAccountId] = useState('');
     const [toAccountId, setToAccountId] = useState('');
     const [categoryId, setCategoryId] = useState('');
+
+    // Search & Filter State
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterType, setFilterType] = useState('all'); // 'all', 'expense', 'income'
+    const [filterCategory, setFilterCategory] = useState('all');
 
     useEffect(() => {
         fetchData();
@@ -71,8 +76,23 @@ const Transactions = () => {
 
     const selectedAccount = accounts.find(a => a.id == accountId);
 
-    // Group transactions by date
-    const groupedTransactions = transactions.reduce((groups, tx) => {
+    // Filter and Group transactions
+    const filteredTransactions = transactions.filter(tx => {
+        // 1. Search Query (Description or Amount)
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = tx.description.toLowerCase().includes(query) ||
+            tx.amount.toString().includes(query);
+
+        // 2. Filter Type
+        const matchesType = filterType === 'all' || tx.type === filterType;
+
+        // 3. Filter Category
+        const matchesCategory = filterCategory === 'all' || (tx.category_id && tx.category_id.toString() === filterCategory);
+
+        return matchesSearch && matchesType && matchesCategory;
+    });
+
+    const groupedTransactions = filteredTransactions.reduce((groups, tx) => {
         const date = format(new Date(tx.created_at), 'yyyy-MM-dd');
         if (!groups[date]) groups[date] = [];
         groups[date].push(tx);
@@ -98,6 +118,82 @@ const Transactions = () => {
                     <button className="btn btn-primary flex-center" onClick={() => setFormMode('transaction')} style={{ padding: '8px' }}>
                         <Plus size={18} />
                     </button>
+                </div>
+            </div>
+
+            {/* Search & Filters */}
+            <div style={{ marginBottom: '24px' }}>
+                {/* Search Bar */}
+                <div style={{
+                    position: 'relative',
+                    marginBottom: '16px',
+                    backgroundColor: 'var(--color-bg-input)',
+                    borderRadius: '12px',
+                    padding: '8px 12px',
+                    display: 'flex',
+                    alignItems: 'center'
+                }}>
+                    <Search size={18} color="var(--color-text-secondary)" style={{ marginRight: '8px' }} />
+                    <input
+                        className="input"
+                        placeholder="Search transactions..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        style={{ padding: 0, height: 'auto', border: 'none', fontSize: '14px' }}
+                    />
+                    {searchQuery && (
+                        <button onClick={() => setSearchQuery('')} style={{ padding: '4px' }}>
+                            <X size={16} color="var(--color-text-secondary)" />
+                        </button>
+                    )}
+                </div>
+
+                {/* Filters Row */}
+                <div className="flex gap-sm overflow-x-auto no-scrollbar" style={{ paddingBottom: '4px' }}>
+                    {/* Type Filters */}
+                    {['all', 'expense', 'income'].map(ft => (
+                        <button
+                            key={ft}
+                            onClick={() => setFilterType(ft)}
+                            className="btn"
+                            style={{
+                                padding: '6px 16px',
+                                borderRadius: '20px',
+                                fontSize: '13px',
+                                fontWeight: '600',
+                                backgroundColor: filterType === ft ? 'var(--color-text-primary)' : 'var(--color-bg-card)',
+                                color: filterType === ft ? 'var(--color-bg-body)' : 'var(--color-text-secondary)',
+                                border: '1px solid var(--color-border)',
+                                flexShrink: 0,
+                                textTransform: 'capitalize'
+                            }}
+                        >
+                            {ft}
+                        </button>
+                    ))}
+
+                    <div style={{ width: '1px', backgroundColor: 'var(--color-separator)', margin: '0 8px', height: '20px', alignSelf: 'center' }} />
+
+                    {/* Category Filter Dropdown */}
+                    <select
+                        value={filterCategory}
+                        onChange={e => setFilterCategory(e.target.value)}
+                        style={{
+                            appearance: 'none',
+                            padding: '6px 16px',
+                            borderRadius: '20px',
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            backgroundColor: filterCategory !== 'all' ? 'var(--color-accent)' : 'var(--color-bg-card)',
+                            color: filterCategory !== 'all' ? '#fff' : 'var(--color-text-secondary)',
+                            border: '1px solid var(--color-border)',
+                            outline: 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        <option value="all">All Categories</option>
+                        {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+                    </select>
                 </div>
             </div>
 
@@ -270,11 +366,11 @@ const Transactions = () => {
                                             flexShrink: 0
                                         }}>
                                             <div style={{ fontSize: '15px', fontWeight: '700', whiteSpace: 'nowrap' }}>
-                                                {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.convertedAmount || tx.amount, userCurrency)}
+                                                {tx.type === 'income' ? '+' : '-'}{isPrivacyMode ? '••••' : formatCurrency(tx.convertedAmount || tx.amount, userCurrency)}
                                             </div>
                                             {tx.account?.currency !== userCurrency && (
                                                 <div className="text-secondary" style={{ fontSize: '10px', fontWeight: '500', whiteSpace: 'nowrap', marginTop: '1px' }}>
-                                                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount, tx.account?.currency)}
+                                                    {tx.type === 'income' ? '+' : '-'}{isPrivacyMode ? '••••' : formatCurrency(tx.amount, tx.account?.currency)}
                                                 </div>
                                             )}
                                         </div>
@@ -283,9 +379,11 @@ const Transactions = () => {
                             </div>
                         </div>
                     ))}
-                    {!loading && transactions.length === 0 && (
+                    {!loading && filteredTransactions.length === 0 && (
                         <div className="text-center text-secondary" style={{ padding: '40px' }}>
-                            No transactions yet. Start by adding one!
+                            {searchQuery || filterType !== 'all' || filterCategory !== 'all'
+                                ? 'No transactions match your search.'
+                                : 'No transactions yet. Start by adding one!'}
                         </div>
                     )}
                 </div>

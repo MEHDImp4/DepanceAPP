@@ -1,11 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useUI } from '../context/UIContext';
 import { useAuth } from '../context/AuthContext';
-import { Home, CreditCard, Repeat, DollarSign, LogOut, Settings } from 'lucide-react';
+import { Home, CreditCard, Repeat, DollarSign, LogOut, Settings, Eye, EyeOff } from 'lucide-react';
 import '../styles/Layout.css';
 
 const Layout = ({ children }) => {
     const { logout } = useAuth();
+    const { isPrivacyMode, togglePrivacyMode } = useUI();
 
     const navItems = [
         { name: 'Home', path: '/', icon: <Home size={24} strokeWidth={2} /> },
@@ -42,6 +44,12 @@ const Layout = ({ children }) => {
                             <span className="nav-label">{item.name}</span>
                         </NavLink>
                     ))}
+
+                    {/* Desktop Privacy Toggle */}
+                    <button onClick={togglePrivacyMode} className="nav-item desktop-only" style={{ color: isPrivacyMode ? 'var(--color-accent)' : 'var(--color-text-secondary)' }}>
+                        {isPrivacyMode ? <EyeOff size={24} /> : <Eye size={24} />}
+                        <span className="nav-label">{isPrivacyMode ? 'Hidden' : 'Visible'}</span>
+                    </button>
                 </div>
 
                 {/* Desktop Logout */}
@@ -57,7 +65,7 @@ const Layout = ({ children }) => {
 
             <main className="main-content">
                 {/* Mobile Header */}
-                <header className="mobile-only flex-center" style={{ marginBottom: '8px', paddingTop: '4px', paddingLeft: '8px', paddingRight: '8px' }}>
+                <header className="mobile-only flex-between" style={{ marginBottom: '8px', paddingTop: '4px', paddingLeft: '8px', paddingRight: '16px' }}>
                     <h1 className="text-xl" style={{
                         background: 'linear-gradient(135deg, var(--color-accent) 0%, #5856D6 100%)',
                         WebkitBackgroundClip: 'text',
@@ -65,6 +73,9 @@ const Layout = ({ children }) => {
                     }}>
                         Depance
                     </h1>
+                    <button onClick={togglePrivacyMode} style={{ color: 'var(--color-text-primary)' }}>
+                        {isPrivacyMode ? <EyeOff size={24} /> : <Eye size={24} />}
+                    </button>
                 </header>
 
                 {children}

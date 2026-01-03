@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { ArrowUp, ArrowDown, Send, Plus, CreditCard, MoreHorizontal } from 'lucide-react';
 import { formatCurrency } from '../utils/currencyUtils';
 import { processRecurring } from '../services/recurringService';
+import { useUI } from '../context/UIContext';
 
 const Dashboard = () => {
     const [balance, setBalance] = useState(0);
@@ -12,6 +13,7 @@ const Dashboard = () => {
     const [recentTx, setRecentTx] = useState([]);
     const [budgets, setBudgets] = useState([]);
     const [loading, setLoading] = useState(true);
+    const { isPrivacyMode } = useUI();
 
     useEffect(() => {
         fetchData();
@@ -64,7 +66,7 @@ const Dashboard = () => {
                     letterSpacing: '-2px',
                     color: 'var(--color-text-primary)'
                 }}>
-                    {formatCurrency(balance, currency)}
+                    {isPrivacyMode ? '••••••' : formatCurrency(balance, currency)}
                 </h1>
             </div>
 
@@ -114,7 +116,7 @@ const Dashboard = () => {
                                             <span className="text-sm font-bold" style={{ lineHeight: 1 }}>{budget.category ? budget.category.name : 'Global Budget'}</span>
                                         </div>
                                         <div className="text-xs font-bold" style={{ color: color, lineHeight: 1 }}>
-                                            {formatCurrency(budget.spent, currency)} / {formatCurrency(budget.amount, currency)}
+                                            {isPrivacyMode ? '••••' : formatCurrency(budget.spent, currency)} / {isPrivacyMode ? '••••' : formatCurrency(budget.amount, currency)}
                                         </div>
                                     </div>
                                     <div style={{
@@ -194,11 +196,11 @@ const Dashboard = () => {
                                 marginLeft: '8px'
                             }}>
                                 <div style={{ fontSize: '15px', fontWeight: '700', whiteSpace: 'nowrap' }}>
-                                    {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.convertedAmount || tx.amount, currency)}
+                                    {tx.type === 'income' ? '+' : '-'}{isPrivacyMode ? '••••' : formatCurrency(tx.convertedAmount || tx.amount, currency)}
                                 </div>
                                 {tx.account?.currency !== currency && (
                                     <div className="text-secondary" style={{ fontSize: '10px', fontWeight: '500', whiteSpace: 'nowrap', marginTop: '1px' }}>
-                                        {tx.type === 'income' ? '+' : '-'}{formatCurrency(tx.amount, tx.account?.currency)}
+                                        {tx.type === 'income' ? '+' : '-'}{isPrivacyMode ? '••••' : formatCurrency(tx.amount, tx.account?.currency)}
                                     </div>
                                 )}
                             </div>
