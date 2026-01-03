@@ -123,7 +123,7 @@ exports.processRecurring = async (req, res) => {
 
         res.json({ processed: createdTransactions.length, transactions: createdTransactions });
     } catch (error) {
-        // console.error("Auto-process error:", error);
+
         res.status(500).json({ error: error.message });
     }
 };
