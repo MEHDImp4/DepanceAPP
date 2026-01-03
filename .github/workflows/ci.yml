@@ -28,6 +28,21 @@ jobs:
       working-directory: ./server
       run: npm ci
 
+    - name: Generate Prisma Client
+      working-directory: ./server
+      env:
+        DATABASE_URL: file:./test.db
+      run: npx prisma generate
+
+    - name: Setup Test Database
+      working-directory: ./server
+      env:
+        DATABASE_URL: file:./test.db
+      run: npx prisma db push --skip-generate
+
     - name: Run Tests
       working-directory: ./server
+      env:
+        DATABASE_URL: file:./test.db
+        JWT_SECRET: test_secret_key_for_ci
       run: npm test
