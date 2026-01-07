@@ -1,0 +1,118 @@
+{
+    "app": {
+        "name": "Depance",
+        "version": "Version 1.0.0 (Build 2026.01)"
+    },
+    "nav": {
+        "dashboard": "Tableau de bord",
+        "transactions": "Transactions",
+        "accounts": "Comptes",
+        "templates": "Modèles",
+        "settings": "Paramètres",
+        "home": "Accueil",
+        "transact": "Transaction",
+        "recurring": "Récurrent"
+    },
+    "dashboard": {
+        "total_capital": "Capital Total",
+        "live_balance": "Solde en direct",
+        "recent_transactions": "Transactions Récentes",
+        "add_transaction": "Ajouter Transaction",
+        "no_transactions": "Aucune transaction récente."
+    },
+    "transactions": {
+        "title": "Transactions",
+        "search_placeholder": "Rechercher...",
+        "add_new": "Ajouter",
+        "income": "Revenu",
+        "expense": "Dépense",
+        "save": "Enregistrer",
+        "amount": "Montant",
+        "description": "Description",
+        "description_placeholder": "C'est pour quoi ?",
+        "no_results": "Aucune transaction trouvée.",
+        "delete": "Supprimer",
+        "category": "Catégorie",
+        "uncategorized": "Aucune catégorie",
+        "type": "Type",
+        "date": "Date",
+        "account": "Compte",
+        "select_category": "Choisir une catégorie"
+    },
+    "accounts": {
+        "title": "Comptes",
+        "total_net_worth": "Valeur Nette Totale",
+        "add_account": "Ajouter Compte",
+        "my_accounts": "Mes Comptes",
+        "active": "Actif",
+        "edit_account": "Modifier le Compte"
+    },
+    "templates": {
+        "title": "Modèles",
+        "subtitle": "Ajoutez rapidement vos transactions fréquentes.",
+        "create_new": "Créer Nouveau",
+        "add_template": "Ajouter un modèle",
+        "create_template": "Créer un modèle",
+        "edit_template": "Modifier le modèle",
+        "no_account_error": "Veuillez définir un compte par défaut pour ce modèle"
+    },
+    "recurring": {
+        "title": "Transactions Récurrentes",
+        "subtitle": "Automatisez vos dépenses régulières",
+        "empty_title": "Aucune transaction récurrente",
+        "empty_desc": "Ajoutez votre première transaction pour commencer l'automatisation",
+        "add_title": "Ajouter une Transaction Récurrente",
+        "interval": "Intervalle",
+        "start_date": "Date de début",
+        "weekly": "Hebdomadaire",
+        "monthly": "Mensuel",
+        "yearly": "Annuel",
+        "create_button": "Automatiser cette dépense"
+    },
+    "settings": {
+        "title": "Paramètres",
+        "app_settings": "Paramètres de l'application",
+        "account": "Compte",
+        "dark_mode": "Mode Sombre",
+        "currency": "Devise",
+        "notifications": "Notifications",
+        "profile_info": "Informations Profil",
+        "security_privacy": "Sécurité & Confidentialité",
+        "logout": "Se Déconnecter",
+        "language": "Langue",
+        "member": "Membre",
+        "on": "Activé",
+        "usd": "USD ($)",
+        "tools": "Outils"
+    },
+    "auth": {
+        "login_title": "Connexion",
+        "login_subtitle": "Connectez-vous à votre compte",
+        "register_title": "Inscription",
+        "register_subtitle": "Commencez à gérer vos finances",
+        "email": "Email",
+        "email_placeholder": "Email",
+        "password": "Mot de passe",
+        "password_placeholder": "Mot de passe",
+        "username": "Nom d'utilisateur",
+        "username_placeholder": "Nom d'utilisateur",
+        "login_button": "Se connecter",
+        "register_button": "Créer un compte",
+        "no_account": "Pas encore de compte ?",
+        "have_account": "Déjà un compte ?"
+    },
+    "common": {
+        "name": "Nom",
+        "amount": "Montant",
+        "see_all": "Voir Tout",
+        "retry": "Réessayer",
+        "error_dashboard_title": "Impossible de Charger le Tableau de Bord",
+        "error_dashboard_desc": "Nous n'avons pas pu charger vos données. Veuillez réessayer.",
+        "save": "Enregistrer",
+        "details": "Détails",
+        "delete": "Supprimer",
+        "confirm_delete": "Êtes-vous sûr de vouloir supprimer ceci ?",
+        "add": "Ajouter",
+        "select_account": "Choisir un compte"
+    }
+}

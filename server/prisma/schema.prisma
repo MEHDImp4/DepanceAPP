@@ -27,6 +27,7 @@ model Account {
   id                   Int                    @id @default(autoincrement())
   name                 String
   type                 String // "normal" | "savings"
+  color                String? // UI color helper
   currency             String                 @default("USD")
   balance              Float                  @default(0.0)
   user_id              Int
@@ -71,11 +72,14 @@ model Template {
   id                 Int      @id @default(autoincrement())
   name               String
   amount             Float
-  description        String
+  description        String?
+  color              String?
+  icon_name          String? // Store icon name string
   default_account_id Int?
   default_account    Account? @relation(fields: [default_account_id], references: [id])
   category_id        Int?
   category           Category? @relation(fields: [category_id], references: [id])
+  type               String   @default("expense")
   user_id            Int
   user               User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   created_at         DateTime @default(now())

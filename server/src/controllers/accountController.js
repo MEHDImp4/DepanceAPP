@@ -9,6 +9,7 @@ exports.getSummary = async (req, res) => {
             await prisma.account.findMany({ where: { user_id: userId } })
         ]);
 
+        const targetCurrency = user?.currency || 'USD';
         const amounts = await Promise.all(accounts.map(acc =>
             convertCurrency(acc.balance, acc.currency, targetCurrency)
         ));
@@ -23,13 +24,14 @@ exports.getSummary = async (req, res) => {
 
 exports.createAccount = async (req, res) => {
     try {
-        const { name, type, balance, currency } = req.body;
+        const { name, type, balance, currency, color } = req.body;
         const userId = req.user.userId;
 
         const account = await prisma.account.create({
             data: {
                 name,
                 type: type || 'normal',
+                color: color || 'bg-primary',
                 currency: currency || 'USD',
                 balance: parseFloat(balance) || 0,
                 user_id: userId

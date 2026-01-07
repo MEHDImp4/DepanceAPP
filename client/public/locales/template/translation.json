@@ -1,0 +1,91 @@
+{
+    "app": {
+        "name": "",
+        "version": ""
+    },
+    "nav": {
+        "dashboard": "",
+        "transactions": "",
+        "accounts": "",
+        "templates": "",
+        "settings": "",
+        "home": "",
+        "transact": ""
+    },
+    "dashboard": {
+        "total_capital": "",
+        "live_balance": "",
+        "recent_transactions": "",
+        "add_transaction": "",
+        "no_transactions": ""
+    },
+    "transactions": {
+        "title": "",
+        "search_placeholder": "",
+        "add_new": "",
+        "income": "",
+        "expense": "",
+        "save": "",
+        "amount": "",
+        "description": "",
+        "description_placeholder": "",
+        "no_results": "",
+        "delete": "Delete",
+        "category": "Category",
+        "select_category": "Select Category"
+    },
+    "accounts": {
+        "title": "",
+        "total_net_worth": "",
+        "add_account": "",
+        "my_accounts": "My Accounts",
+        "active": "Active",
+        "edit_account": "Edit Account",
+        "select_account": "Select Account"
+    },
+    "templates": {
+        "title": "",
+        "subtitle": "",
+        "create_new": "",
+        "add_template": ""
+    },
+    "settings": {
+        "title": "",
+        "app_settings": "",
+        "account": "",
+        "dark_mode": "",
+        "currency": "",
+        "notifications": "",
+        "profile_info": "",
+        "security_privacy": "",
+        "logout": "",
+        "language": "",
+        "member": "",
+        "on": "",
+        "usd": ""
+    },
+    "auth": {
+        "login_title": "",
+        "login_subtitle": "",
+        "register_title": "",
+        "register_subtitle": "",
+        "email": "",
+        "email_placeholder": "",
+        "password": "",
+        "password_placeholder": "",
+        "username": "",
+        "username_placeholder": "",
+        "login_button": "",
+        "register_button": "",
+        "no_account": "",
+        "have_account": ""
+    },
+    "common": {
+        "name": "",
+        "amount": "",
+        "see_all": "",
+        "retry": "",
+        "error_dashboard_title": "",
+        "error_dashboard_desc": ""
+    }
+}

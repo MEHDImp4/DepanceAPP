@@ -4,7 +4,7 @@
   "description": "Depance Finances App",
   "main": "index.js",
   "scripts": {
-    "dev": "concurrently -n server,mobile \"npm run server\" \"npm run mobile\"",
+    "dev": "concurrently -n server,client \"npm run server\" \"npm run client\"",
     "server": "npm run dev --prefix server",
     "client": "npm run dev --prefix client",
     "mobile": "npm start --prefix mobile"

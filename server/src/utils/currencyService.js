@@ -27,9 +27,22 @@ const getRates = async () => {
         throw new Error('Failed to fetch rates');
     } catch (error) {
         console.error('Currency API Error:', error.message);
-        // Fallback or rethrow? For now, if no cache and fail, we can't convert.
+        // Fallback to static rates if API fails
         if (ratesCache.rates) return ratesCache.rates;
-        throw error;
+
+        console.warn('Using static fallback rates due to API failure.');
+        return {
+            USD: 1,
+            EUR: 0.92,
+            GBP: 0.79,
+            MAD: 10.0,
+            JPY: 150.0,
+            CAD: 1.35,
+            AUD: 1.5,
+            CHF: 0.9,
+            CNY: 7.2,
+            AED: 3.67
+        };
     }
 };
 

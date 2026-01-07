@@ -1,0 +1,119 @@
+{
+    "app": {
+        "name": "Depance",
+        "version": "Version 1.0.0 (Build 2026.01)"
+    },
+    "nav": {
+        "dashboard": "Dashboard",
+        "transactions": "Transactions",
+        "accounts": "Accounts",
+        "templates": "Templates",
+        "settings": "Settings",
+        "home": "Home",
+        "transact": "Transact",
+        "recurring": "Recurring"
+    },
+    "dashboard": {
+        "total_capital": "Total Capital",
+        "live_balance": "Live Balance",
+        "recent_transactions": "Recent Transactions",
+        "add_transaction": "Add Transaction",
+        "no_transactions": "No recent transactions found."
+    },
+    "transactions": {
+        "title": "Transactions",
+        "search_placeholder": "Search transactions...",
+        "add_new": "Add New",
+        "income": "Income",
+        "expense": "Expense",
+        "save": "Save Transaction",
+        "amount": "Amount",
+        "description": "Description",
+        "description_placeholder": "What is this for?",
+        "no_results": "No transactions found.",
+        "delete": "Delete",
+        "category": "Category",
+        "select_category": "Select Category",
+        "uncategorized": "Uncategorized",
+        "type": "Type",
+        "date": "Date",
+        "account": "Account"
+    },
+    "accounts": {
+        "title": "Accounts",
+        "total_net_worth": "Total Net Worth",
+        "add_account": "Add Account",
+        "my_accounts": "My Accounts",
+        "active": "Active",
+        "edit_account": "Edit Account",
+        "select_account": "Select Account"
+    },
+    "templates": {
+        "title": "Templates",
+        "subtitle": "Manage your recurring transactions",
+        "create_new": "Create New",
+        "add_template": "Add Template",
+        "create_template": "Create Template",
+        "edit_template": "Edit Template",
+        "no_account_error": "Please set a default account for this template"
+    },
+    "recurring": {
+        "title": "Recurring",
+        "subtitle": "Automate your recurring expenses",
+        "empty_title": "No recurring transactions",
+        "empty_desc": "Add your first one to start automating",
+        "add_title": "Add Recurring Transaction",
+        "interval": "Interval",
+        "start_date": "Start Date",
+        "weekly": "Weekly",
+        "monthly": "Monthly",
+        "yearly": "Yearly",
+        "create_button": "Automate This"
+    },
+    "settings": {
+        "title": "Settings",
+        "app_settings": "App Settings",
+        "account": "Account",
+        "dark_mode": "Dark Mode",
+        "currency": "Currency",
+        "notifications": "Notifications",
+        "profile_info": "Profile Information",
+        "security_privacy": "Security & Privacy",
+        "logout": "Log Out",
+        "language": "Language",
+        "member": "Member",
+        "on": "On",
+        "usd": "USD ($)",
+        "tools": "Tools"
+    },
+    "auth": {
+        "login_title": "Login",
+        "login_subtitle": "Sign in to your account",
+        "register_title": "Register",
+        "register_subtitle": "Start tracking your finances",
+        "email": "Email",
+        "email_placeholder": "Email or Username",
+        "password": "Password",
+        "password_placeholder": "Password",
+        "username": "Username",
+        "username_placeholder": "Username",
+        "login_button": "Sign In",
+        "register_button": "Create Account",
+        "no_account": "Don't have an account?",
+        "have_account": "Already have an account?"
+    },
+    "common": {
+        "name": "Name",
+        "amount": "Amount",
+        "see_all": "See All",
+        "retry": "Retry",
+        "error_dashboard_title": "Unable to Load Dashboard",
+        "error_dashboard_desc": "We couldn't load your dashboard data. Please try again.",
+        "save": "Save",
+        "add": "Add",
+        "details": "Details",
+        "delete": "Delete",
+        "confirm_delete": "Are you sure you want to delete this?",
+        "select_account": "Select Account"
+    }
+}

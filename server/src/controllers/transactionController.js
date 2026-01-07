@@ -54,20 +54,54 @@ exports.getTransactions = async (req, res) => {
             })
         ]);
 
-        const targetCurrency = user.currency || 'USD';
+        const targetCurrency = user?.currency || 'USD';
         const { convertCurrency } = require('../utils/currencyService');
 
         const txsWithConversion = await Promise.all(transactions.map(async (tx) => {
-            const convertedAmount = await convertCurrency(tx.amount, tx.account?.currency || 'USD', targetCurrency);
-            return {
-                ...tx,
-                convertedAmount,
-                convertedCurrency: targetCurrency
-            };
+            try {
+                const convertedAmount = await convertCurrency(tx.amount, tx.account?.currency || 'USD', targetCurrency);
+                return {
+                    ...tx,
+                    convertedAmount,
+                    convertedCurrency: targetCurrency
+                };
+            } catch (err) {
+                console.error(`Conversion error for tx ${tx.id}:`, err.message);
+                return {
+                    ...tx,
+                    convertedAmount: tx.amount, // Fallback to original
+                    convertedCurrency: tx.account?.currency || 'USD'
+                };
+            }
         }));
 
         res.json(txsWithConversion);
     } catch (error) {
+        console.error("getTransactions Error:", error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+exports.getTransaction = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.userId;
+
+        const transaction = await prisma.transaction.findFirst({
+            where: { id: parseInt(id), user_id: userId },
+            include: {
+                account: true,
+                category: true
+            }
+        });
+
+        if (!transaction) {
+            return res.status(404).json({ error: 'Transaction not found' });
+        }
+
+        res.json(transaction);
+    } catch (error) {
+        console.error("getTransaction Error:", error);
         res.status(500).json({ error: error.message });
     }
 };
