@@ -1,14 +1,10 @@
 const jwt = require('jsonwebtoken');
 
 const authMiddleware = (req, res, next) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-        return res.status(401).json({ error: 'No token provided' });
-    }
+    const token = req.cookies.token || (req.headers.authorization && req.headers.authorization.split(' ')[1]);
 
-    const token = authHeader.split(' ')[1];
     if (!token) {
-        return res.status(401).json({ error: 'Malformed token' });
+        return res.status(401).json({ error: 'No token provided' });
     }
 
     try {

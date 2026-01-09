@@ -29,7 +29,7 @@ model Account {
   type                 String // "normal" | "savings"
   color                String? // UI color helper
   currency             String                 @default("USD")
-  balance              Float                  @default(0.0)
+  balance              Int                    @default(0)
   user_id              Int
   user                 User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
   created_at           DateTime               @default(now())
@@ -55,7 +55,7 @@ model Category {
 
 model Transaction {
   id          Int       @id @default(autoincrement())
-  amount      Float
+  amount      Int
   description String
   type        String // "income" | "expense"
   account_id  Int
@@ -71,7 +71,7 @@ model Transaction {
 model Template {
   id                 Int      @id @default(autoincrement())
   name               String
-  amount             Float
+  amount             Int
   description        String?
   color              String?
   icon_name          String? // Store icon name string
@@ -87,7 +87,7 @@ model Template {
 
 model Budget {
   id          Int      @id @default(autoincrement())
-  amount      Float
+  amount      Int
   period      String   @default("monthly")
   category_id Int?     @unique
   user_id     Int
@@ -100,7 +100,7 @@ model Budget {
 
 model RecurringTransaction {
   id            Int      @id @default(autoincrement())
-  amount        Float
+  amount        Int
   description   String
   type          String // "income" | "expense"
   interval      String // "weekly" | "monthly" | "yearly"
@@ -115,4 +115,11 @@ model RecurringTransaction {
   category Category? @relation(fields: [category_id], references: [id])
   account  Account   @relation(fields: [account_id], references: [id])
   user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model ExchangeRate {
+  id        Int      @id @default(autoincrement())
+  currency  String   @unique // e.g., "EUR"
+  rate      Float    // Exchange rate relative to base currency (USD)
+  updatedAt DateTime @updatedAt
 }

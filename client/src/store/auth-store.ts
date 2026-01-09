@@ -3,19 +3,19 @@ import { persist } from 'zustand/middleware';
 import type { User } from '@/types';
 
 interface AuthState {
-    token: string | null;
     user: User | null;
-    setAuth: (token: string, user: User) => void;
+    isAuthenticated: boolean;
+    setAuth: (user: User) => void;
     logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
     persist(
         (set) => ({
-            token: null,
             user: null,
-            setAuth: (token, user) => set({ token, user }),
-            logout: () => set({ token: null, user: null }),
+            isAuthenticated: false,
+            setAuth: (user) => set({ user, isAuthenticated: true }),
+            logout: () => set({ user: null, isAuthenticated: false }),
         }),
         {
             name: 'auth-storage',

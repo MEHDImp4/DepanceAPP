@@ -9,7 +9,7 @@ const getCategories = async (req, res) => {
         });
         res.json(categories);
     } catch (error) {
-        res.status(500).json({ error: 'Error fetching categories' });
+        next(error);
     }
 };
 
@@ -42,7 +42,7 @@ const createCategory = async (req, res) => {
         res.status(201).json(category);
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Error creating category' });
+        next(error);
     }
 };
 
@@ -59,7 +59,7 @@ const updateCategory = async (req, res) => {
         }
         res.json({ message: 'Category updated successfully' });
     } catch (error) {
-        res.status(500).json({ error: 'Error updating category' });
+        next(error);
     }
 };
 
@@ -89,7 +89,7 @@ const deleteCategory = async (req, res) => {
         res.json({ message: 'Category deleted' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ error: 'Error deleting category' });
+        next(error);
     }
 };
 

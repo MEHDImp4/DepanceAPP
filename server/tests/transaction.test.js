@@ -23,7 +23,7 @@ describe('Transaction Endpoints', () => {
             data: {
                 name: 'Checking',
                 type: 'bank',
-                balance: 1000,
+                balance: 100000, // 1000.00 USD in cents
                 currency: 'USD',
                 user_id: userId
             }
@@ -48,13 +48,13 @@ describe('Transaction Endpoints', () => {
 
         // Verify simple account fetch
         const updatedAccount = await prisma.account.findUnique({ where: { id: accountId } });
-        expect(updatedAccount.balance).toBe(900);
+        expect(updatedAccount.balance).toBe(90000); // 1000.00 -> 100000 - 10000 = 90000 cents
     });
 
     it('should get transactions', async () => {
         await prisma.transaction.create({
             data: {
-                amount: 50,
+                amount: 5000,
                 description: 'Coffee',
                 type: 'expense',
                 account_id: accountId,

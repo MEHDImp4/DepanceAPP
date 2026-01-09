@@ -18,7 +18,7 @@ export function BottomNav() {
 
     return (
         <div className="fixed bottom-6 left-4 right-4 z-50 pointer-events-none">
-            <nav className="max-w-md mx-auto pointer-events-auto bg-card/70 backdrop-blur-2xl border border-white/20 dark:border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-[2.5rem] p-2 flex justify-around items-center">
+            <nav className="max-w-md mx-auto pointer-events-auto bg-card/70 backdrop-blur-lg border border-white/20 dark:border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-[2.5rem] p-2 flex justify-around items-center">
                 {navItems.map(({ icon: Icon, label, path }) => {
                     const isActive = location.pathname === path;
                     return (

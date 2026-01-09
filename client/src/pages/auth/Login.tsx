@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/auth-store";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import api from "@/lib/api";
+import api from "@/lib/axios";
 import { Lock, Mail } from "lucide-react";
 
 export default function Login() {
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const { login, isAuthenticated } = useAuth();
+    const login = useAuthStore((state) => state.setAuth);
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const { t } = useTranslation();
     const navigate = useNavigate();
     const [identifier, setIdentifier] = useState("");
@@ -28,7 +29,7 @@ export default function Login() {
 
         try {
             const { data } = await api.post("/auth/login", { identifier, password });
-            login(data.token, data.user);
+            login(data.user);
             navigate("/");
         } catch (err: any) {
             setError(err.response?.data?.error || "Failed to login");

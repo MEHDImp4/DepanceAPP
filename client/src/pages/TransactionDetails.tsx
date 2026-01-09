@@ -2,17 +2,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, Calendar, Wallet, Tag, TrendingUp, TrendingDown } from "lucide-react";
 import { useTransaction, useAccounts, useCategories } from "@/hooks/use-api";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/auth-store";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { CategoryIcon } from "@/components/ui/CategoryIcon";
-import api from "@/lib/api"; // Or use a delete hook if you make one
+import api from "@/lib/axios"; // Or use a delete hook if you make one
 
 export default function TransactionDetails() {
     const { id } = useParams();
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
-    const { user } = useAuth();
+    const user = useAuthStore((state) => state.user);
 
     // Convert id to number safely
     const transactionId = Number(id);
@@ -97,11 +96,12 @@ export default function TransactionDetails() {
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.1 }}
                             className={cn(
-                                "text-2xl sm:text-3xl font-black tracking-tight",
+                                "text-xl sm:text-2xl font-black tracking-tight",
                                 transaction.type === 'income' ? "text-emerald-500" : "text-foreground"
                             )}
                         >
-                            {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount, currency)}
+                            {formatCurrency(transaction.amount, currency)}
+                            {transaction.type === 'income' ? ' +' : ' -'}
                         </motion.h2>
                         <p className="text-base sm:text-lg font-bold tracking-tight text-muted-foreground">{transaction.description}</p>
                     </div>
@@ -147,8 +147,7 @@ export default function TransactionDetails() {
                                 </div>
                                 <span className="text-[13px] font-bold text-muted-foreground/80">{t('transactions.category')}</span>
                             </div>
-                            <div className="flex items-center space-x-2 bg-muted/30 px-3 py-1.5 rounded-xl border border-border/30 shadow-inner">
-                                <CategoryIcon icon={category?.icon || '🔹'} size={14} strokeWidth={2.5} />
+                            <div className="flex items-center bg-muted/30 px-3 py-1.5 rounded-xl border border-border/30 shadow-inner">
                                 <span className="text-xs font-black uppercase tracking-wider">
                                     {category?.name || t('transactions.uncategorized')}
                                 </span>

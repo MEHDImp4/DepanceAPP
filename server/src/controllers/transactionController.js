@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { toCents, fromCents } = require('../utils/money');
 
 exports.createTransaction = async (req, res) => {
     try {
@@ -8,7 +9,12 @@ exports.createTransaction = async (req, res) => {
         const account = await prisma.account.findFirst({ where: { id: parseInt(account_id), user_id: userId } });
         if (!account) return res.status(404).json({ error: 'Account not found' });
 
-        const transactionAmount = parseFloat(amount);
+        if (category_id) {
+            const category = await prisma.category.findFirst({ where: { id: parseInt(category_id), user_id: userId } });
+            if (!category) return res.status(403).json({ error: 'Invalid category or access denied' });
+        }
+
+        const transactionAmount = toCents(amount);
         const balanceChange = type === 'income' ? transactionAmount : -transactionAmount;
 
         const [transaction, updatedAccount] = await prisma.$transaction([
@@ -28,9 +34,10 @@ exports.createTransaction = async (req, res) => {
             })
         ]);
 
-        res.status(201).json({ transaction, newBalance: updatedAccount.balance });
+        const responseTx = { ...transaction, amount: fromCents(transaction.amount) };
+        res.status(201).json({ transaction: responseTx, newBalance: fromCents(updatedAccount.balance) });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -59,17 +66,20 @@ exports.getTransactions = async (req, res) => {
 
         const txsWithConversion = await Promise.all(transactions.map(async (tx) => {
             try {
-                const convertedAmount = await convertCurrency(tx.amount, tx.account?.currency || 'USD', targetCurrency);
+                // convertCurrency returns cents converted (float), so we convert back to units
+                const convertedAmountCents = await convertCurrency(tx.amount, tx.account?.currency || 'USD', targetCurrency);
                 return {
                     ...tx,
-                    convertedAmount,
+                    amount: fromCents(tx.amount), // Convert stored amount to float
+                    convertedAmount: fromCents(convertedAmountCents), // Convert calculated cents to float units
                     convertedCurrency: targetCurrency
                 };
             } catch (err) {
                 console.error(`Conversion error for tx ${tx.id}:`, err.message);
                 return {
                     ...tx,
-                    convertedAmount: tx.amount, // Fallback to original
+                    amount: fromCents(tx.amount),
+                    convertedAmount: fromCents(tx.amount), // Fallback
                     convertedCurrency: tx.account?.currency || 'USD'
                 };
             }
@@ -78,7 +88,7 @@ exports.getTransactions = async (req, res) => {
         res.json(txsWithConversion);
     } catch (error) {
         console.error("getTransactions Error:", error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -99,10 +109,11 @@ exports.getTransaction = async (req, res) => {
             return res.status(404).json({ error: 'Transaction not found' });
         }
 
-        res.json(transaction);
+        const responseTx = { ...transaction, amount: fromCents(transaction.amount) };
+        res.json(responseTx);
     } catch (error) {
         console.error("getTransaction Error:", error);
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -125,6 +136,6 @@ exports.deleteTransaction = async (req, res) => {
         ]);
         res.json({ message: 'Transaction deleted' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };

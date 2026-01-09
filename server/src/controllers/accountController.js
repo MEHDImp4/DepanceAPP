@@ -1,5 +1,6 @@
 const prisma = require('../utils/prisma');
 const { convertCurrency } = require('../utils/currencyService');
+const { toCents, fromCents } = require('../utils/money');
 
 exports.getSummary = async (req, res) => {
     try {
@@ -14,11 +15,11 @@ exports.getSummary = async (req, res) => {
             convertCurrency(acc.balance, acc.currency, targetCurrency)
         ));
 
-        const totalBalance = amounts.reduce((sum, amount) => sum + amount, 0);
+        const totalBalanceCents = amounts.reduce((sum, amount) => sum + amount, 0);
 
-        res.json({ totalBalance, currency: targetCurrency, accountCount: accounts.length });
+        res.json({ totalBalance: fromCents(totalBalanceCents), currency: targetCurrency, accountCount: accounts.length });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -33,14 +34,15 @@ exports.createAccount = async (req, res) => {
                 type: type || 'normal',
                 color: color || 'bg-primary',
                 currency: currency || 'USD',
-                balance: parseFloat(balance) || 0,
+                balance: toCents(balance),
                 user_id: userId
             }
         });
 
-        res.status(201).json(account);
+        const accountResponse = { ...account, balance: fromCents(account.balance) };
+        res.status(201).json(accountResponse);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -51,9 +53,13 @@ exports.getAccounts = async (req, res) => {
             where: { user_id: userId },
             orderBy: { created_at: 'asc' }
         });
-        res.json(accounts);
+        const accountsWithFloat = accounts.map(acc => ({
+            ...acc,
+            balance: fromCents(acc.balance)
+        }));
+        res.json(accountsWithFloat);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -71,9 +77,10 @@ exports.updateAccount = async (req, res) => {
             where: { id: parseInt(id) },
             data: { name, type, currency }
         });
-        res.json(updated);
+        const response = { ...updated, balance: fromCents(updated.balance) };
+        res.json(response);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -92,6 +99,6 @@ exports.deleteAccount = async (req, res) => {
         await prisma.account.delete({ where: { id: parseInt(id) } });
         res.json({ message: 'Account deleted' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };

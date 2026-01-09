@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api from '@/lib/api';
+import api from '@/lib/axios';
 import type { Transaction, Account, Template, User, Category, RecurringTransaction } from '@/types';
 
 export function useTransaction(id: number) {

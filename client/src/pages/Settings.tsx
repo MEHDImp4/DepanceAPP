@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/auth-store";
 import { useUpdateProfile } from "@/hooks/use-api";
 import { Moon, Sun, User, Bell, Shield, ChevronRight, LogOut, Globe, Repeat, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -54,7 +54,10 @@ interface SettingsSection {
 export default function Settings() {
     const { theme, toggleTheme } = useTheme();
     const { t, i18n } = useTranslation();
-    const { logout, user, updateUser } = useAuth();
+    const logout = useAuthStore((state) => state.logout);
+    const user = useAuthStore((state) => state.user);
+    const setAuth = useAuthStore((state) => state.setAuth);
+    const updateUser = setAuth; // Alias for compatibility
     const updateProfile = useUpdateProfile();
     const navigate = useNavigate();
 
@@ -72,7 +75,7 @@ export default function Settings() {
 
     const sections: SettingsSection[] = [
         {
-            title: t('settings.tools') || "Tools",
+            title: t('settings.tools', 'Tools'),
             items: [
                 {
                     icon: Repeat as LucideIcon,

@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, Plus } from "lucide-react";
 import { PremiumSelect } from "../ui/PremiumSelect";
-import { CategoryIcon } from "../ui/CategoryIcon";
 import { cn } from "@/lib/utils";
 
 import { useTranslation } from "react-i18next";
@@ -245,7 +244,6 @@ export function AddTransactionModal({ isOpen, onClose, onAdd }: AddTransactionMo
                                                         value: cat.id,
                                                         label: (
                                                             <div className="flex items-center space-x-3">
-                                                                <CategoryIcon icon={cat.icon} size={16} className="text-muted-foreground" />
                                                                 <span>{cat.name}</span>
                                                             </div>
                                                         )

@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, Repeat } from "lucide-react";
 import { useCategories, useAccounts, useCreateRecurring } from "@/hooks/use-api";
 import { PremiumSelect } from "../ui/PremiumSelect";
-import { CategoryIcon } from "../ui/CategoryIcon";
 import { cn } from "@/lib/utils";
 
 interface AddRecurringModalProps {
@@ -222,7 +221,6 @@ export function AddRecurringModal({ isOpen, onClose }: AddRecurringModalProps) {
                                                     value: cat.id,
                                                     label: (
                                                         <div className="flex items-center space-x-3">
-                                                            <CategoryIcon icon={cat.icon} size={16} className="text-muted-foreground" />
                                                             <span>{cat.name}</span>
                                                         </div>
                                                     )

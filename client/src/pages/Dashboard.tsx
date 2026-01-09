@@ -3,7 +3,7 @@ import { CapitalCard } from "@/components/dashboard/CapitalCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { useSummary, useAccounts, useProcessRecurring } from "@/hooks/use-api";
 import { useEffect } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/auth-store";
 import { useCurrencyRates, convertCurrency } from "@/hooks/use-currency";
 import { motion } from "framer-motion";
 import { Wallet } from "lucide-react";
@@ -17,7 +17,7 @@ export default function Dashboard() {
     const { data: summary, isLoading: isSummaryLoading, error } = useSummary();
     const { data: accounts = [] } = useAccounts();
     const { data: ratesData } = useCurrencyRates();
-    const { user } = useAuth();
+    const user = useAuthStore((state) => state.user);
     const processRecurring = useProcessRecurring();
 
     useEffect(() => {
@@ -48,7 +48,7 @@ export default function Dashboard() {
                 <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => window.location.reload()}
-                    className="mt-4 px-8 py-3 bg-card border border-border rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-muted transition-colors"
+                    className="mt-4 px-8 py-3 bg-card border border-border rounded-2xl font-black uppercase tracking-widest text-[12px] hover:bg-muted transition-colors"
                 >
                     {t('common.retry')}
                 </motion.button>
@@ -74,7 +74,7 @@ export default function Dashboard() {
                     <Wallet className="text-primary-foreground" size={28} />
                 </div>
                 <div className="space-y-1 text-center">
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/60">
+                    <p className="text-[12px] font-black uppercase tracking-[0.4em] text-muted-foreground/60">
                         {new Date().toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' })}
                     </p>
                     <h1 className="text-3xl font-black tracking-tight">{t('nav.dashboard')}</h1>

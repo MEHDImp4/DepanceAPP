@@ -1,8 +1,12 @@
 import { Navigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/auth-store";
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-    const { isAuthenticated, isLoading } = useAuth();
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+    // Since Zustand persistence is synchronous for localStorage, we don't strictly need a loading state, 
+    // but if we were checking a cookie via an API, we would.
+    // For now, let's assume immediate availability or handle hydration if needed.
+    const isLoading = false; // Zustand persist is synchronous-ish with localStorage, but for cookies we might need a verify check.
     const location = useLocation();
 
     if (isLoading) {

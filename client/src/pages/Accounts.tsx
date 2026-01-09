@@ -9,11 +9,11 @@ import { useCurrencyRates, convertCurrency } from "@/hooks/use-currency";
 import { AddAccountModal } from "@/components/accounts/AddAccountModal";
 import type { Account } from "@/types";
 
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/auth-store";
 
 export default function Accounts() {
     const { t, i18n } = useTranslation();
-    const { user } = useAuth();
+    const user = useAuthStore((state) => state.user);
     const { data: accounts = [], isLoading } = useAccounts();
     const createAccount = useCreateAccount();
     const updateAccount = useUpdateAccount();
@@ -90,7 +90,7 @@ export default function Accounts() {
                 <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
 
                 <div className="relative space-y-3">
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/60">{t('accounts.total_net_worth')}</p>
+                    <p className="text-[12px] font-black uppercase tracking-[0.4em] text-muted-foreground/60">{t('accounts.total_net_worth')}</p>
                     {(() => {
                         const formattedNetWorth = new Intl.NumberFormat(i18n.language, {
                             style: "decimal",
@@ -106,7 +106,7 @@ export default function Accounts() {
                                 <h2 className={`${textSizeClass} font-black tracking-tighter text-foreground transition-all duration-300`}>
                                     {formattedNetWorth}
                                 </h2>
-                                <span className="text-sm font-black text-muted-foreground uppercase tracking-widest bg-muted/50 px-2 py-0.5 rounded-lg flex-shrink-0">
+                                <span className="text-[13px] font-black text-muted-foreground uppercase tracking-widest bg-muted/50 px-2 py-0.5 rounded-lg flex-shrink-0">
                                     {user?.currency || 'USD'}
                                 </span>
                             </div>
@@ -117,7 +117,7 @@ export default function Accounts() {
 
             {/* List with Premium Grouping */}
             <div className="space-y-4">
-                <h3 className="text-xs uppercase tracking-[0.2em] font-black text-muted-foreground/60 px-2">
+                <h3 className="text-[12px] uppercase tracking-[0.2em] font-black text-muted-foreground/60 px-2">
                     {t('accounts.my_accounts')}
                 </h3>
                 <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-[2rem] overflow-hidden divide-y divide-border/30">

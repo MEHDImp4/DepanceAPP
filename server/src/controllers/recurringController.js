@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { toCents, fromCents } = require('../utils/money');
 
 exports.getRecurring = async (req, res) => {
     try {
@@ -8,9 +9,10 @@ exports.getRecurring = async (req, res) => {
             include: { category: true, account: true },
             orderBy: { created_at: 'desc' }
         });
-        res.json(recurring);
+        const recurringWithFloat = recurring.map(r => ({ ...r, amount: fromCents(r.amount) }));
+        res.json(recurringWithFloat);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -21,7 +23,7 @@ exports.createRecurring = async (req, res) => {
 
         const recurring = await prisma.recurringTransaction.create({
             data: {
-                amount: parseFloat(amount),
+                amount: toCents(amount),
                 description,
                 type,
                 interval,
@@ -31,9 +33,9 @@ exports.createRecurring = async (req, res) => {
                 user_id: userId
             }
         });
-        res.status(201).json(recurring);
+        res.status(201).json({ ...recurring, amount: fromCents(recurring.amount) });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -46,7 +48,7 @@ exports.deleteRecurring = async (req, res) => {
         });
         res.json({ message: 'Deleted' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -120,10 +122,11 @@ exports.processRecurring = async (req, res) => {
 
         const results = await Promise.all(dueRules.map(rule => processRuleCycles(rule, userId, now)));
         const createdTransactions = results.flat();
+        const txsWithFloat = createdTransactions.map(tx => ({ ...tx, amount: fromCents(tx.amount) }));
 
-        res.json({ processed: createdTransactions.length, transactions: createdTransactions });
+        res.json({ processed: txsWithFloat.length, transactions: txsWithFloat });
     } catch (error) {
 
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };

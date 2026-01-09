@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/auth-store";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import api from "@/lib/api";
+import api from "@/lib/axios";
 import { Lock, Mail, User } from "lucide-react";
 
 export default function Register() {
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const { register, isAuthenticated } = useAuth();
+    const register = useAuthStore((state) => state.setAuth);
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const { t } = useTranslation();
     const navigate = useNavigate();
     const [username, setUsername] = useState("");
@@ -29,7 +30,7 @@ export default function Register() {
 
         try {
             const { data } = await api.post("/auth/register", { username, email, password });
-            register(data.token, data.user);
+            register(data.user);
             navigate("/");
         } catch (err: any) {
             setError(err.response?.data?.error || "Failed to register");

@@ -38,7 +38,10 @@ describe('Auth Endpoints', () => {
             });
 
         expect(response.statusCode).toEqual(200);
-        expect(response.body).toHaveProperty('token');
+        const cookies = response.headers['set-cookie'];
+        expect(cookies).toBeDefined();
+        expect(cookies[0]).toMatch(/token=.+/);
+        // expect(response.body).toHaveProperty('token'); // Removed
     });
 
     it('should not login with wrong password', async () => {

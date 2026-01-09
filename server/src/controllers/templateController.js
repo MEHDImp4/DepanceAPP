@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { toCents, fromCents } = require('../utils/money');
 
 exports.createTemplate = async (req, res) => {
     try {
@@ -8,7 +9,7 @@ exports.createTemplate = async (req, res) => {
         const template = await prisma.template.create({
             data: {
                 name,
-                amount: parseFloat(amount),
+                amount: toCents(amount),
                 description,
                 default_account_id: default_account_id ? parseInt(default_account_id) : null,
                 category_id: category_id ? parseInt(category_id) : null,
@@ -18,8 +19,8 @@ exports.createTemplate = async (req, res) => {
                 user_id: userId
             }
         });
-        res.status(201).json(template);
-    } catch (e) { res.status(500).json({ error: e.message }); }
+        res.status(201).json({ ...template, amount: fromCents(template.amount) });
+    } catch (e) { next(e); }
 }
 
 exports.getTemplates = async (req, res) => {
@@ -32,8 +33,9 @@ exports.getTemplates = async (req, res) => {
                 category: { select: { name: true, color: true, icon: true } }
             }
         });
-        res.json(templates);
-    } catch (e) { res.status(500).json({ error: e.message }); }
+        const templatesWithFloat = templates.map(t => ({ ...t, amount: fromCents(t.amount) }));
+        res.json(templatesWithFloat);
+    } catch (e) { next(e); }
 }
 
 exports.updateTemplate = async (req, res) => {
@@ -46,7 +48,7 @@ exports.updateTemplate = async (req, res) => {
             where: { id: parseInt(id), user_id: userId },
             data: {
                 name,
-                amount: parseFloat(amount),
+                amount: toCents(amount),
                 description,
                 default_account_id: default_account_id ? parseInt(default_account_id) : null,
                 category_id: category_id ? parseInt(category_id) : null,
@@ -55,8 +57,8 @@ exports.updateTemplate = async (req, res) => {
                 type: type || 'expense'
             }
         });
-        res.json(template);
-    } catch (e) { res.status(500).json({ error: e.message }); }
+        res.json({ ...template, amount: fromCents(template.amount) });
+    } catch (e) { next(e); }
 }
 
 exports.deleteTemplate = async (req, res) => {
@@ -68,5 +70,5 @@ exports.deleteTemplate = async (req, res) => {
             where: { id: parseInt(id), user_id: userId }
         });
         res.json({ message: 'Template deleted successfully' });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { next(e); }
 }

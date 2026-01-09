@@ -7,8 +7,7 @@ import { AddTransactionModal } from "@/components/transactions/AddTransactionMod
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useTransactions, useCreateTransaction, useAccounts, useCategories } from "@/hooks/use-api";
-import { useAuth } from "@/context/AuthContext";
-import { CategoryIcon } from "@/components/ui/CategoryIcon";
+import { useAuthStore } from "@/store/auth-store";
 
 // Helper to group transactions by date
 function groupTransactionsByDate(transactions: Transaction[], locale: string) {
@@ -34,7 +33,7 @@ export default function Transactions() {
     const { data: transactions = [], isLoading } = useTransactions();
     const { data: accounts = [] } = useAccounts();
     const { data: categories = [] } = useCategories();
-    const { user } = useAuth();
+    const user = useAuthStore((state) => state.user);
     const { mutate: createTransaction } = useCreateTransaction();
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -99,14 +98,13 @@ export default function Transactions() {
             <div className="space-y-10">
                 {Object.entries(groupedTransactions).map(([date, items]) => (
                     <div key={date} className="space-y-4">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/60 px-2">
+                        <h3 className="text-[13px] font-black uppercase tracking-[0.4em] text-muted-foreground/60 px-2">
                             {date}
                         </h3>
                         <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-[2.5rem] overflow-hidden divide-y divide-border/30">
                             {items.map((transaction, index) => (
                                 <motion.div
                                     key={transaction.id}
-                                    layoutId={`transaction-${transaction.id}`}
                                     onClick={() => navigate(`/transactions/${transaction.id}`)}
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
@@ -121,15 +119,12 @@ export default function Transactions() {
                                             {transaction.type === 'income' ? <TrendingUp size={20} strokeWidth={2.5} /> : <TrendingDown size={20} strokeWidth={2.5} />}
                                         </div>
                                         <div>
-                                            <p className="font-bold tracking-tight text-[14px]">{transaction.description}</p>
-                                            <div className="h-4 flex items-center text-[8px] font-bold uppercase tracking-wider text-muted-foreground/60 transition-colors group-hover:text-primary/70 mt-0.5">
+                                            <p className="font-bold tracking-tight text-[15px]">{transaction.description}</p>
+                                            <div className="h-4 flex items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 transition-colors group-hover:text-primary/70 mt-0.5">
                                                 {(() => {
                                                     const category = categories.find(c => c.id === transaction.category_id);
                                                     return category ? (
-                                                        <span className="flex items-center gap-2">
-                                                            <CategoryIcon icon={category.icon} size={14} strokeWidth={2.5} />
-                                                            <span>{category.name}</span>
-                                                        </span>
+                                                        <span>{category.name}</span>
                                                     ) : (
                                                         <span>{t('transactions.uncategorized')}</span>
                                                     );
@@ -144,7 +139,8 @@ export default function Transactions() {
                                                 "font-black tracking-tight text-[15px]",
                                                 transaction.type === 'income' ? "text-emerald-600" : "text-foreground"
                                             )}>
-                                                {transaction.type === 'income' ? '+' : '-'} {new Intl.NumberFormat(i18n.language, { style: "currency", currency: accounts.find(a => a.id === transaction.account_id)?.currency || user?.currency || 'USD' }).format(transaction.amount)}
+                                                {new Intl.NumberFormat(i18n.language, { style: "currency", currency: accounts.find(a => a.id === transaction.account_id)?.currency || user?.currency || 'USD' }).format(transaction.amount)}
+                                                {transaction.type === 'income' ? ' +' : ' -'}
                                             </p>
 
                                         </div>

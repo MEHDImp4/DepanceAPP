@@ -1,36 +1,57 @@
 const axios = require('axios');
 
-// Simple in-memory cache to avoid hitting API on every request
-let ratesCache = {
-    base: 'USD',
-    rates: null,
-    timestamp: 0
-};
+const prisma = require('./prisma');
 
 const CACHE_DURATION = 1000 * 60 * 60; // 1 hour
 
-
 const getRates = async () => {
-    const now = Date.now();
-    if (ratesCache.rates && (now - ratesCache.timestamp < CACHE_DURATION)) {
-        return ratesCache.rates;
-    }
-
     try {
-        // Free API, no key required
+        // Check DB for cached rates
+        const cachedRates = await prisma.exchangeRate.findMany();
+        const now = Date.now();
+
+        // Check if we have valid cached rates (assuming if we have some, we check timestamp of one)
+        // For simplicity, verify if USD exists and is fresh
+        const usdRate = cachedRates.find(r => r.currency === 'USD');
+
+        if (usdRate && (now - new Date(usdRate.updatedAt).getTime() < CACHE_DURATION)) {
+            // Reconstruct rates object
+            const rates = {};
+            cachedRates.forEach(r => rates[r.currency] = r.rate);
+            return rates;
+        }
+
+        // Fetch fresh rates
         const response = await axios.get('https://open.er-api.com/v6/latest/USD');
         if (response.data && response.data.result === 'success') {
-            ratesCache.rates = response.data.rates;
-            ratesCache.timestamp = now;
-            return ratesCache.rates;
+            const newRates = response.data.rates;
+
+            // Validate essential currencies if API returns weird data, but open.er is reliable generally.
+            // Update DB in a transaction (upsert) usually, but loop is fine effectively for this size
+            const upserts = Object.entries(newRates).map(([currency, rate]) => {
+                return prisma.exchangeRate.upsert({
+                    where: { currency },
+                    update: { rate },
+                    create: { currency, rate }
+                });
+            });
+
+            await prisma.$transaction(upserts);
+            return newRates;
         }
         throw new Error('Failed to fetch rates');
     } catch (error) {
         console.error('Currency API Error:', error.message);
-        // Fallback to static rates if API fails
-        if (ratesCache.rates) return ratesCache.rates;
 
-        console.warn('Using static fallback rates due to API failure.');
+        // Fallback to DB cache even if expired
+        const cachedRates = await prisma.exchangeRate.findMany();
+        if (cachedRates.length > 0) {
+            const rates = {};
+            cachedRates.forEach(r => rates[r.currency] = r.rate);
+            return rates;
+        }
+
+        console.warn('Using static fallback rates due to API failure and no cache.');
         return {
             USD: 1,
             EUR: 0.92,

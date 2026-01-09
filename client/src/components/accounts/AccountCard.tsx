@@ -41,12 +41,12 @@ export function AccountCard({ account, index, onClick }: AccountCardProps) {
                 </div>
                 <div className="min-w-0">
                     <h3 className="font-bold tracking-tight text-[15px] truncate">{account.name}</h3>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{account.type}</p>
+                    <p className="text-[12px] font-black uppercase tracking-widest text-muted-foreground/60">{account.type}</p>
                 </div>
             </div>
             <div className="flex items-center space-x-4 flex-shrink-0">
                 <div className="text-right">
-                    <p className="font-black tracking-tight text-[16px]">
+                    <p className="font-black tracking-tight text-[17px]">
                         {new Intl.NumberFormat(i18n.language, {
                             style: "decimal",
                             maximumFractionDigits: 0
@@ -54,13 +54,13 @@ export function AccountCard({ account, index, onClick }: AccountCardProps) {
                     </p>
                     <div className="flex items-center justify-end space-x-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        <span className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+                        <span className="text-[11px] font-bold text-muted-foreground/40 uppercase tracking-widest">
                             {t('accounts.active')}
                         </span>
                     </div>
                 </div>
                 <ChevronRight size={18} className="text-muted-foreground/30 group-hover:text-foreground group-hover:translate-x-1 transition-all" />
             </div>
-        </motion.div>
+        </motion.div >
     );
 }

@@ -4,9 +4,8 @@ import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
+import { useAuthStore } from "@/store/auth-store";
 import { useCategories } from "@/hooks/use-api";
-import { CategoryIcon } from "@/components/ui/CategoryIcon";
 
 interface RecentTransactionsProps {
     transactions: Transaction[];
@@ -14,17 +13,17 @@ interface RecentTransactionsProps {
 
 export function RecentTransactions({ transactions }: RecentTransactionsProps) {
     const { t, i18n } = useTranslation();
-    const { user } = useAuth();
+    const user = useAuthStore((state) => state.user);
     const { data: categories = [] } = useCategories();
     const navigate = useNavigate();
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between px-1">
-                <h3 className="text-xs uppercase tracking-[0.2em] font-black text-muted-foreground/60">
+                <h3 className="text-[13px] uppercase tracking-[0.2em] font-black text-muted-foreground/60">
                     {t('dashboard.recent_transactions')}
                 </h3>
-                <Link to="/transactions" className="text-[10px] font-black uppercase tracking-widest text-primary hover:opacity-70 transition-opacity">
+                <Link to="/transactions" className="text-[12px] font-black uppercase tracking-widest text-primary hover:opacity-70 transition-opacity">
                     {t('common.see_all')}
                 </Link>
             </div>
@@ -33,7 +32,6 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                 {transactions.map((transaction, index) => (
                     <motion.div
                         key={transaction.id}
-                        layoutId={`transaction-${transaction.id}`}
                         onClick={() => navigate(`/transactions/${transaction.id}`)}
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -48,15 +46,12 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                                 {transaction.type === 'income' ? <TrendingUp size={20} strokeWidth={2.5} /> : <TrendingDown size={20} strokeWidth={2.5} />}
                             </div>
                             <div>
-                                <p className="font-bold tracking-tight text-[14px]">{transaction.description}</p>
-                                <div className="h-4 flex items-center text-[8px] font-bold uppercase tracking-wider text-muted-foreground/60 mt-0.5">
+                                <p className="font-bold tracking-tight text-[15px]">{transaction.description}</p>
+                                <div className="h-4 flex items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mt-0.5">
                                     {(() => {
                                         const category = categories.find(c => c.id === transaction.category_id);
                                         return category ? (
-                                            <span className="flex items-center gap-1.5">
-                                                <CategoryIcon icon={category.icon} size={14} strokeWidth={2.5} />
-                                                <span>{category.name}</span>
-                                            </span>
+                                            <span>{category.name}</span>
                                         ) : (
                                             <span>{t('transactions.uncategorized')}</span>
                                         );
@@ -70,9 +65,10 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                                 "font-black tracking-tight text-[14px]",
                                 transaction.type === 'income' ? "text-emerald-600" : "text-foreground"
                             )}>
-                                {transaction.type === 'income' ? '+' : '-'} {new Intl.NumberFormat(i18n.language, { style: "currency", currency: user?.currency || 'USD' }).format(transaction.amount)}
+                                {new Intl.NumberFormat(i18n.language, { style: "currency", currency: user?.currency || 'USD' }).format(transaction.amount)}
+                                {transaction.type === 'income' ? ' +' : ' -'}
                             </p>
-                            <p className="text-[9px] font-bold text-muted-foreground/40 uppercase tracking-tighter">
+                            <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-tighter">
                                 {new Date(transaction.created_at).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' })}
                             </p>
                         </div>

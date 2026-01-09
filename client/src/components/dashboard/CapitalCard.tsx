@@ -19,7 +19,7 @@ export function CapitalCard({ amount, currency }: CapitalCardProps) {
             <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
 
             <div className="relative space-y-3">
-                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">
+                <h2 className="text-[13px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">
                     {t('dashboard.total_capital')}
                 </h2>
 
@@ -40,14 +40,14 @@ export function CapitalCard({ amount, currency }: CapitalCardProps) {
                             </span>
                         );
                     })()}
-                    <span className="text-sm font-black text-muted-foreground uppercase tracking-widest bg-muted px-2 py-0.5 rounded-lg flex-shrink-0">
+                    <span className="text-[14px] font-black text-muted-foreground uppercase tracking-widest bg-muted px-2 py-0.5 rounded-lg flex-shrink-0">
                         {currency}
                     </span>
                 </div>
 
                 <div className="pt-2 flex items-center space-x-2">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-pulse" />
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                    <span className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest">
                         {t('dashboard.live_balance')}
                     </span>
                 </div>

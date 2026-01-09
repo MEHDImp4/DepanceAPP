@@ -1,4 +1,5 @@
 const prisma = require('../utils/prisma');
+const { toCents, fromCents } = require('../utils/money');
 
 exports.getBudgets = async (req, res) => {
     try {
@@ -33,13 +34,14 @@ exports.getBudgets = async (req, res) => {
 
             return {
                 ...budget,
-                spent: aggregations._sum.amount || 0
+                amount: fromCents(budget.amount),
+                spent: fromCents(aggregations._sum.amount || 0)
             };
         }));
 
         res.json(budgetsWithSpent);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -62,15 +64,16 @@ exports.createBudget = async (req, res) => {
 
         const budget = await prisma.budget.create({
             data: {
-                amount: parseFloat(amount),
+                amount: toCents(amount),
                 period: period || 'monthly',
                 category_id: category_id ? parseInt(category_id) : null,
                 user_id: userId
             }
         });
-        res.status(201).json(budget);
+        const responseCtx = { ...budget, amount: fromCents(budget.amount) };
+        res.status(201).json(responseCtx);
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -82,13 +85,13 @@ exports.updateBudget = async (req, res) => {
 
         const budget = await prisma.budget.updateMany({
             where: { id: parseInt(id), user_id: userId },
-            data: { amount: parseFloat(amount), period }
+            data: { amount: toCents(amount), period }
         });
 
         if (budget.count === 0) return res.status(404).json({ error: 'Budget not found' });
         res.json({ message: 'Budget updated' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };
 
@@ -104,6 +107,6 @@ exports.deleteBudget = async (req, res) => {
         if (budget.count === 0) return res.status(404).json({ error: 'Budget not found' });
         res.json({ message: 'Budget deleted' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };

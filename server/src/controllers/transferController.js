@@ -1,5 +1,6 @@
 const prisma = require('../utils/prisma');
 const { convertCurrency } = require('../utils/currencyService');
+const { toCents, fromCents } = require('../utils/money');
 
 exports.createTransfer = async (req, res) => {
     try {
@@ -13,7 +14,7 @@ exports.createTransfer = async (req, res) => {
         if (!fromAccount || !toAccount) return res.status(404).json({ error: 'One or both accounts not found' });
         if (fromAccount.id === toAccount.id) return res.status(400).json({ error: 'Cannot transfer to same account' });
 
-        const originalAmount = parseFloat(amount);
+        const originalAmount = toCents(amount);
         if (isNaN(originalAmount) || originalAmount <= 0) return res.status(400).json({ error: 'Invalid amount' });
 
         // Handle Currency Conversion
@@ -22,7 +23,10 @@ exports.createTransfer = async (req, res) => {
         let isConversion = false;
 
         if (fromAccount.currency !== toAccount.currency) {
-            creditedAmount = await convertCurrency(originalAmount, fromAccount.currency, toAccount.currency);
+            // convertCurrency takes cents, returns float cents
+            const convertedCents = await convertCurrency(originalAmount, fromAccount.currency, toAccount.currency);
+            // We must round to store as integer cents
+            creditedAmount = Math.round(convertedCents);
             conversionRate = creditedAmount / originalAmount;
             isConversion = true;
         }
@@ -66,10 +70,10 @@ exports.createTransfer = async (req, res) => {
         res.status(201).json({
             message: 'Transfer successful',
             transferId,
-            creditedAmount,
+            creditedAmount: fromCents(creditedAmount),
             rate: conversionRate
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        next(error);
     }
 };

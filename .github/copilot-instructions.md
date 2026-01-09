@@ -1,137 +1,51 @@
 # DepanceAPP - AI Coding Instructions
+# DepanceAPP — Copilot / AI Agent Instructions
 
-## Project Overview
-Personal finance management API built with Express + Prisma + SQLite. Features multi-currency accounts, budgets, recurring transactions, and templates. Monorepo structure with `server/` (Express API), and planned `mobile/` client.
+Purpose: short, precise rules and file references so an AI coding agent can be productive immediately.
 
-## Architecture & Key Patterns
+Overview
+- Monorepo: `server/` contains the Express API (Prisma + SQLite). `client/` is a Vite React app. `mobile/` planned.
+- Core concepts: multi-currency accounts, atomic balance updates, user-scoped resources, recurring transactions, templates.
 
-### Database: Prisma with SQLite
-- **Schema**: [`server/prisma/schema.prisma`](server/prisma/schema.prisma)
-- **Singleton client**: Import from `server/src/utils/prisma.js` (single PrismaClient instance)
-- **Cascade deletes**: User deletion cascades to all related entities (accounts, transactions, categories, budgets, recurring)
-- **No soft deletes**: Direct deletion with CASCADE constraints
+Quick references (concrete files)
+- Prisma schema: [server/prisma/schema.prisma](server/prisma/schema.prisma)
+- Singleton Prisma client: [server/src/utils/prisma.js](server/src/utils/prisma.js)
+- Currency service: [server/src/utils/currencyService.js](server/src/utils/currencyService.js)
+- Transfer logic (currency + transfer_id): [server/src/controllers/transferController.js](server/src/controllers/transferController.js)
+- Transaction patterns: [server/src/controllers/transactionController.js](server/src/controllers/transactionController.js)
+- Test setup & teardown: [server/tests/setup.js](server/tests/setup.js)
+- Root start: `npm run dev` (runs server+client via `concurrently`) — see [package.json](package.json)
 
-### Transaction Atomicity Pattern
-**Critical**: All balance-changing operations MUST use Prisma `$transaction` to ensure data consistency.
+Critical coding rules (do not change)
+- Always use `prisma.$transaction([...])` for any operation that creates/deletes a `Transaction` and updates an `Account` balance. See `transactionController.createTransaction` and `transferController.createTransfer` for the canonical examples.
+- Verify user ownership on all protected DB reads/writes by including `user_id` in `where` clauses (pattern used across controllers).
+- Parse incoming numeric strings explicitly (`parseInt`, `parseFloat`) before DB writes.
+- Transfers create TWO `Transaction` rows (expense + income) linked by `transfer_id` (format: `sf-{timestamp}-{random}`) — preserve this convention.
 
-```javascript
-// Pattern used in transactionController, transferController, recurringController
-await prisma.$transaction([
-  prisma.transaction.create({ data: {...} }),
-  prisma.account.update({ where: { id }, data: { balance: { increment: amount } } })
-]);
-```
+Currency & conversion notes
+- `convertCurrency(amount, from, to)` lives in [server/src/utils/currencyService.js](server/src/utils/currencyService.js). It uses `https://open.er-api.com/v6/latest/USD` and has a 1-hour in-memory cache; all conversions route through USD.
+- The `validCurrencies` array in the same file is the primary place to check supported currencies.
+- When presenting transactions to users, controllers convert per-account amounts into the user's preferred `currency` (see `transactionController.getTransactions`).
 
-Always pair transaction creation with account balance updates in atomic operations.
+Testing & DB workflow
+- Tests run in `server` with Jest. Use `npm test` from `server/` or `npm run server` from root for dev server. Jest is configured to run `./tests/setup.js`.
+- Tests use SQLite and rely on sequential execution: use `--runInBand` (already set in `server/package.json`).
+- Use `npx prisma migrate dev --name <desc>` and `npx prisma generate` when schema changes are required.
 
-### Multi-Currency Architecture
-- Each account stores its own `currency` field (USD, EUR, etc.)
-- User has preferred `currency` for viewing
-- **Currency conversion**: `server/src/utils/currencyService.js`
-  - Uses `https://open.er-api.com/v6/latest/USD` (free, no API key)
-  - 1-hour in-memory cache (`ratesCache`)
-  - All conversions route through USD as base
-- **Transfers between currencies**: Automatic conversion in `transferController.createTransfer()`
-  - Creates two transactions with different amounts (original & converted)
-  - Links via shared `transfer_id` (format: `sf-{timestamp}-{random}`)
+Project-specific patterns & gotchas
+- No soft deletes: schema relies on cascade deletes in relations. Deleting a `User` cascades. See `schema.prisma` relations.
+- Account `type` values are stored as plain strings (e.g., `"normal"`, `"savings"`) — code expects these literal values.
+- Budget calculations aggregate `Transaction` amounts from a period start (see `budgetController.getBudgets` pattern in repository).
+- Recurring entries are scheduled records (`RecurringTransaction`) and do not auto-run — adding a scheduler is outside current scope.
 
-### Authentication
-- JWT tokens (Bearer scheme) via `authMiddleware.js`
-- Decode provides `req.user.userId` for all protected routes
-- All protected routes verify user ownership: `where: { user_id: userId }`
+When editing code
+- Keep edits minimal and consistent with existing controllers' style (commonjs modules, error JSON `{ error: message }`).
+- When adding balance changes, mirror the two-step pattern: create transaction record + update account balance inside a single `prisma.$transaction` call.
+- If modifying currency behavior, update both `currencyService.js` and places that call `convertCurrency` (transactions, transfers, reporting).
 
-### Controller Patterns
-1. **Authorization check**: Always verify ownership with `user_id` in WHERE clause
-2. **Parsing**: Use `parseInt()` for IDs, `parseFloat()` for amounts from request body
-3. **Type checking**: Transaction/recurring `type` field is `"income"` or `"expense"` (string literals)
-4. **Error responses**: Return `{ error: message }` JSON with appropriate status codes
+Suggested tasks for an AI agent
+- Fix: Prefer root-level small, targeted patches that preserve API behavior.
+- Tests: Run `cd server && npm test -- --runInBand` after changes that affect DB logic.
+- Migrations: After schema edits update Prisma with `npx prisma migrate dev` and `npx prisma generate`.
 
-## Development Workflows
-
-### Running the App
-```bash
-# Root: Run both server and mobile (future)
-npm run dev
-
-# Server only
-npm run server  # or: cd server && npm run dev (uses nodemon)
-
-# Tests (uses SQLite test database)
-cd server && npm test
-```
-
-### Database Migrations
-```bash
-cd server
-npx prisma migrate dev --name descriptive_name
-npx prisma generate  # Regenerate client after schema changes
-```
-
-### Test Setup
-- **Environment**: Jest with `NODE_ENV=test` (see `server/package.json`)
-- **Setup/Teardown**: `server/tests/setup.js`
-  - `beforeAll`: Connect to database
-  - `afterEach`: Delete all test data in specific order (respects FK constraints)
-  - `afterAll`: Disconnect
-- **Auth**: Tests manually sign JWTs (see `transaction.test.js` lines 18-19)
-- **Run in band**: `--runInBand` flag ensures sequential test execution (avoids DB conflicts)
-
-## Project Conventions
-
-### File Organization
-- **Routes**: `server/src/routes/{resource}Routes.js` - express.Router() exported
-- **Controllers**: `server/src/controllers/{resource}Controller.js` - exports named functions
-- **Middleware**: `server/src/middleware/{name}Middleware.js`
-- **Utilities**: `server/src/utils/` - shared services (prisma, currencyService)
-
-### Naming Conventions
-- Database columns: `snake_case` (e.g., `user_id`, `created_at`)
-- JavaScript: `camelCase` for variables/functions, `PascalCase` for classes
-- Constants: `SCREAMING_SNAKE_CASE` (e.g., `BCRYPT_SALT_ROUNDS`, `CACHE_DURATION`)
-- Table names: Singular in Prisma schema (`User`, `Transaction`)
-
-### Route Structure
-All routes require authentication except `/auth/register` and `/auth/login`:
-- `/transactions` - CRUD for transactions
-- `/accounts` - Account management
-- `/transfers` - Cross-account transfers (handles currency conversion)
-- `/templates` - Reusable transaction templates
-- `/categories` - User-defined income/expense categories
-- `/budgets` - Monthly/period budgets with spending tracking
-- `/recurring` - Scheduled recurring transactions
-
-### Budget Calculation Pattern
-Budgets calculate "spent" by aggregating transactions from start of current period (see `budgetController.getBudgets()`):
-```javascript
-const startOfMonth = new Date();
-startOfMonth.setDate(1);
-startOfMonth.setHours(0, 0, 0, 0);
-const aggregations = await prisma.transaction.aggregate({
-  _sum: { amount: true },
-  where: { user_id, created_at: { gte: startOfMonth }, type: 'expense', category_id }
-});
-```
-
-## Critical Implementation Rules
-1. **Never mutate account balance without Prisma transaction wrapper**
-2. **Always verify user ownership** before operations (check `user_id` in WHERE)
-3. **Handle currency conversion** for cross-account operations
-4. **Link transfer pairs** with matching `transfer_id` field
-5. **Test with Jest in-band** to avoid SQLite concurrency issues
-6. **Parse numeric inputs** from request body (everything arrives as strings)
-7. **Use cascade deletes** - don't manually delete related entities when deleting users
-
-## Environment Variables
-Required in `server/.env`:
-- `DATABASE_URL` - SQLite connection string (e.g., `file:./dev.db`)
-- `JWT_SECRET` - Token signing secret
-- `PORT` - Server port (default: 3000)
-- `ALLOWED_ORIGINS` - Comma-separated CORS origins (optional)
-- `CLIENT_URL` - Frontend URL for CORS (optional)
-
-## Common Gotchas
-- Transfer creates TWO transactions (expense from source, income to destination)
-- Currency conversion is async - await `convertCurrency()` calls
-- Recurring transactions don't auto-execute - need scheduler implementation
-- SQLite doesn't support concurrent writes - tests run with `--runInBand`
-- Account types are stored as strings (`"normal"`, `"savings"`) - not enforced at DB level
+If anything is unclear or you want expansions (e.g., more controller examples, a checklist for PRs, or a runnable dev guide), tell me which section to expand.

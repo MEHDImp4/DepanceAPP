@@ -43,7 +43,7 @@ describe('Account Endpoints', () => {
             data: {
                 name: 'Savings',
                 type: 'bank',
-                balance: 500,
+                balance: 50000,
                 currency: 'USD',
                 user_id: userId
             }
