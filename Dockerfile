@@ -31,7 +31,7 @@ RUN npx prisma generate
 
 # Copy server source code
 COPY server/src ./src
-COPY server/.env.example ./.env
+COPY .env.example ./.env
 
 
 # --- Stage 3: Final Production Image ---
