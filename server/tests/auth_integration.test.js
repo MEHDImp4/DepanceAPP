@@ -1,0 +1,91 @@
+const request = require('supertest');
+const app = require('../src/index');
+const prisma = require('../src/utils/prisma');
+
+describe('Auth Integration Tests', () => {
+
+    // Clean up is handled by setup.js
+
+    describe('POST /auth/register', () => {
+        it('should return 400 for invalid email', async () => {
+            const res = await request(app)
+                .post('/auth/register')
+                .send({
+                    email: 'invalid-email',
+                    username: 'testuser',
+                    password: 'password123'
+                });
+            expect(res.statusCode).toEqual(400);
+            expect(res.body.error).toContain('Invalid email');
+        });
+
+        it('should return 400 if fields are missing', async () => {
+            const res = await request(app)
+                .post('/auth/register')
+                .send({
+                    username: 'testu'
+                });
+            expect(res.statusCode).toEqual(400);
+        });
+
+        it('should return 400 for short password', async () => {
+            const res = await request(app)
+                .post('/auth/register')
+                .send({
+                    email: 'test@example.com',
+                    username: 'testuser',
+                    password: 'short'
+                });
+            expect(res.statusCode).toEqual(400);
+            expect(res.body.error).toContain('at least 8 characters');
+        });
+
+        it('should register successfully with valid data', async () => {
+            const res = await request(app)
+                .post('/auth/register')
+                .send({
+                    email: 'newuser@example.com',
+                    username: 'newuser',
+                    password: 'password123'
+                });
+            expect(res.statusCode).toEqual(201);
+            expect(res.body.user).toHaveProperty('id');
+        });
+    });
+
+    describe('POST /auth/login', () => {
+        beforeEach(async () => {
+            await request(app).post('/auth/register').send({
+                email: 'login@example.com',
+                username: 'loginuser',
+                password: 'password123'
+            });
+        });
+
+        it('should login successfully with valid credentials', async () => {
+            const res = await request(app)
+                .post('/auth/login')
+                .send({
+                    identifier: 'login@example.com',
+                    password: 'password123'
+                });
+
+            expect(res.statusCode).toEqual(200);
+            expect(res.body.user).toHaveProperty('email', 'login@example.com');
+            // Check for refreshToken cookie
+            const cookies = res.headers['set-cookie'];
+            expect(cookies).toBeDefined();
+            expect(cookies.some(c => c.includes('refreshToken'))).toBe(true);
+        });
+
+        it('should fail with wrong password', async () => {
+            const res = await request(app)
+                .post('/auth/login')
+                .send({
+                    identifier: 'login@example.com',
+                    password: 'wrongpassword'
+                });
+            expect(res.statusCode).toEqual(401);
+        });
+    });
+});

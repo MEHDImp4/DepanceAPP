@@ -3,14 +3,32 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 
 const path = require('path');
+const path = require('path');
 dotenv.config();
+
+// Critical Environment Check
+// Critical Environment Check
+// For SQLite, DATABASE_URL is essential but might look different (file:./dev.db)
+const requiredEnv = ['DATABASE_URL', 'JWT_SECRET', 'PORT'];
+const missingEnv = requiredEnv.filter(key => !process.env[key]);
+
+if (missingEnv.length > 0) {
+    console.error(`CRITICAL: Missing environment variables: ${missingEnv.join(', ')}`);
+    process.exit(1);
+}
 
 const app = express();
 const helmet = require('helmet');
+const compression = require('compression');
+const logger = require('./utils/logger');
+
 app.use(helmet());
+app.use(compression());
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
 const rateLimit = require('express-rate-limit');
+
+app.set('trust proxy', 1);
 
 // Rate Limiting
 const globalLimiter = rateLimit({
@@ -57,6 +75,11 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Health Check Endpoint (for Docker/K8s)
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+
 // Routes
 app.use('/auth', authLimiter, require('./routes/authRoutes'));
 app.use('/accounts', require('./routes/accountRoutes'));
@@ -85,7 +108,7 @@ if (process.env.NODE_ENV === 'production') {
 
 if (require.main === module) {
     app.listen(port, () => {
-        console.log(`Server running on port ${port}`);
+        logger.info(`Server running on port ${port}`);
     });
 }
 

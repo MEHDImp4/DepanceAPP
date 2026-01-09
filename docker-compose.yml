@@ -11,9 +11,15 @@ services:
       - PORT=3001
       - DATABASE_URL=file:./dev.db
       - NODE_ENV=production
-      # JWT_SECRET should be passed as env var or secrets in prod
+      - JWT_SECRET=${JWT_SECRET}
     volumes:
       - ./server/prisma/dev.db:/app/prisma/dev.db
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3001/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     restart: always
 
   client:

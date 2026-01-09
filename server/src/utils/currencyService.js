@@ -96,3 +96,21 @@ exports.convertCurrency = async (amount, fromCurrency, toCurrency) => {
 };
 
 exports.validCurrencies = ['USD', 'EUR', 'GBP', 'MAD', 'JPY', 'CAD', 'AUD', 'CHF', 'CNY', 'AED']; // Common list
+
+exports.getRates = getRates;
+
+exports.calculateExchange = (amount, fromCurrency, toCurrency, rates) => {
+    if (fromCurrency === toCurrency) return amount;
+
+    const fromRate = rates[fromCurrency];
+    const toRate = rates[toCurrency];
+
+    if (!fromRate || !toRate) {
+        // Fallback or throw, here we throw to stay consistent, but caller should handle
+        throw new Error(`Exchange rate not available for ${fromCurrency} or ${toCurrency}`);
+    }
+
+    // Convert to USD then to Target
+    const amountInUSD = amount / fromRate;
+    return amountInUSD * toRate;
+};

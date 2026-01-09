@@ -41,12 +41,15 @@ exports.createTransaction = async (req, res) => {
     }
 };
 
-exports.getTransactions = async (req, res) => {
+exports.getTransactions = async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const { accountId } = req.query;
 
-        const [user, transactions] = await Promise.all([
+        // Fetch user preferences, transactions, and exchange rates in parallel
+        const { getRates, calculateExchange } = require('../utils/currencyService');
+
+        const [user, transactions, rates] = await Promise.all([
             prisma.user.findUnique({ where: { id: userId }, select: { currency: true } }),
             prisma.transaction.findMany({
                 where: {
@@ -58,16 +61,20 @@ exports.getTransactions = async (req, res) => {
                     account: { select: { name: true, currency: true } },
                     category: true
                 }
-            })
+            }),
+            getRates() // Fetch rates once
         ]);
 
         const targetCurrency = user?.currency || 'USD';
-        const { convertCurrency } = require('../utils/currencyService');
 
-        const txsWithConversion = await Promise.all(transactions.map(async (tx) => {
+        // Perform synchronous conversion using the pre-fetched rates
+        const txsWithConversion = transactions.map((tx) => {
             try {
-                // convertCurrency returns cents converted (float), so we convert back to units
-                const convertedAmountCents = await convertCurrency(tx.amount, tx.account?.currency || 'USD', targetCurrency);
+                const sourceCurrency = tx.account?.currency || 'USD';
+
+                // Use synchronous calculation
+                const convertedAmountCents = calculateExchange(tx.amount, sourceCurrency, targetCurrency, rates);
+
                 return {
                     ...tx,
                     amount: fromCents(tx.amount), // Convert stored amount to float
@@ -83,7 +90,7 @@ exports.getTransactions = async (req, res) => {
                     convertedCurrency: tx.account?.currency || 'USD'
                 };
             }
-        }));
+        });
 
         res.json(txsWithConversion);
     } catch (error) {

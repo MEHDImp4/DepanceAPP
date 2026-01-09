@@ -1,8 +1,10 @@
+const logger = require('../utils/logger');
+
 const errorHandler = (err, req, res, next) => {
     const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
 
-    // Log error for server-side debugging
-    console.error(`[Error] ${req.method} ${req.url}`, err.stack);
+    // Log error using Winston
+    logger.error(`${req.method} ${req.url} - ${err.message}`, { stack: err.stack });
 
     res.status(statusCode).json({
         error: process.env.NODE_ENV === 'production'

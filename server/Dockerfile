@@ -15,6 +15,9 @@ RUN npx prisma generate
 # Stage 2: Production
 FROM node:20-alpine
 
+# Install curl for healthchecks
+RUN apk --no-cache add curl
+
 WORKDIR /app
 
 COPY package*.json ./
