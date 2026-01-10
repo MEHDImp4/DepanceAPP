@@ -63,7 +63,7 @@ export const updateTemplate = async (req: Request, res: Response, next: NextFunc
         const userId = req.user!.userId;
 
         const template = await prisma.template.update({
-            where: { id: parseInt(id), user_id: userId },
+            where: { id: parseInt(id as string), user_id: userId },
             data: {
                 name,
                 ...(amount !== undefined && { amount: toCents(amount) }),
@@ -87,7 +87,7 @@ export const deleteTemplate = async (req: Request, res: Response, next: NextFunc
         const userId = req.user!.userId;
 
         await prisma.template.delete({
-            where: { id: parseInt(id), user_id: userId }
+            where: { id: parseInt(id as string), user_id: userId }
         });
         res.json({ message: 'Template deleted successfully' });
     } catch (error) {

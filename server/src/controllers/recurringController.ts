@@ -77,7 +77,7 @@ export const deleteRecurring = async (req: Request, res: Response, next: NextFun
         const { id } = req.params;
         const userId = req.user!.userId;
         await prisma.recurringTransaction.deleteMany({
-            where: { id: parseInt(id), user_id: userId }
+            where: { id: parseInt(id as string), user_id: userId }
         });
         res.json({ message: 'Deleted' });
     } catch (error) {

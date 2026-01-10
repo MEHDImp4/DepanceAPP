@@ -74,6 +74,9 @@ export const register = async (req: Request, res: Response, next: NextFunction):
     }
 };
 
+import { getRecentCriticalActions } from '../utils/auditService';
+import { checkAccountLockout, logLogin, logFailedLogin, getLoginHistory as getHistory, detectSuspiciousActivity, isNewDeviceOrLocation } from '../utils/loginHistoryService';
+
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { identifier, password } = req.body as { identifier: string; password: string };
@@ -88,15 +91,34 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
         });
 
         if (!user) {
+            // Log generic failed attempt (using 0 or null as userId might be tricky if not found, usually skip or log as unknown)
+            // Ideally we log by IP if user not found, but service expects userId.
             res.status(401).json({ error: 'Invalid credentials' });
+            return;
+        }
+
+        // Check for account lockout
+        const lockoutStatus = await checkAccountLockout(user.id);
+        if (lockoutStatus.isLocked) {
+            res.status(429).json({
+                error: 'Account locked due to too many failed attempts',
+                remainingTime: lockoutStatus.remainingTime
+            });
             return;
         }
 
         const isValid = await bcrypt.compare(password, user.password_hash);
         if (!isValid) {
+            await logFailedLogin(user.id, req);
             res.status(401).json({ error: 'Invalid credentials' });
             return;
         }
+
+        // Log successful login
+        await logLogin(user.id, req, true);
+
+        // Check for new device
+        const deviceCheck = await isNewDeviceOrLocation(user.id, req);
 
         const accessToken = jwt.sign(
             { userId: user.id, email: user.email } as JwtPayload,
@@ -132,8 +154,27 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
         });
 
         res.json({
-            user: { id: user.id, email: user.email, username: user.username, currency: user.currency }
+            user: { id: user.id, email: user.email, username: user.username, currency: user.currency },
+            newDevice: deviceCheck.isNew
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getLoginHistory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const history = await getHistory(req.user!.userId);
+        res.json(history);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getSecurityAlerts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const alerts = await detectSuspiciousActivity(req.user!.userId);
+        res.json(alerts);
     } catch (error) {
         next(error);
     }

@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, RequestHandler } from 'express';
 import * as accountController from '../controllers/accountController';
 import authMiddleware from '../middleware/authMiddleware';
 import validate from '../middleware/validate';
@@ -11,7 +11,7 @@ router.use(authMiddleware);
 router.get('/summary', accountController.getSummary);
 router.post('/', validate(createAccountSchema), accountController.createAccount);
 router.get('/', accountController.getAccounts);
-router.put('/:id', validate(updateAccountSchema), accountController.updateAccount);
-router.delete('/:id', validate(idParamSchema), accountController.deleteAccount);
+router.put('/:id', validate(updateAccountSchema), accountController.updateAccount as unknown as RequestHandler);
+router.delete('/:id', validate(idParamSchema), accountController.deleteAccount as unknown as RequestHandler);
 
 export default router;

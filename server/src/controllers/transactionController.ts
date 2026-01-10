@@ -120,7 +120,7 @@ export const getTransaction = async (req: Request, res: Response, next: NextFunc
         const userId = req.user!.userId;
 
         const transaction = await prisma.transaction.findFirst({
-            where: { id: parseInt(id), user_id: userId },
+            where: { id: parseInt(id as string), user_id: userId },
             include: { account: true, category: true }
         });
 
@@ -141,7 +141,7 @@ export const deleteTransaction = async (req: Request, res: Response, next: NextF
         const userId = req.user!.userId;
 
         const tx = await prisma.transaction.findFirst({
-            where: { id: parseInt(id), user_id: userId }
+            where: { id: parseInt(id as string), user_id: userId }
         });
         if (!tx) {
             res.status(404).json({ error: 'Transaction not found' });
@@ -151,7 +151,7 @@ export const deleteTransaction = async (req: Request, res: Response, next: NextF
         const balanceChange = tx.type === 'income' ? -tx.amount : tx.amount;
 
         await prisma.$transaction([
-            prisma.transaction.delete({ where: { id: parseInt(id) } }),
+            prisma.transaction.delete({ where: { id: parseInt(id as string) } }),
             prisma.account.update({
                 where: { id: tx.account_id },
                 data: { balance: { increment: balanceChange } }

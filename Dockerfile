@@ -12,7 +12,10 @@ WORKDIR /app/server
 COPY server/package*.json ./
 COPY server/prisma ./prisma/
 RUN npm ci
+COPY server/tsconfig.json ./
+COPY server/src ./src
 RUN npx prisma generate
+RUN npm run build
 
 # Stage 3: Final Production Image
 FROM node:20-alpine
@@ -28,10 +31,9 @@ COPY --from=client-builder /app/client/dist ./public
 # Copy Server Dependencies and Prisma Client
 COPY --from=server-builder /app/server/node_modules ./node_modules
 COPY --from=server-builder /app/server/prisma ./prisma
-
-# Copy Server Source Code
+COPY --from=server-builder /app/server/dist ./dist
+# Copy package.json for potentially npm scripts if needed, though running node directly
 COPY server/package*.json ./
-COPY server/src ./src
 
 # Copy Entrypoint
 COPY server/docker-entrypoint.sh ./
@@ -47,4 +49,4 @@ EXPOSE 3000
 # Start via entrypoint (handles migrations)
 ENTRYPOINT ["./docker-entrypoint.sh"]
 
-CMD ["node", "src/index.js"]
+CMD ["node", "dist/index.js"]

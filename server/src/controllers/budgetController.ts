@@ -98,7 +98,7 @@ export const updateBudget = async (req: Request, res: Response, next: NextFuncti
         const userId = req.user!.userId;
 
         const result = await prisma.budget.updateMany({
-            where: { id: parseInt(id), user_id: userId },
+            where: { id: parseInt(id as string), user_id: userId },
             data: {
                 ...(amount !== undefined && { amount: toCents(amount) }),
                 ...(period && { period })
@@ -121,7 +121,7 @@ export const deleteBudget = async (req: Request, res: Response, next: NextFuncti
         const userId = req.user!.userId;
 
         const result = await prisma.budget.deleteMany({
-            where: { id: parseInt(id), user_id: userId }
+            where: { id: parseInt(id as string), user_id: userId }
         });
 
         if (result.count === 0) {

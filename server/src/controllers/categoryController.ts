@@ -65,7 +65,7 @@ export const updateCategory = async (req: Request, res: Response, next: NextFunc
         const { name, type, color, icon } = req.body as UpdateCategoryBody;
 
         const result = await prisma.category.updateMany({
-            where: { id: parseInt(id), user_id: req.user!.userId },
+            where: { id: parseInt(id as string), user_id: req.user!.userId },
             data: { name, type, color, icon },
         });
 
@@ -83,7 +83,7 @@ export const deleteCategory = async (req: Request, res: Response, next: NextFunc
     try {
         const { id } = req.params;
         const category = await prisma.category.findUnique({
-            where: { id: parseInt(id) }
+            where: { id: parseInt(id as string) }
         });
 
         if (!category || category.user_id !== req.user!.userId) {
@@ -93,12 +93,12 @@ export const deleteCategory = async (req: Request, res: Response, next: NextFunc
 
         // Set category_id to null for related transactions
         await prisma.transaction.updateMany({
-            where: { category_id: parseInt(id) },
+            where: { category_id: parseInt(id as string) },
             data: { category_id: null }
         });
 
         await prisma.category.delete({
-            where: { id: parseInt(id) }
+            where: { id: parseInt(id as string) }
         });
 
         res.json({ message: 'Category deleted' });

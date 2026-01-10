@@ -35,7 +35,23 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Security middleware
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            connectSrc: ["'self'", process.env.NODE_ENV !== 'production' ? "*" : "'self'"],
+            frameSrc: ["'none'"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+            upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+        }
+    }
+}));
 app.use(compression());
 app.use(cookieParser());
 app.set('trust proxy', 1);
@@ -108,10 +124,9 @@ app.use(errorHandler);
 
 // Static files for production
 if (process.env.NODE_ENV === 'production') {
-    const clientBuildPath = path.join(__dirname, '../../client/dist');
-    app.use(express.static(clientBuildPath));
+    app.use(express.static(path.join(__dirname, '../public')));
     app.get('*', (_req: Request, res: Response) => {
-        res.sendFile(path.join(clientBuildPath, 'index.html'));
+        res.sendFile(path.join(__dirname, '../public', 'index.html'));
     });
 }
 
