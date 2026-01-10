@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "cross-env NODE_ENV=test jest --runInBand"
+    "test": "cross-env NODE_ENV=test DATABASE_URL='postgresql://postgres:postgres@localhost:5432/depance_db?schema=public' JWT_SECRET='test_secret_key' PORT=3001 jest --runInBand"
   },
   "keywords": [],
   "author": "",
