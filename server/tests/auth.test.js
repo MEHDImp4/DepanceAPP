@@ -40,7 +40,7 @@ describe('Auth Endpoints', () => {
         expect(response.statusCode).toEqual(200);
         const cookies = response.headers['set-cookie'];
         expect(cookies).toBeDefined();
-        expect(cookies[0]).toMatch(/token=.+/);
+        expect(cookies[0]).toMatch(/refreshToken=.+/);
         // expect(response.body).toHaveProperty('token'); // Removed
     });
 

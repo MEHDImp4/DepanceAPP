@@ -1,0 +1,257 @@
+
+> server@1.0.0 test
+> cross-env NODE_ENV=test DATABASE_URL='postgresql://postgres:postgres@localhost:5432/depance_db?schema=public' JWT_SECRET='test_secret_key' PORT=3001 jest --runInBand tests/currency.test.js
+
+  console.log
+    [dotenv@17.2.3] injecting env (2) from .env -- tip: ≡ƒöÉ prevent committing .env to code: https://dotenvx.com/precommit
+
+      at _log (node_modules/dotenv/lib/main.js:142:11)
+
+  console.error
+    Error cleaning up database: PrismaClientInitializationError: 
+    Invalid `prisma.transaction.deleteMany()` invocation in
+    C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\tests\setup.js:11:51
+    
+       8 
+       9 afterEach(async () => {
+      10     // Clean up database after each test
+    ΓåÆ 11     const deleteTransactions = prisma.transaction.deleteMany(
+    Can't reach database server at `localhost:5432`
+    
+    Please make sure your database server is running at `localhost:5432`.
+        at $n.handleRequestError (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:7615)
+        at $n.handleAndLogRequestError (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+        at $n.request (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+        at l (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:130:9633) {
+      clientVersion: '5.22.0',
+      errorCode: undefined
+    }
+
+    [0m [90m 30 |[39m         ])[33m;[39m
+     [90m 31 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 32 |[39m         console[33m.[39merror([32m'Error cleaning up database:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 33 |[39m     }
+     [90m 34 |[39m })[33m;[39m
+     [90m 35 |[39m[0m
+
+      at Object.error (tests/setup.js:32:17)
+
+  console.error
+    Error cleaning up database: PrismaClientInitializationError: 
+    Invalid `prisma.transaction.deleteMany()` invocation in
+    C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\tests\setup.js:11:51
+    
+       8 
+       9 afterEach(async () => {
+      10     // Clean up database after each test
+    ΓåÆ 11     const deleteTransactions = prisma.transaction.deleteMany(
+    Can't reach database server at `localhost:5432`
+    
+    Please make sure your database server is running at `localhost:5432`.
+        at $n.handleRequestError (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:7615)
+        at $n.handleAndLogRequestError (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+        at $n.request (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+        at l (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:130:9633) {
+      clientVersion: '5.22.0',
+      errorCode: undefined
+    }
+
+    [0m [90m 30 |[39m         ])[33m;[39m
+     [90m 31 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 32 |[39m         console[33m.[39merror([32m'Error cleaning up database:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 33 |[39m     }
+     [90m 34 |[39m })[33m;[39m
+     [90m 35 |[39m[0m
+
+      at Object.error (tests/setup.js:32:17)
+
+  console.error
+    Error cleaning up database: PrismaClientInitializationError: 
+    Invalid `prisma.transaction.deleteMany()` invocation in
+    C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\tests\setup.js:11:51
+    
+       8 
+       9 afterEach(async () => {
+      10     // Clean up database after each test
+    ΓåÆ 11     const deleteTransactions = prisma.transaction.deleteMany(
+    Can't reach database server at `localhost:5432`
+    
+    Please make sure your database server is running at `localhost:5432`.
+        at $n.handleRequestError (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:7615)
+        at $n.handleAndLogRequestError (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+        at $n.request (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+        at l (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:130:9633) {
+      clientVersion: '5.22.0',
+      errorCode: undefined
+    }
+
+    [0m [90m 30 |[39m         ])[33m;[39m
+     [90m 31 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 32 |[39m         console[33m.[39merror([32m'Error cleaning up database:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 33 |[39m     }
+     [90m 34 |[39m })[33m;[39m
+     [90m 35 |[39m[0m
+
+      at Object.error (tests/setup.js:32:17)
+
+  console.error
+    Error cleaning up database: PrismaClientInitializationError: 
+    Invalid `prisma.transaction.deleteMany()` invocation in
+    C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\tests\setup.js:11:51
+    
+       8 
+       9 afterEach(async () => {
+      10     // Clean up database after each test
+    ΓåÆ 11     const deleteTransactions = prisma.transaction.deleteMany(
+    Can't reach database server at `localhost:5432`
+    
+    Please make sure your database server is running at `localhost:5432`.
+        at $n.handleRequestError (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:7615)
+        at $n.handleAndLogRequestError (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+        at $n.request (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+        at l (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:130:9633) {
+      clientVersion: '5.22.0',
+      errorCode: undefined
+    }
+
+    [0m [90m 30 |[39m         ])[33m;[39m
+     [90m 31 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 32 |[39m         console[33m.[39merror([32m'Error cleaning up database:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 33 |[39m     }
+     [90m 34 |[39m })[33m;[39m
+     [90m 35 |[39m[0m
+
+      at Object.error (tests/setup.js:32:17)
+
+  console.error
+    Error cleaning up database: PrismaClientInitializationError: 
+    Invalid `prisma.transaction.deleteMany()` invocation in
+    C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\tests\setup.js:11:51
+    
+       8 
+       9 afterEach(async () => {
+      10     // Clean up database after each test
+    ΓåÆ 11     const deleteTransactions = prisma.transaction.deleteMany(
+    Can't reach database server at `localhost:5432`
+    
+    Please make sure your database server is running at `localhost:5432`.
+        at $n.handleRequestError (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:7615)
+        at $n.handleAndLogRequestError (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:6623)
+        at $n.request (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:121:6307)
+        at l (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@prisma\client\runtime\library.js:130:9633) {
+      clientVersion: '5.22.0',
+      errorCode: undefined
+    }
+
+    [0m [90m 30 |[39m         ])[33m;[39m
+     [90m 31 |[39m     } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 32 |[39m         console[33m.[39merror([32m'Error cleaning up database:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m                 [31m[1m^[22m[39m
+     [90m 33 |[39m     }
+     [90m 34 |[39m })[33m;[39m
+     [90m 35 |[39m[0m
+
+      at Object.error (tests/setup.js:32:17)
+
+FAIL tests/currency.test.js (24.911 s)
+  Currency Service - calculateExchange
+    ├ù should return same amount if currencies are identical (4076 ms)
+    ├ù should convert correctly from USD to Target (4050 ms)
+    ├ù should convert correctly from Source to USD (4072 ms)
+    ├ù should convert correctly cross currency (EUR to MAD) (4101 ms)
+    ├ù should throw error if rate is missing (4071 ms)
+
+  ΓùÅ Currency Service - calculateExchange ΓÇ║ should return same amount if currencies are identical
+
+    PrismaClientInitializationError: Can't reach database server at `localhost:5432`
+
+    Please make sure your database server is running at `localhost:5432`.
+
+      4 | beforeAll(async () => {
+      5 |     // Connect to database
+    > 6 |     await prisma.$connect();
+        |     ^
+      7 | });
+      8 |
+      9 | afterEach(async () => {
+
+      at t (node_modules/@prisma/client/runtime/library.js:112:2488)
+      at Object.<anonymous> (tests/setup.js:6:5)
+
+  ΓùÅ Currency Service - calculateExchange ΓÇ║ should convert correctly from USD to Target
+
+    PrismaClientInitializationError: Can't reach database server at `localhost:5432`
+
+    Please make sure your database server is running at `localhost:5432`.
+
+      4 | beforeAll(async () => {
+      5 |     // Connect to database
+    > 6 |     await prisma.$connect();
+        |     ^
+      7 | });
+      8 |
+      9 | afterEach(async () => {
+
+      at t (node_modules/@prisma/client/runtime/library.js:112:2488)
+      at Object.<anonymous> (tests/setup.js:6:5)
+
+  ΓùÅ Currency Service - calculateExchange ΓÇ║ should convert correctly from Source to USD
+
+    PrismaClientInitializationError: Can't reach database server at `localhost:5432`
+
+    Please make sure your database server is running at `localhost:5432`.
+
+      4 | beforeAll(async () => {
+      5 |     // Connect to database
+    > 6 |     await prisma.$connect();
+        |     ^
+      7 | });
+      8 |
+      9 | afterEach(async () => {
+
+      at t (node_modules/@prisma/client/runtime/library.js:112:2488)
+      at Object.<anonymous> (tests/setup.js:6:5)
+
+  ΓùÅ Currency Service - calculateExchange ΓÇ║ should convert correctly cross currency (EUR to MAD)
+
+    PrismaClientInitializationError: Can't reach database server at `localhost:5432`
+
+    Please make sure your database server is running at `localhost:5432`.
+
+      4 | beforeAll(async () => {
+      5 |     // Connect to database
+    > 6 |     await prisma.$connect();
+        |     ^
+      7 | });
+      8 |
+      9 | afterEach(async () => {
+
+      at t (node_modules/@prisma/client/runtime/library.js:112:2488)
+      at Object.<anonymous> (tests/setup.js:6:5)
+
+  ΓùÅ Currency Service - calculateExchange ΓÇ║ should throw error if rate is missing
+
+    PrismaClientInitializationError: Can't reach database server at `localhost:5432`
+
+    Please make sure your database server is running at `localhost:5432`.
+
+      4 | beforeAll(async () => {
+      5 |     // Connect to database
+    > 6 |     await prisma.$connect();
+        |     ^
+      7 | });
+      8 |
+      9 | afterEach(async () => {
+
+      at t (node_modules/@prisma/client/runtime/library.js:112:2488)
+      at Object.<anonymous> (tests/setup.js:6:5)
+
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 5 total
+Snapshots:   0 total
+Time:        25.009 s
+Ran all test suites matching tests/currency.test.js.

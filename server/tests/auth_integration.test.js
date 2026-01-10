@@ -55,6 +55,11 @@ describe('Auth Integration Tests', () => {
 
     describe('POST /auth/login', () => {
         beforeEach(async () => {
+            // Ensure cleanup before creating fresh user
+            await prisma.user.deleteMany({
+                where: { email: 'login@example.com' }
+            });
+
             await request(app).post('/auth/register').send({
                 email: 'login@example.com',
                 username: 'loginuser',
