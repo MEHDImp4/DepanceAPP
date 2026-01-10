@@ -15,8 +15,8 @@ RUN npx prisma generate
 # Stage 2: Production
 FROM node:20-alpine
 
-# Install curl for healthchecks
-RUN apk --no-cache add curl
+# Install curl for healthchecks and openssl for Prisma
+RUN apk --no-cache add curl openssl
 
 WORKDIR /app
 
@@ -25,10 +25,17 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 
 COPY src ./src
-COPY .env .env
+COPY docker-entrypoint.sh ./
+
+RUN chmod +x docker-entrypoint.sh
+
+# NOTE: Environment variables should be provided at runtime via docker-compose or K8s
+# Do NOT copy .env files into the image - it exposes secrets if image is pushed to registry
 
 # Expose API port
 EXPOSE 3001
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
 
 # Start server
 CMD ["node", "src/index.js"]

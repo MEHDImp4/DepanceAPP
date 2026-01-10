@@ -1,7 +1,7 @@
 const prisma = require('../utils/prisma');
 const { toCents, fromCents } = require('../utils/money');
 
-exports.getRecurring = async (req, res) => {
+exports.getRecurring = async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const recurring = await prisma.recurringTransaction.findMany({
@@ -16,10 +16,28 @@ exports.getRecurring = async (req, res) => {
     }
 };
 
-exports.createRecurring = async (req, res) => {
+exports.createRecurring = async (req, res, next) => {
     try {
         const { amount, description, type, interval, start_date, account_id, category_id } = req.body;
         const userId = req.user.userId;
+
+        // SECURITY: Verify account ownership to prevent IDOR
+        const account = await prisma.account.findFirst({
+            where: { id: parseInt(account_id), user_id: userId }
+        });
+        if (!account) {
+            return res.status(404).json({ error: 'Account not found' });
+        }
+
+        // Optional: Verify category ownership if provided
+        if (category_id) {
+            const category = await prisma.category.findFirst({
+                where: { id: parseInt(category_id), user_id: userId }
+            });
+            if (!category) {
+                return res.status(403).json({ error: 'Invalid category or access denied' });
+            }
+        }
 
         const recurring = await prisma.recurringTransaction.create({
             data: {
@@ -39,7 +57,7 @@ exports.createRecurring = async (req, res) => {
     }
 };
 
-exports.deleteRecurring = async (req, res) => {
+exports.deleteRecurring = async (req, res, next) => {
     try {
         const { id } = req.params;
         const userId = req.user.userId;
@@ -106,7 +124,7 @@ async function processRuleCycles(rule, userId, now) {
     return createdTransactions;
 }
 
-exports.processRecurring = async (req, res) => {
+exports.processRecurring = async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const now = new Date();

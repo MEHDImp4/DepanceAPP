@@ -1,7 +1,7 @@
 const prisma = require('../utils/prisma');
 const { toCents, fromCents } = require('../utils/money');
 
-exports.createTransaction = async (req, res) => {
+exports.createTransaction = async (req, res, next) => {
     try {
         const { amount, description, type, account_id, category_id } = req.body;
         const userId = req.user.userId;
@@ -99,7 +99,7 @@ exports.getTransactions = async (req, res, next) => {
     }
 };
 
-exports.getTransaction = async (req, res) => {
+exports.getTransaction = async (req, res, next) => {
     try {
         const { id } = req.params;
         const userId = req.user.userId;
@@ -124,7 +124,7 @@ exports.getTransaction = async (req, res) => {
     }
 };
 
-exports.deleteTransaction = async (req, res) => {
+exports.deleteTransaction = async (req, res, next) => {
     try {
         const { id } = req.params;
         const userId = req.user.userId;

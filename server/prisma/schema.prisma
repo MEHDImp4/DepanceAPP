@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -16,12 +16,13 @@ model User {
   created_at    DateTime               @default(now())
   accounts      Account[]
   transactions  Transaction[]
-  // ... (User model updates)
   templates     Template[]
   categories    Category[]
   budgets       Budget[]
   recurring     RecurringTransaction[]
   refreshTokens RefreshToken[]
+  loginHistory  LoginHistory[]
+  auditLogs     AuditLog[]
 }
 
 model RefreshToken {
@@ -31,6 +32,45 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model LoginHistory {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress  String
+  userAgent  String?
+  device     String?  // Parsed device type: "Desktop", "Mobile", "Tablet", etc.
+  browser    String?  // Parsed browser name
+  os         String?  // Parsed OS name
+  country    String?  // Geo-IP country (optional)
+  city       String?  // Geo-IP city (optional)
+  success    Boolean  @default(true)  // Was login successful?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([ipAddress])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String   // e.g., "transaction.create", "account.delete", "transfer.create"
+  entityType String   // e.g., "transaction", "account", "budget"
+  entityId   Int?     // ID of the affected entity
+  oldValue   String?  @db.Text // JSON string of previous state
+  newValue   String?  @db.Text // JSON string of new state
+  ipAddress  String?
+  userAgent  String?
+  metadata   String?  @db.Text // Additional context as JSON
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
 }
 
 model Account {
@@ -46,6 +86,8 @@ model Account {
   transactions         Transaction[]
   templates            Template[]
   RecurringTransaction RecurringTransaction[]
+
+  @@index([user_id])
 }
 
 model Category {
@@ -61,6 +103,8 @@ model Category {
   budget       Budget?
   recurring    RecurringTransaction[]
   templates    Template[]
+
+  @@index([user_id])
 }
 
 model Transaction {
@@ -76,6 +120,10 @@ model Transaction {
   category    Category? @relation(fields: [category_id], references: [id])
   transfer_id String? // UUID to link two transactions (debit/credit) for transfers
   created_at  DateTime  @default(now())
+
+  @@index([user_id])
+  @@index([account_id])
+  @@index([created_at])
 }
 
 model Template {

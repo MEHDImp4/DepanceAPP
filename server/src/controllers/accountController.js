@@ -2,7 +2,7 @@ const prisma = require('../utils/prisma');
 const { convertCurrency } = require('../utils/currencyService');
 const { toCents, fromCents } = require('../utils/money');
 
-exports.getSummary = async (req, res) => {
+exports.getSummary = async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const [user, accounts] = await Promise.all([
@@ -23,7 +23,7 @@ exports.getSummary = async (req, res) => {
     }
 };
 
-exports.createAccount = async (req, res) => {
+exports.createAccount = async (req, res, next) => {
     try {
         const { name, type, balance, currency, color } = req.body;
         const userId = req.user.userId;
@@ -46,7 +46,7 @@ exports.createAccount = async (req, res) => {
     }
 };
 
-exports.getAccounts = async (req, res) => {
+exports.getAccounts = async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const accounts = await prisma.account.findMany({
@@ -63,7 +63,7 @@ exports.getAccounts = async (req, res) => {
     }
 };
 
-exports.updateAccount = async (req, res) => {
+exports.updateAccount = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { name, type, currency } = req.body;
@@ -84,7 +84,7 @@ exports.updateAccount = async (req, res) => {
     }
 };
 
-exports.deleteAccount = async (req, res) => {
+exports.deleteAccount = async (req, res, next) => {
     try {
         const { id } = req.params;
         const userId = req.user.userId;

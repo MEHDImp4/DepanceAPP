@@ -1,7 +1,7 @@
 const prisma = require('../utils/prisma');
 const { toCents, fromCents } = require('../utils/money');
 
-exports.getBudgets = async (req, res) => {
+exports.getBudgets = async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const budgets = await prisma.budget.findMany({
@@ -45,7 +45,7 @@ exports.getBudgets = async (req, res) => {
     }
 };
 
-exports.createBudget = async (req, res) => {
+exports.createBudget = async (req, res, next) => {
     try {
         const { amount, period, category_id } = req.body;
         const userId = req.user.userId;
@@ -77,7 +77,7 @@ exports.createBudget = async (req, res) => {
     }
 };
 
-exports.updateBudget = async (req, res) => {
+exports.updateBudget = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { amount, period } = req.body;
@@ -95,7 +95,7 @@ exports.updateBudget = async (req, res) => {
     }
 };
 
-exports.deleteBudget = async (req, res) => {
+exports.deleteBudget = async (req, res, next) => {
     try {
         const { id } = req.params;
         const userId = req.user.userId;

@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../utils/prisma');
+const { checkAccountLockout, logLogin, logFailedLogin, isNewDeviceOrLocation } = require('../utils/loginHistoryService');
 
 exports.register = async (req, res, next) => {
     try {
@@ -47,6 +48,9 @@ exports.register = async (req, res, next) => {
             maxAge: 15 * 60 * 1000 // 15 mins
         });
 
+        // Log successful registration as first login
+        await logLogin(user.id, req, true);
+
         res.status(201).json({ message: 'Account created successfully', userId: user.id, user: { id: user.id, email: user.email, username: user.username } });
     } catch (error) {
         next(error);
@@ -70,8 +74,28 @@ exports.login = async (req, res, next) => {
 
         if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
+        // Check if account is locked due to too many failed attempts
+        const lockoutStatus = await checkAccountLockout(user.id);
+        if (lockoutStatus.isLocked) {
+            return res.status(429).json({
+                error: `Account temporarily locked. Please try again in ${lockoutStatus.remainingTime} minutes.`,
+                lockedUntil: lockoutStatus.remainingTime
+            });
+        }
+
         const isValid = await bcrypt.compare(password, user.password_hash);
-        if (!isValid) return res.status(401).json({ error: 'Invalid credentials' });
+        if (!isValid) {
+            // Log failed attempt
+            await logFailedLogin(user.id, req);
+            const attemptsLeft = 5 - lockoutStatus.failedAttempts - 1;
+            const message = attemptsLeft > 0
+                ? `Invalid credentials. ${attemptsLeft} attempts remaining before account lockout.`
+                : 'Invalid credentials';
+            return res.status(401).json({ error: message });
+        }
+
+        // Check if this is a new device/location
+        const deviceCheck = await isNewDeviceOrLocation(user.id, req);
 
         const accessToken = jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: '15m' });
         const refreshToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
@@ -99,13 +123,19 @@ exports.login = async (req, res, next) => {
             maxAge: 15 * 60 * 1000 // 15 mins
         });
 
-        res.json({ user: { id: user.id, email: user.email, username: user.username, currency: user.currency } });
+        // Log successful login
+        await logLogin(user.id, req, true);
+
+        res.json({
+            user: { id: user.id, email: user.email, username: user.username, currency: user.currency },
+            newDevice: deviceCheck.isNew // Alert frontend if new device/location
+        });
     } catch (error) {
         next(error);
     }
 };
 
-exports.getProfile = async (req, res) => {
+exports.getProfile = async (req, res, next) => {
     try {
         const user = await prisma.user.findUnique({ where: { id: req.user.userId } });
         res.json({ id: user.id, email: user.email, username: user.username, currency: user.currency });
@@ -114,7 +144,7 @@ exports.getProfile = async (req, res) => {
     }
 };
 
-exports.updateProfile = async (req, res) => {
+exports.updateProfile = async (req, res, next) => {
     try {
         const { currency } = req.body;
         const updated = await prisma.user.update({
@@ -185,3 +215,31 @@ exports.logout = async (req, res, next) => {
         next(error);
     }
 };
+
+/**
+ * Get user's login history
+ */
+exports.getLoginHistory = async (req, res, next) => {
+    try {
+        const { getLoginHistory } = require('../utils/loginHistoryService');
+        const limit = parseInt(req.query.limit) || 20;
+        const history = await getLoginHistory(req.user.userId, Math.min(limit, 100));
+        res.json(history);
+    } catch (error) {
+        next(error);
+    }
+};
+
+/**
+ * Get security alerts for the user
+ */
+exports.getSecurityAlerts = async (req, res, next) => {
+    try {
+        const { detectSuspiciousActivity } = require('../utils/loginHistoryService');
+        const alerts = await detectSuspiciousActivity(req.user.userId);
+        res.json({ alerts });
+    } catch (error) {
+        next(error);
+    }
+};
+

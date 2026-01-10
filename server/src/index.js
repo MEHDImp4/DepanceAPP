@@ -22,7 +22,34 @@ const helmet = require('helmet');
 const compression = require('compression');
 const logger = require('./utils/logger');
 
-app.use(helmet());
+// Security headers with strict CSP
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"], // Consider removing unsafe-inline in production
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            connectSrc: ["'self'", process.env.NODE_ENV !== 'production' ? "*" : "'self'"],
+            frameSrc: ["'none'"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+            upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+        }
+    },
+    crossOriginEmbedderPolicy: false, // May need to disable for some APIs
+    hsts: {
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+        preload: true
+    },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    noSniff: true,
+    xssFilter: true,
+    hidePoweredBy: true
+}));
 app.use(compression());
 const cookieParser = require('cookie-parser');
 app.use(cookieParser());
@@ -63,7 +90,10 @@ const corsOptions = {
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
-        if (allowedOrigins.includes(origin) || origin.endsWith('.ngrok-free.app')) {
+        // Allow ngrok only in development (not production)
+        const allowNgrok = process.env.NODE_ENV !== 'production';
+
+        if (allowedOrigins.includes(origin) || (allowNgrok && origin.endsWith('.ngrok-free.app'))) {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));
@@ -80,6 +110,14 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
+// API Documentation (Swagger UI)
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./swagger');
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'DepanceAPP API Documentation'
+}));
+
 // Routes
 app.use('/auth', authLimiter, require('./routes/authRoutes'));
 app.use('/accounts', require('./routes/accountRoutes'));
@@ -90,26 +128,24 @@ app.use('/categories', require('./routes/categoryRoutes'));
 app.use('/budgets', require('./routes/budgetRoutes'));
 app.use('/recurring', require('./routes/recurringRoutes'));
 
+
 const errorHandler = require('./middleware/errorHandler');
 app.use(errorHandler);
 
-// Serve static files from the React app
+// Serve static files from the React app (Monolithic Mode)
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '../public')));
 
+    // Handle SPA routing - return index.html for any unknown route
     app.get('*', (req, res) => {
         res.sendFile(path.join(__dirname, '../public', 'index.html'));
     });
-} else {
-    app.get('/', (req, res) => {
-        res.send('DepanceAPP API is running');
-    });
 }
 
-if (require.main === module) {
-    app.listen(port, () => {
-        logger.info(`Server running on port ${port}`);
-    });
-}
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+    logger.info(`Server running on port ${PORT}`);
+    logger.info(`Swagger UI available at http://localhost:${PORT}/api-docs`);
+});
 
 module.exports = app;

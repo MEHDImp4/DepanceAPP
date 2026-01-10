@@ -1,7 +1,7 @@
 const prisma = require('../utils/prisma');
 const { toCents, fromCents } = require('../utils/money');
 
-exports.createTemplate = async (req, res) => {
+exports.createTemplate = async (req, res, next) => {
     try {
         const { name, amount, description, default_account_id, category_id, color, icon_name, type } = req.body;
         const userId = req.user.userId;
@@ -23,7 +23,7 @@ exports.createTemplate = async (req, res) => {
     } catch (e) { next(e); }
 }
 
-exports.getTemplates = async (req, res) => {
+exports.getTemplates = async (req, res, next) => {
     try {
         const userId = req.user.userId;
         const templates = await prisma.template.findMany({
@@ -38,7 +38,7 @@ exports.getTemplates = async (req, res) => {
     } catch (e) { next(e); }
 }
 
-exports.updateTemplate = async (req, res) => {
+exports.updateTemplate = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { name, amount, description, default_account_id, category_id, color, icon_name, type } = req.body;
@@ -61,7 +61,7 @@ exports.updateTemplate = async (req, res) => {
     } catch (e) { next(e); }
 }
 
-exports.deleteTemplate = async (req, res) => {
+exports.deleteTemplate = async (req, res, next) => {
     try {
         const { id } = req.params;
         const userId = req.user.userId;

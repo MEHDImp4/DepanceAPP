@@ -2,7 +2,7 @@ const prisma = require('../utils/prisma');
 const { convertCurrency } = require('../utils/currencyService');
 const { toCents, fromCents } = require('../utils/money');
 
-exports.createTransfer = async (req, res) => {
+exports.createTransfer = async (req, res, next) => {
     try {
         const { from_account_id, to_account_id, amount, description } = req.body;
         const userId = req.user.userId;

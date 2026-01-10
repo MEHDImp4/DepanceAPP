@@ -1,60 +1,50 @@
-# Unified Dockerfile for DepanceAPP
-# Builds both Client and Server, runs them as a single service.
-
-# --- Stage 1: Client Build ---
+# Stage 1: Build Client
 FROM node:20-alpine AS client-builder
-
-WORKDIR /client
-
-# Copy client dependencies and install
+WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm ci
+COPY client/ .
+RUN npm run build
 
-# Copy client source code
-COPY client/ ./
-# Build the client (Vite output goes to /client/dist)
-RUN npm run build 
-
-
-# --- Stage 2: Server Build ---
+# Stage 2: Build Server dependencies & Prisma
 FROM node:20-alpine AS server-builder
-
-WORKDIR /app
-
-# Copy server dependencies and install
+WORKDIR /app/server
 COPY server/package*.json ./
-# Copy prisma schema early for generation
 COPY server/prisma ./prisma/
-
 RUN npm ci
 RUN npx prisma generate
 
-# Copy server source code
-COPY server/src ./src
-COPY .env.example ./.env
-
-
-# --- Stage 3: Final Production Image ---
+# Stage 3: Final Production Image
 FROM node:20-alpine
+
+# Install system dependencies (openssl for Prisma, curl for healthcheck)
+RUN apk --no-cache add openssl curl
 
 WORKDIR /app
 
-# Copy server node_modules and built resources from server-builder
-COPY --from=server-builder /app/node_modules ./node_modules
-COPY --from=server-builder /app/prisma ./prisma
-COPY --from=server-builder /app/src ./src
-COPY --from=server-builder /app/package.json ./package.json
+# Copy Client Build
+COPY --from=client-builder /app/client/dist ./public
 
-# Copy client build artifacts to the server's public folder
-# The Express server is configured to serve static files from ../public relative to src
-COPY --from=client-builder /client/dist ./public
+# Copy Server Dependencies and Prisma Client
+COPY --from=server-builder /app/server/node_modules ./node_modules
+COPY --from=server-builder /app/server/prisma ./prisma
 
-# Environment variables setup
+# Copy Server Source Code
+COPY server/package*.json ./
+COPY server/src ./src
+
+# Copy Entrypoint
+COPY server/docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
+# Environment Setup
 ENV NODE_ENV=production
 ENV PORT=3000
 
 # Expose the single port
 EXPOSE 3000
 
-# Start command
+# Start via entrypoint (handles migrations)
+ENTRYPOINT ["./docker-entrypoint.sh"]
+
 CMD ["node", "src/index.js"]
