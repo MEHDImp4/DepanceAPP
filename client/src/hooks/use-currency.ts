@@ -45,3 +45,10 @@ export function convertCurrency(
     const inBase = amount / fromRate;
     return inBase * toRate;
 }
+
+export function formatCurrency(amount: number, currency: string = 'USD'): string {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency,
+    }).format(amount);
+}

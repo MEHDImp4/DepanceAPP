@@ -149,9 +149,36 @@ export const createTransferSchema = z.object({
     })
 });
 
+// ============ GOAL SCHEMAS ============
+export const createGoalSchema = z.object({
+    body: z.object({
+        name: z.string().min(1, { message: "Goal name is required" }).max(100),
+        targetAmount: z.number().positive({ message: "Target amount must be a positive number" }),
+        currentAmount: z.number().nonnegative().optional().default(0),
+        deadline: z.string().datetime().optional().nullable(),
+        color: z.string().optional(),
+        icon: z.string().optional()
+    })
+});
+
+export const updateGoalSchema = z.object({
+    body: z.object({
+        name: z.string().min(1).max(100).optional(),
+        targetAmount: z.number().positive().optional(),
+        currentAmount: z.number().nonnegative().optional(),
+        deadline: z.string().datetime().optional().nullable(),
+        color: z.string().optional(),
+        icon: z.string().optional()
+    }),
+    params: z.object({
+        id: z.string().regex(/^\d+$/, { message: "Invalid goal ID" })
+    })
+});
+
 // ============ COMMON PARAM SCHEMAS ============
 export const idParamSchema = z.object({
     params: z.object({
         id: z.string().regex(/^\d+$/, { message: "Invalid ID format" })
     })
 });
+

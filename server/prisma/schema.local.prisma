@@ -23,6 +23,7 @@ model User {
   refreshTokens RefreshToken[]
   loginHistory  LoginHistory[]
   auditLogs     AuditLog[]
+  goals         Goal[]
 }
 
 model RefreshToken {
@@ -179,4 +180,20 @@ model ExchangeRate {
   currency  String   @unique // e.g., "EUR"
   rate      Float    // Exchange rate relative to base currency (USD)
   updatedAt DateTime @updatedAt
+}
+
+model Goal {
+  id            Int      @id @default(autoincrement())
+  name          String
+  targetAmount  Int
+  currentAmount Int      @default(0)
+  deadline      DateTime?
+  color         String?  // For UI theming
+  icon          String?  // For UI visualization
+  user_id       Int
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([user_id])
 }

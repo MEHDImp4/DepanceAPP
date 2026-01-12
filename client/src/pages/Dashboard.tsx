@@ -12,6 +12,10 @@ import { Wallet } from "lucide-react";
 
 // Mock data removed in favor of real API data
 
+import { useState } from "react";
+import { StoryOverlay } from "@/components/dashboard/StoryOverlay";
+import { Play } from "lucide-react";
+
 export default function Dashboard() {
     const { t, i18n } = useTranslation();
     const { data: summary, isLoading: isSummaryLoading, error } = useSummary();
@@ -19,6 +23,7 @@ export default function Dashboard() {
     const { data: ratesData } = useCurrencyRates();
     const user = useAuthStore((state) => state.user);
     const processRecurring = useProcessRecurring();
+    const [showStory, setShowStory] = useState(false);
 
     useEffect(() => {
         processRecurring.mutate();
@@ -69,7 +74,17 @@ export default function Dashboard() {
 
     return (
         <div className="space-y-6 pb-32 relative">
-            <header className="flex flex-col items-center py-6 px-1 space-y-4">
+            <StoryOverlay isOpen={showStory} onClose={() => setShowStory(false)} />
+
+            <header className="flex flex-col items-center py-6 px-1 space-y-4 relative">
+                <button
+                    onClick={() => setShowStory(true)}
+                    className="absolute right-0 top-6 p-2 bg-gradient-to-r from-pink-500/20 to-purple-500/20 rounded-full text-pink-500 hover:scale-110 transition-transform animate-pulse"
+                    title="View Monthly Recap"
+                >
+                    <Play size={20} fill="currentColor" />
+                </button>
+
                 <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 rotate-3 transition-transform hover:rotate-6">
                     <Wallet className="text-primary-foreground" size={28} />
                 </div>

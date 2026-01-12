@@ -21,10 +21,12 @@ import Transactions from "./pages/Transactions";
 import TransactionDetails from "./pages/TransactionDetails";
 import Accounts from "./pages/Accounts";
 import Templates from "./pages/Templates";
-import RecurringTransactions from "@/pages/RecurringTransactions";
+import RecurringTransactions from "./pages/RecurringTransactions";
+import Goals from "./pages/Goals";
 import Settings from "./pages/Settings";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import ReloadPrompt from "./components/ReloadPrompt";
 
 function App() {
   return (
@@ -44,11 +46,13 @@ function App() {
             <Route path="/accounts" element={<Accounts />} />
             <Route path="/templates" element={<Templates />} />
             <Route path="/recurring" element={<RecurringTransactions />} />
+            <Route path="/goals" element={<Goals />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Routes>
+        <ReloadPrompt />
       </QueryClientProvider>
-    </BrowserRouter>
+    </BrowserRouter >
   );
 }
 

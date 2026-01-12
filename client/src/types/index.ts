@@ -75,3 +75,35 @@ export interface RecurringTransaction {
     category?: Category;
     account?: Account;
 }
+
+export interface Goal {
+    id: number;
+    name: string;
+    targetAmount: number;
+    currentAmount: number;
+    deadline?: string | null;
+    color?: string;
+    icon?: string;
+    created_at: string;
+    // Add these just in case for UI
+    percentage?: number;
+}
+
+export interface MonthlyRecap {
+    month: string;
+    year: number;
+    totalSpent: number;
+    totalIncome: number;
+    transactionCount: number;
+    topCategory: {
+        name: string;
+        amount: number;
+        color?: string;
+        icon?: string;
+    } | null;
+    biggestPurchase: Transaction | null;
+    comparison: {
+        lastMonthSpent: number;
+        percentageChange: number;
+    };
+}

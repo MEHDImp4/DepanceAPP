@@ -11,7 +11,8 @@
         "settings": "Paramètres",
         "home": "Accueil",
         "transact": "Transaction",
-        "recurring": "Récurrent"
+        "recurring": "Récurrent",
+        "goals": "Objectifs"
     },
     "dashboard": {
         "total_capital": "Capital Total",

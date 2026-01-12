@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/auth-store";
 import { useUpdateProfile } from "@/hooks/use-api";
-import { Moon, Sun, User, Bell, Shield, ChevronRight, LogOut, Globe, Repeat, type LucideIcon } from "lucide-react";
+import { Moon, Sun, User, Bell, Shield, ChevronRight, LogOut, Globe, Repeat, Target, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { useNavigate } from "react-router-dom";
@@ -82,6 +82,12 @@ export default function Settings() {
                     label: t('nav.recurring') || "Recurring Transactions",
                     color: "bg-orange-500",
                     onClick: () => navigate('/recurring')
+                },
+                {
+                    icon: Target as LucideIcon,
+                    label: t('nav.goals') || "Goals",
+                    color: "bg-pink-500",
+                    onClick: () => navigate('/goals')
                 },
             ]
         },

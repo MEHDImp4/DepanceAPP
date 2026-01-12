@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
-import type { Transaction, Account, Template, User, Category, RecurringTransaction } from '@/types';
+import type { Transaction, Account, Template, User, Category, RecurringTransaction, Goal, MonthlyRecap } from '@/types';
 
 export function useTransaction(id: number) {
     return useQuery({
@@ -208,5 +208,60 @@ export function useProcessRecurring() {
                 queryClient.invalidateQueries({ queryKey: ['recurring'] });
             }
         },
+    });
+}
+
+export function useGoals() {
+    return useQuery({
+        queryKey: ['goals'],
+        queryFn: async () => {
+            const { data } = await api.get<Goal[]>('/goals');
+            return data;
+        },
+    });
+}
+
+export function useCreateGoal() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (newGoal: any) =>
+            api.post('/goals', newGoal),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['goals'] });
+        },
+    });
+}
+
+export function useUpdateGoal() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (data: { id: number } & Partial<Goal>) =>
+            api.put<Goal>(`/goals/${data.id}`, data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['goals'] });
+        },
+    });
+}
+
+export function useDeleteGoal() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) =>
+            api.delete(`/goals/${id}`),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['goals'] });
+        },
+    });
+}
+
+export function useRecap() {
+    return useQuery({
+        queryKey: ['recap'],
+        queryFn: async () => {
+            const { data } = await api.get<MonthlyRecap>('/analytics/recap');
+            return data;
+        },
+        retry: false, // Don't retry if it fails (e.g. no data)
+        staleTime: 1000 * 60 * 60, // 1 hour
     });
 }

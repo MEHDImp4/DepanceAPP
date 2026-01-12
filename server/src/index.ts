@@ -21,6 +21,8 @@ import templateRoutes from './routes/templateRoutes';
 import categoryRoutes from './routes/categoryRoutes';
 import budgetRoutes from './routes/budgetRoutes';
 import recurringRoutes from './routes/recurringRoutes';
+import goalRoutes from './routes/goalRoutes';
+import analyticsRoutes from './routes/analyticsRoutes';
 
 // Environment validation
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
@@ -118,6 +120,8 @@ app.use('/templates', templateRoutes);
 app.use('/categories', categoryRoutes);
 app.use('/budgets', budgetRoutes);
 app.use('/recurring', recurringRoutes);
+app.use('/goals', goalRoutes);
+app.use('/analytics', analyticsRoutes);
 
 // Error handler
 app.use(errorHandler);
