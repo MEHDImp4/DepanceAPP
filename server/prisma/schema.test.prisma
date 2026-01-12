@@ -1,0 +1,199 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int                    @id @default(autoincrement())
+  email         String                 @unique
+  username      String                 @unique
+  password_hash String
+  currency      String                 @default("USD") // Preferred currency
+  created_at    DateTime               @default(now())
+  accounts      Account[]
+  transactions  Transaction[]
+  templates     Template[]
+  categories    Category[]
+  budgets       Budget[]
+  recurring     RecurringTransaction[]
+  refreshTokens RefreshToken[]
+  loginHistory  LoginHistory[]
+  auditLogs     AuditLog[]
+  goals         Goal[]
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model LoginHistory {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress  String
+  userAgent  String?
+  device     String?
+  browser    String?
+  os         String?
+  country    String?
+  city       String?
+  success    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([ipAddress])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   Int?
+  oldValue   String?
+  newValue   String?
+  ipAddress  String?
+  userAgent  String?
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+}
+
+model Account {
+  id                   Int                    @id @default(autoincrement())
+  name                 String
+  type                 String
+  color                String?
+  currency             String                 @default("USD")
+  balance              Int                    @default(0)
+  user_id              Int
+  user                 User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at           DateTime               @default(now())
+  transactions         Transaction[]
+  templates            Template[]
+  RecurringTransaction RecurringTransaction[]
+
+  @@index([user_id])
+}
+
+model Category {
+  id           Int                    @id @default(autoincrement())
+  name         String
+  type         String
+  color        String?
+  icon         String?
+  user_id      Int
+  user         User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at   DateTime               @default(now())
+  transactions Transaction[]
+  budget       Budget?
+  recurring    RecurringTransaction[]
+  templates    Template[]
+
+  @@index([user_id])
+}
+
+model Transaction {
+  id          Int       @id @default(autoincrement())
+  amount      Int
+  description String
+  type        String
+  account_id  Int
+  account     Account   @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  user_id     Int
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  category_id Int?
+  category    Category? @relation(fields: [category_id], references: [id])
+  transfer_id String?
+  created_at  DateTime  @default(now())
+
+  @@index([user_id])
+  @@index([account_id])
+  @@index([created_at])
+}
+
+model Template {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  amount             Int
+  description        String?
+  color              String?
+  icon_name          String?
+  default_account_id Int?
+  default_account    Account? @relation(fields: [default_account_id], references: [id])
+  category_id        Int?
+  category           Category? @relation(fields: [category_id], references: [id])
+  type               String   @default("expense")
+  user_id            Int
+  user               User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at         DateTime @default(now())
+}
+
+model Budget {
+  id          Int      @id @default(autoincrement())
+  amount      Int
+  period      String   @default("monthly")
+  category_id Int?     @unique
+  user_id     Int
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  category Category? @relation(fields: [category_id], references: [id])
+  user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model RecurringTransaction {
+  id            Int      @id @default(autoincrement())
+  amount        Int
+  description   String
+  type          String
+  interval      String
+  next_run_date DateTime
+  active        Boolean  @default(true)
+  category_id   Int?
+  category      Category? @relation(fields: [category_id], references: [id])
+  account_id    Int
+  account       Account   @relation(fields: [account_id], references: [id])
+  user_id       Int
+  user          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+}
+
+model ExchangeRate {
+  id        Int      @id @default(autoincrement())
+  currency  String   @unique
+  rate      Float
+  updatedAt DateTime @updatedAt
+}
+
+model Goal {
+  id            Int      @id @default(autoincrement())
+  name          String
+  targetAmount  Int
+  currentAmount Int      @default(0)
+  deadline      DateTime?
+  color         String?
+  icon          String?
+  user_id       Int
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([user_id])
+}

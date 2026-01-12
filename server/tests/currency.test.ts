@@ -1,4 +1,4 @@
-const { calculateExchange } = require('../src/utils/currencyService');
+import { calculateExchange } from '../src/utils/currencyService';
 
 describe('Currency Service - calculateExchange', () => {
     const mockRates = {

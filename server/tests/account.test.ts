@@ -1,11 +1,11 @@
-const request = require('supertest');
-const app = require('../src/index');
-const prisma = require('../src/utils/prisma');
-const jwt = require('jsonwebtoken');
+import request from 'supertest';
+import app from '../src/index';
+import prisma from '../src/utils/prisma';
+import jwt from 'jsonwebtoken';
 
 describe('Account Endpoints', () => {
-    let token;
-    let userId;
+    let token: string;
+    let userId: number;
 
     beforeEach(async () => {
         // Create a user and generate token

@@ -1,7 +1,7 @@
-const request = require('supertest');
-const app = require('../src/index');
-const prisma = require('../src/utils/prisma');
-const bcrypt = require('bcryptjs');
+import request from 'supertest';
+import app from '../src/index';
+import prisma from '../src/utils/prisma';
+import bcrypt from 'bcryptjs';
 
 describe('Auth Endpoints', () => {
     const testUser = {

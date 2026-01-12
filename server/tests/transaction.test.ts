@@ -1,12 +1,12 @@
-const request = require('supertest');
-const app = require('../src/index');
-const prisma = require('../src/utils/prisma');
-const jwt = require('jsonwebtoken');
+import request from 'supertest';
+import app from '../src/index';
+import prisma from '../src/utils/prisma';
+import jwt from 'jsonwebtoken';
 
 describe('Transaction Endpoints', () => {
-    let token;
-    let userId;
-    let accountId;
+    let token: string;
+    let userId: number;
+    let accountId: number;
 
     beforeEach(async () => {
         const user = await prisma.user.create({
@@ -48,7 +48,7 @@ describe('Transaction Endpoints', () => {
 
         // Verify simple account fetch
         const updatedAccount = await prisma.account.findUnique({ where: { id: accountId } });
-        expect(updatedAccount.balance).toBe(90000); // 1000.00 -> 100000 - 10000 = 90000 cents
+        expect(updatedAccount?.balance).toBe(90000); // 1000.00 -> 100000 - 10000 = 90000 cents
     });
 
     it('should get transactions', async () => {

@@ -1,9 +1,18 @@
-require('dotenv').config();
-const prisma = require('../src/utils/prisma');
+import dotenv from 'dotenv';
+import { PrismaClient } from '@prisma/client';
+import prisma from '../src/utils/prisma';
+
+dotenv.config();
 
 beforeAll(async () => {
-    // Connect to database
-    await prisma.$connect();
+    try {
+        // Connect to database
+        await prisma.$connect();
+        console.log('Database connected successfully');
+    } catch (error) {
+        console.error('Failed to connect to database in setup.ts:', error);
+        throw error;
+    }
 });
 
 afterEach(async () => {
@@ -14,11 +23,10 @@ afterEach(async () => {
     const deleteRecurring = prisma.recurringTransaction.deleteMany();
     const deleteCategories = prisma.category.deleteMany();
     const deleteUsers = prisma.user.deleteMany();
+    const deleteGoals = prisma.goal.deleteMany();
+    const deleteTemplates = prisma.template.deleteMany();
 
     // Use transaction to ensure order or just await all
-    // Note: Foreign key constraints might require specific order
-    // Deleting users should cascade if set up, but let's be explicit/careful
-    // Order: Transactions -> Accounts/Categories -> Users
     try {
         await prisma.$transaction([
             deleteTransactions,
@@ -26,7 +34,9 @@ afterEach(async () => {
             deleteBudgets,
             deleteAccounts,
             deleteCategories,
-            deleteUsers
+            deleteUsers,
+            deleteGoals,
+            deleteTemplates
         ]);
     } catch (error) {
         console.error('Error cleaning up database:', error);

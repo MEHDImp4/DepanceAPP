@@ -1,6 +1,6 @@
-const request = require('supertest');
-const app = require('../src/index');
-const prisma = require('../src/utils/prisma');
+import request from 'supertest';
+import app from '../src/index';
+import prisma from '../src/utils/prisma';
 
 describe('Auth Integration Tests', () => {
 
@@ -80,7 +80,8 @@ describe('Auth Integration Tests', () => {
             // Check for refreshToken cookie
             const cookies = res.headers['set-cookie'];
             expect(cookies).toBeDefined();
-            expect(cookies.some(c => c.includes('refreshToken'))).toBe(true);
+            // @ts-expect-error supertest types might be slightly off for headers
+            expect(cookies?.some((c: string) => c.includes('refreshToken'))).toBe(true);
         });
 
         it('should fail with wrong password', async () => {

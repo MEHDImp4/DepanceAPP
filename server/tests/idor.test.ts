@@ -1,13 +1,13 @@
-const request = require('supertest');
-const app = require('../src/index');
-const prisma = require('../src/utils/prisma');
-const jwt = require('jsonwebtoken');
+import request from 'supertest';
+import app from '../src/index';
+import prisma from '../src/utils/prisma';
+import jwt from 'jsonwebtoken';
 
 describe('IDOR Vulnerability Check', () => {
-    let user1, user2;
-    let token1, token2;
-    let category1;
-    let account2;
+    let user1: any, user2: any;
+    let token1: string, token2: string;
+    let category1: any;
+    let account2: any;
 
     beforeAll(async () => {
         // Create User 1 (Victim)

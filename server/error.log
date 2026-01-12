@@ -1,0 +1,15 @@
+(node:5540) Warning: Failed to load the ES module: C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\jest.config.ts. Make sure to set "type": "module" in the nearest package.json file or use the .mjs extension.
+(Use `node --trace-warnings ...` to show where the warning was created)
+Error: Jest: Failed to parse the TypeScript config file C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\jest.config.ts
+    both with the native node TypeScript support and configured TypeScript loaders.
+    Errors were:
+    - SyntaxError: Unexpected token 'export'
+    - TSError: Γ¿» Unable to compile TypeScript:
+tsconfig.json(30,15): error TS1005: ':' expected.
+
+    at readConfigFileAndSetRootDir (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\jest-config\build\index.js:2274:13)
+    at async readInitialOptions (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\jest-config\build\index.js:1147:13)
+    at async readConfig (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\jest-config\build\index.js:918:7)
+    at async readConfigs (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\jest-config\build\index.js:1168:26)
+    at async runCLI (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\@jest\core\build\index.js:1407:7)
+    at async Object.run (C:\Users\mehdi\Documents\GitHub\DepanceAPP\server\node_modules\jest-cli\build\index.js:656:9)
