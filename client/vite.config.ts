@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
       }),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+        includeAssets: ['favicon.png', 'apple-touch-icon.png'],
         manifest: {
           name: 'Depance Finances',
           short_name: 'Depance',

@@ -82,6 +82,10 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,ht
     .split(',')
     .map(o => o.trim());
 
+if (process.env.APP_URL) {
+    allowedOrigins.push(process.env.APP_URL);
+}
+
 const corsOptions: cors.CorsOptions = {
     origin: (origin, callback) => {
         if (!origin) return callback(null, true);
