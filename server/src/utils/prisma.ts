@@ -5,15 +5,14 @@ const getDatabaseUrl = () => {
         return process.env.DATABASE_URL;
     }
 
-    const dbUser = process.env.DB_USER || 'postgres';
-    const dbPassword = process.env.DB_PASSWORD || 'postgres';
+    const dbUser = process.env.DB_USER || 'root';
+    const dbPassword = process.env.DB_PASSWORD || 'root';
     const dbHost = process.env.DB_HOST || 'localhost';
-    const dbPort = process.env.DB_PORT || '5432';
+    const dbPort = process.env.DB_PORT || '3306';
     const dbName = process.env.DB_NAME || 'depance_db';
-    const dbSchema = process.env.DB_SCHEMA || 'public';
 
-    // Default to postgresql as per schema.prisma
-    return `postgresql://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/${dbName}?schema=${dbSchema}`;
+    // MySQL connection string format
+    return `mysql://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/${dbName}`;
 };
 
 const prisma = new PrismaClient({

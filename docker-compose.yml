@@ -15,11 +15,11 @@ services:
       # Database Configuration (Required)
       - DATABASE_URL=${DATABASE_URL:-}
       - DB_HOST=${DB_HOST:-db}
-      - DB_PORT=${DB_PORT:-5432}
-      - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_USER=${DB_USER:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-root}
       - DB_NAME=${DB_NAME:-depance_db}
-      - DB_SCHEMA=${DB_SCHEMA:-public}
+      # DB_SCHEMA is not used for MySQL
       # Security
       - JWT_SECRET=${JWT_SECRET}
       # App URL (for CORS usually, but monolith serves same origin)

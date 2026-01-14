@@ -1,119 +1,180 @@
-# DepanceAPP 🚀
+# DepanceAPP
 
-**DepanceAPP** is an open-source, self-hostable Personal Finance Management (PFM) application designed to help you track accounts, transactions, budgets, and recurring expenses with a privacy-first approach.
+![License](https://img.shields.io/github/license/mehdimp4/DepanceAPP?style=for-the-badge)
+![GitHub stars](https://img.shields.io/github/stars/mehdimp4/DepanceAPP?style=for-the-badge)
+![GitHub issues](https://img.shields.io/github/issues/mehdimp4/DepanceAPP?style=for-the-badge)
+![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
+![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 
-## ✨ Features
+**DepanceAPP** is a powerful, open-source, self-hosted Personal Finance Management (PFM) application. Built with privacy and performance in mind, it allows you to take full control of your financial data without relying on third-party cloud services.
 
-- **Dashboard:** Overview of your financial health.
-- **Transactions:** Track income and expenses with categories.
-- **Accounts:** Manage multiple bank accounts and cash wallets.
-- **Budgets:** Set monthly limits and track progress.
-- **Recurring Transactions:** Automate regular bills and salary.
-- **Privacy:** 100% self-hosted, your data never leaves your server.
-- **Security:** Account lockouts, login history, and audit logs.
-
-## 🛠️ Architecture
-
-- **Backend:** Node.js (Express), Prisma ORM
-- **Database:** SQLite (Local Dev) / MariaDB or MySQL (Production)
-- **Frontend:** React (Vite) [Coming Soon in root/client]
+![Dashboard Preview](https://via.placeholder.com/1200x600?text=Dashboard+Preview+Coming+Soon)
 
 ---
 
-## 💻 Local Development
+## ✨ Key Features
 
-For developers who want to contribute. The project requires running Backend and Frontend separately in development mode.
+- **📊 Comprehensive Dashboard:** Get a real-time overview of your net worth, recent activity, and budget status.
+- **💰 Account Management:** Track unlimited accounts (Bank, Cash, Savings) with multi-currency support.
+- **💸 Transaction Tracking:** Easily log income and expenses with smart categorization and custom tags.
+- **📈 Budgeting:** Set monthly limits for specific categories and track your spending progress visually.
+- **🔄 Recurring Transactions:** Automate your fixed expenses (rent, subscriptions) and income (salary).
+- **🔒 Privacy First:** Your data lives on your server. No external tracking, no data selling.
+- **🛡️ Enterprise-Grade Security:**
+  - Secure Authentication (JWT + Refresh Tokens)
+  - Account Lockout protection against brute-force attacks
+  - Detailed Login History & Audit Logs
+
+---
+
+## 🚀 Getting Started
+
+You can run DepanceAPP in minutes using Docker.
 
 ### Prerequisites
-- Node.js (v18+)
-- SQLite (for local DB)
 
-### 1. Start Backend (API)
-```bash
-cd server
-npm install
-npm run dev
-# Server runs on http://localhost:3001
-# API Docs: http://localhost:3001/api-docs
-```
+- [Docker](https://www.docker.com/products/docker-desktop) and [Docker Compose](https://docs.docker.com/compose/install/) installed on your machine.
+- A **MySQL** or **MariaDB** database (can be hosted on the same server or separately).
 
-### 2. Start Frontend (Client)
-```bash
-cd client
-npm install
-npm run dev
-# Client runs on http://localhost:5173
-```
-*Note: In development, the frontend proxies API calls to port 3001 automatically via Vite.*
+### Quick Start (Production)
 
----
+1.  **Create a `docker-compose.yml` file:**
 
-## 🏠 Self-Hosting (Production)
-
-Deploy DepanceAPP using a single Docker container, similar to SonarQube. You must provide your own MySQL/MariaDB database.
-
-### Quick Start with Docker Compose
-
-1.  **Create `docker-compose.yml`:**
     ```yaml
     version: '3.8'
+
     services:
       app:
-        image: ghcr.io/mehdimp4/depanceapp:latest # (Or build locally: build: .)
+        image: ghcr.io/mehdimp4/depanceapp:latest
         container_name: depance-app
         ports:
-          - "8080:3000" # Map host port 8080 to container port 3000
+          - "3000:3000"
         environment:
-          - DATABASE_URL=mysql://user:pass@db-host:3306/depance_db
-          - JWT_SECRET=change_me_to_something_secure
+          # Database Configuration (REQUIRED)
+          - DB_HOST=db
+          - DB_PORT=3306
+          - DB_USER=depance
+          - DB_PASSWORD=secure_password
+          - DB_NAME=depance_db
+          
+          # Application URL (REQUIRED for CORS)
+          - APP_URL=https://your-domain.com
+          
+          # Security (REQUIRED)
+          - JWT_SECRET=change_this_to_a_long_random_string
+        depends_on:
+          - db
         restart: always
+
+      db:
+        image: mariadb:10.6
+        container_name: depance-db
+        environment:
+          - MYSQL_ROOT_PASSWORD=root_secure_password
+          - MYSQL_DATABASE=depance_db
+          - MYSQL_USER=depance
+          - MYSQL_PASSWORD=secure_password
+        volumes:
+          - db_data:/var/lib/mysql
+        restart: always
+
+    volumes:
+      db_data:
     ```
 
-2.  **Start:**
+2.  **Run the application:**
+
     ```bash
     docker-compose up -d
     ```
-    Access the application at `http://your-server:8080`.
 
-3.  **Automatic Migrations:**
-    The container automatically applies the latest database migrations on startup. No manual intervention required.
+3.  **Access the app:**
+    Open your browser and navigate to `http://localhost:3000` (or your domain).
 
-### ⚙️ Environment Variables
+---
 
-| Variable | Description | Required | Default |
-|----------|-------------|----------|---------|
-| `APP_PORT` | Port exposed by the internal container (use docker ports to map to host) | No | `3000` |
-| `DATABASE_URL` | MySQL/MariaDB Connection String (`mysql://user:pass@host:3306/db`) | **Yes** | - |
-| `JWT_SECRET` | Secret key for signing tokens | **Yes** | - |
-| `CLIENT_URL` | Public URL of the app (used for CORS/Links) | No | `http://localhost:3000` |
-| `BACKUP_ENCRYPTION_KEY` | Key for encrypting backups | No | - |
+## ⚙️ Configuration
 
+You can configure the application using environment variables.
 
-### Building Locally
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `APP_URL` | Public URL of your application (e.g., `https://finance.me`). Used for CORS. | `http://localhost:3000` | **Yes** |
+| `DB_HOST` | Database hostname | `localhost` | **Yes** |
+| `DB_PORT` | Database port | `3306` | No |
+| `DB_USER` | Database user | `root` | **Yes** |
+| `DB_PASSWORD`| Database password | `root` | **Yes** |
+| `DB_NAME` | Database name | `depance_db` | No |
+| `JWT_SECRET` | Secret key for signing tokens. Must be long and secure. | - | **Yes** |
+| `LOG_LEVEL` | Logging level (`info`, `debug`, `error`) | `info` | No |
 
-```bash
-git clone https://github.com/mehdimp4/DepanceAPP.git
-cd DepanceAPP
-cp .env.example .env
-# Edit .env to set your DB connection
-docker-compose up -d --build
-```
+---
 
-### 🔒 Security Check
+## 🛠️ Development (Contribution)
 
-- **Login History:** Monitor `/auth/login-history` (via frontend or API) for suspicious activity.
-- **Backups:** Use the included scripts in `server/scripts/` to create encrypted backups.
-  ```bash
-  # Encrypted backup
-  ./server/scripts/backup.sh --encrypt
-  ```
+We welcome contributions! Here is how to run the project locally for development.
+
+### Prerequisites
+- Node.js v18+
+- npm or pnpm
+- A local MySQL connection
+
+### Setup
+
+1.  **Clone the repository**
+    ```bash
+    git clone https://github.com/mehdimp4/DepanceAPP.git
+    cd DepanceAPP
+    ```
+
+2.  **Install Dependencies**
+    ```bash
+    # Install server dependencies
+    cd server
+    npm install
+    
+    # Install client dependencies
+    cd ../client
+    npm install
+    ```
+
+3.  **Configure Environment**
+    Copy `.env.example` to `.env` in both `server` and `client` directories and adjust the settings.
+
+4.  **Run Development Servers**
+    ```bash
+    # Terminal 1: Start Backend
+    cd server
+    npm run dev
+    
+    # Terminal 2: Start Frontend
+    cd client
+    npm run dev
+    ```
 
 ---
 
 ## 🤝 Contributing
 
-Pull requests are welcome! For major changes, please open an issue first to discuss what you would like to change.
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1.  Fork the Project
+2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4.  Push to the Branch (`git push origin feature/AmazingFeature`)
+5.  Open a Pull Request
+
+---
 
 ## 📄 License
 
-[MIT](LICENSE)
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/mehdimp4">Mehdi</a>
+</p>
