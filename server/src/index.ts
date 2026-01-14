@@ -130,13 +130,17 @@ app.use('/api/recurring', recurringRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
-// Error handler
-app.use(errorHandler);
-
-// Static files for production
+// Static files for production (must be BEFORE error handler for assets to work)
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '../public')));
-    app.get(/.*/, (_req: Request, res: Response) => {
+}
+
+// Error handler (for API errors)
+app.use(errorHandler);
+
+// SPA fallback (must be LAST - catch all non-API routes and serve index.html)
+if (process.env.NODE_ENV === 'production') {
+    app.get('*', (_req: Request, res: Response) => {
         res.sendFile(path.join(__dirname, '../public', 'index.html'));
     });
 }
