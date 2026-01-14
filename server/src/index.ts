@@ -54,7 +54,8 @@ app.use(helmet({
         }
     },
     crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Allow usage without HTTPS
-    strictTransportSecurity: false // Disable HSTS to prevent forced HTTPS upgrades
+    strictTransportSecurity: false, // Disable HSTS to prevent forced HTTPS upgrades
+    originAgentCluster: false // Disable Origin-Agent-Cluster to prevent isolation conflicts
 }));
 app.use(compression());
 app.use(cookieParser());
