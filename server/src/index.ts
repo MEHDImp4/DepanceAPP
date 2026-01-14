@@ -119,16 +119,16 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
 }));
 
 // API Routes
-app.use('/auth', authLimiter, authRoutes);
-app.use('/accounts', accountRoutes);
-app.use('/transactions', transactionRoutes);
-app.use('/transfers', transferRoutes);
-app.use('/templates', templateRoutes);
-app.use('/categories', categoryRoutes);
-app.use('/budgets', budgetRoutes);
-app.use('/recurring', recurringRoutes);
-app.use('/goals', goalRoutes);
-app.use('/analytics', analyticsRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/accounts', accountRoutes);
+app.use('/api/transactions', transactionRoutes);
+app.use('/api/transfers', transferRoutes);
+app.use('/api/templates', templateRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/budgets', budgetRoutes);
+app.use('/api/recurring', recurringRoutes);
+app.use('/api/goals', goalRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Error handler
 app.use(errorHandler);
