@@ -3,14 +3,12 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 import { visualizer } from "rollup-plugin-visualizer";
 import { VitePWA } from 'vite-plugin-pwa'
-import basicSsl from '@vitejs/plugin-basic-ssl'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
     plugins: [
-      basicSsl(),
       react(),
       visualizer({
         filename: 'stats.html',
@@ -47,9 +45,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      // HTTP is used by default. To enable HTTPS, add: https: true
-      // Or provide custom certs: https: { key: '...', cert: '...' }
-      allowedHosts: [env.VITE_ALLOWED_HOST],
+      host: true, // Listen on all addresses
+      allowedHosts: true, // Allow all hosts (like *.ngrok-free.app, 192.168.x.x, etc.)
       proxy: {
         '/api': {
           target: env.VITE_API_URL,
@@ -57,6 +54,10 @@ export default defineConfig(({ mode }) => {
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
       }
+    },
+    preview: {
+      host: true,
+      allowedHosts: true,
     }
   }
 })

@@ -45,12 +45,12 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             imgSrc: ["'self'", "data:", "https:"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            connectSrc: ["'self'", process.env.NODE_ENV !== 'production' ? "*" : "'self'"],
+            connectSrc: ["'self'", "*"], // Relaxed for universal access
             frameSrc: ["'none'"],
             objectSrc: ["'none'"],
             baseUri: ["'self'"],
             formAction: ["'self'"],
-            upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+            // upgradeInsecureRequests: [] // Removed to allow HTTP
         }
     }
 }));
