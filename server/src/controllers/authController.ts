@@ -13,15 +13,18 @@ const ACCESS_TOKEN_MS = 15 * 60 * 1000;
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { email, username, password } = req.body as { email: string; username: string; password: string };
+        console.log(`[AUTH-DEBUG] Register attempt for email: ${email}, username: ${username}`);
 
         const existingEmail = await prisma.user.findUnique({ where: { email } });
         if (existingEmail) {
+            console.log(`[AUTH-DEBUG] Registration failed: Email ${email} already exists`);
             res.status(400).json({ error: 'Email already registered' });
             return;
         }
 
         const existingUsername = await prisma.user.findUnique({ where: { username } });
         if (existingUsername) {
+            console.log(`[AUTH-DEBUG] Registration failed: Username ${username} already taken`);
             res.status(400).json({ error: 'Username already taken' });
             return;
         }
@@ -80,6 +83,7 @@ import { checkAccountLockout, logLogin, logFailedLogin, getLoginHistory as getHi
 export const login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { identifier, password } = req.body as { identifier: string; password: string };
+        console.log(`[AUTH-DEBUG] Login attempt for identifier: ${identifier}`);
 
         const user = await prisma.user.findFirst({
             where: {
@@ -93,6 +97,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
         if (!user) {
             // Log generic failed attempt (using 0 or null as userId might be tricky if not found, usually skip or log as unknown)
             // Ideally we log by IP if user not found, but service expects userId.
+            console.log(`[AUTH-DEBUG] Login failed: User not found for identifier: ${identifier}`);
             res.status(401).json({ error: 'Invalid credentials' });
             return;
         }
