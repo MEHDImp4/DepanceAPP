@@ -45,14 +45,16 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             imgSrc: ["'self'", "data:", "https:"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            connectSrc: ["'self'", "*"], // Relaxed for universal access
+            connectSrc: ["'self'", "*"],
             frameSrc: ["'none'"],
             objectSrc: ["'none'"],
             baseUri: ["'self'"],
             formAction: ["'self'"],
-            // upgradeInsecureRequests: [] // Removed to allow HTTP
+            upgradeInsecureRequests: null
         }
-    }
+    },
+    crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Allow usage without HTTPS
+    strictTransportSecurity: false // Disable HSTS to prevent forced HTTPS upgrades
 }));
 app.use(compression());
 app.use(cookieParser());
