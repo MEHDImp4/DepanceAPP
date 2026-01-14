@@ -107,6 +107,11 @@ const corsOptions: cors.CorsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Static files for production (must be FIRST to serve assets before API routes)
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, '../public')));
+}
+
 // Health Check
 app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
@@ -129,11 +134,6 @@ app.use('/api/budgets', budgetRoutes);
 app.use('/api/recurring', recurringRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/analytics', analyticsRoutes);
-
-// Static files for production (must be BEFORE error handler for assets to work)
-if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '../public')));
-}
 
 // Error handler (for API errors)
 app.use(errorHandler);
