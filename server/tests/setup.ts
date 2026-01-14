@@ -22,6 +22,8 @@ afterEach(async () => {
     const deleteBudgets = prisma.budget.deleteMany();
     const deleteRecurring = prisma.recurringTransaction.deleteMany();
     const deleteCategories = prisma.category.deleteMany();
+    const deleteRefreshTokens = prisma.refreshToken.deleteMany();
+    const deleteLoginHistory = prisma.loginHistory.deleteMany();
     const deleteUsers = prisma.user.deleteMany();
     const deleteGoals = prisma.goal.deleteMany();
     const deleteTemplates = prisma.template.deleteMany();
@@ -34,6 +36,8 @@ afterEach(async () => {
             deleteBudgets,
             deleteAccounts,
             deleteCategories,
+            deleteRefreshTokens,
+            deleteLoginHistory,
             deleteUsers,
             deleteGoals,
             deleteTemplates
