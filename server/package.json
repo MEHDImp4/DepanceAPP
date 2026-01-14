@@ -10,7 +10,7 @@
     "db:dev:studio": "prisma studio --schema prisma/schema.local.prisma",
     "build": "tsc -p tsconfig.build.json",
     "build:check": "tsc --noEmit",
-    "test": "cross-env NODE_ENV=test DATABASE_URL=file:./test.db JWT_SECRET=test_secret_key PORT=3001 jest --runInBand"
+    "test": "cross-env NODE_ENV=test DATABASE_URL=\"mysql://root:root@localhost:3306/depance_test_db\" JWT_SECRET=test_secret_key PORT=3001 jest --runInBand"
   },
   "keywords": [
     "finance",
