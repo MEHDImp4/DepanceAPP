@@ -3,12 +3,14 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 import { visualizer } from "rollup-plugin-visualizer";
 import { VitePWA } from 'vite-plugin-pwa'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
     plugins: [
+      basicSsl(),
       react(),
       visualizer({
         filename: 'stats.html',
