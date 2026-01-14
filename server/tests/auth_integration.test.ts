@@ -9,7 +9,7 @@ describe('Auth Integration Tests', () => {
     describe('POST /auth/register', () => {
         it('should return 400 for invalid email', async () => {
             const res = await request(app)
-                .post('/auth/register')
+                .post('/api/auth/register')
                 .send({
                     email: 'invalid-email',
                     username: 'testuser',
@@ -21,7 +21,7 @@ describe('Auth Integration Tests', () => {
 
         it('should return 400 if fields are missing', async () => {
             const res = await request(app)
-                .post('/auth/register')
+                .post('/api/auth/register')
                 .send({
                     username: 'testu'
                 });
@@ -30,7 +30,7 @@ describe('Auth Integration Tests', () => {
 
         it('should return 400 for short password', async () => {
             const res = await request(app)
-                .post('/auth/register')
+                .post('/api/auth/register')
                 .send({
                     email: 'test@example.com',
                     username: 'testuser',
@@ -42,7 +42,7 @@ describe('Auth Integration Tests', () => {
 
         it('should register successfully with valid data', async () => {
             const res = await request(app)
-                .post('/auth/register')
+                .post('/api/auth/register')
                 .send({
                     email: 'newuser@example.com',
                     username: 'newuser',
@@ -72,7 +72,7 @@ describe('Auth Integration Tests', () => {
                 where: { email: 'login@example.com' }
             });
 
-            await request(app).post('/auth/register').send({
+            await request(app).post('/api/auth/register').send({
                 email: 'login@example.com',
                 username: 'loginuser',
                 password: 'password123'
@@ -92,7 +92,7 @@ describe('Auth Integration Tests', () => {
 
         it('should login successfully with valid credentials', async () => {
             const res = await request(app)
-                .post('/auth/login')
+                .post('/api/auth/login')
                 .send({
                     identifier: 'login@example.com',
                     password: 'password123'
@@ -109,7 +109,7 @@ describe('Auth Integration Tests', () => {
 
         it('should fail with wrong password', async () => {
             const res = await request(app)
-                .post('/auth/login')
+                .post('/api/auth/login')
                 .send({
                     identifier: 'login@example.com',
                     password: 'wrongpassword'

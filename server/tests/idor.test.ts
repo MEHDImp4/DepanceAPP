@@ -60,7 +60,7 @@ describe('IDOR Vulnerability Check', () => {
 
     it('should prevent User 2 from using User 1\'s category', async () => {
         const response = await request(app)
-            .post('/transactions')
+            .post('/api/transactions')
             .set('Cookie', [`token=${token2}`]) // Authenticate as Attacker
             .send({
                 amount: 100,

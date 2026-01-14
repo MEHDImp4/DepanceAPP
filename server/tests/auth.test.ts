@@ -12,7 +12,7 @@ describe('Auth Endpoints', () => {
 
     it('should register a new user', async () => {
         const response = await request(app)
-            .post('/auth/register')
+            .post('/api/auth/register')
             .send(testUser);
 
         expect(response.statusCode).toEqual(201);
@@ -31,7 +31,7 @@ describe('Auth Endpoints', () => {
         });
 
         const response = await request(app)
-            .post('/auth/login')
+            .post('/api/auth/login')
             .send({
                 identifier: testUser.email,
                 password: testUser.password
@@ -56,7 +56,7 @@ describe('Auth Endpoints', () => {
         });
 
         const response = await request(app)
-            .post('/auth/login')
+            .post('/api/auth/login')
             .send({
                 identifier: testUser.email,
                 password: 'wrongpassword'

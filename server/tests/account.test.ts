@@ -22,7 +22,7 @@ describe('Account Endpoints', () => {
 
     it('should create a new account', async () => {
         const response = await request(app)
-            .post('/accounts')
+            .post('/api/accounts')
             .set('Authorization', `Bearer ${token}`)
             .send({
                 name: 'Main Bank',
@@ -50,7 +50,7 @@ describe('Account Endpoints', () => {
         });
 
         const response = await request(app)
-            .get('/accounts')
+            .get('/api/accounts')
             .set('Authorization', `Bearer ${token}`);
 
         expect(response.statusCode).toEqual(200);

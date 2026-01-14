@@ -33,7 +33,7 @@ describe('Transaction Endpoints', () => {
 
     it('should create a transaction and update balance', async () => {
         const response = await request(app)
-            .post('/transactions')
+            .post('/api/transactions')
             .set('Authorization', `Bearer ${token}`)
             .send({
                 amount: 100,
@@ -63,7 +63,7 @@ describe('Transaction Endpoints', () => {
         });
 
         const response = await request(app)
-            .get('/transactions')
+            .get('/api/transactions')
             .set('Authorization', `Bearer ${token}`);
 
         expect(response.statusCode).toEqual(200);
