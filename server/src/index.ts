@@ -133,7 +133,7 @@ app.use(errorHandler);
 // Static files for production
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, '../public')));
-    app.get('/*', (_req: Request, res: Response) => {
+    app.get(/.*/, (_req: Request, res: Response) => {
         res.sendFile(path.join(__dirname, '../public', 'index.html'));
     });
 }
