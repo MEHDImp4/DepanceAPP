@@ -77,6 +77,17 @@ describe('Auth Integration Tests', () => {
                 username: 'loginuser',
                 password: 'password123'
             });
+
+            // Delete the refresh token created during registration
+            // to prevent collision when login creates a new one
+            const newUser = await prisma.user.findUnique({
+                where: { email: 'login@example.com' }
+            });
+            if (newUser) {
+                await prisma.refreshToken.deleteMany({
+                    where: { userId: newUser.id }
+                });
+            }
         });
 
         it('should login successfully with valid credentials', async () => {
