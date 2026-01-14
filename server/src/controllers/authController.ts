@@ -52,14 +52,14 @@ export const register = async (req: Request, res: Response, next: NextFunction):
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: false, // process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: REFRESH_TOKEN_MS
         });
 
         res.cookie('token', accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: false, // process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: ACCESS_TOKEN_MS
         });
@@ -141,14 +141,14 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: false, // process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: REFRESH_TOKEN_MS
         });
 
         res.cookie('token', accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: false, // process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: ACCESS_TOKEN_MS
         });
@@ -246,7 +246,7 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
 
         res.cookie('token', newAccessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: false, // process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: ACCESS_TOKEN_MS
         });
