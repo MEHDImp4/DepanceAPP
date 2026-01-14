@@ -45,6 +45,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      // HTTP is used by default. To enable HTTPS, add: https: true
+      // Or provide custom certs: https: { key: '...', cert: '...' }
       allowedHosts: [env.VITE_ALLOWED_HOST],
       proxy: {
         '/api': {
