@@ -56,6 +56,18 @@ describe('Auth Integration Tests', () => {
     describe('POST /auth/login', () => {
         beforeEach(async () => {
             // Ensure cleanup before creating fresh user
+            // First delete refresh tokens for any user with this email
+            const existingUser = await prisma.user.findUnique({
+                where: { email: 'login@example.com' }
+            });
+            if (existingUser) {
+                await prisma.refreshToken.deleteMany({
+                    where: { userId: existingUser.id }
+                });
+                await prisma.loginHistory.deleteMany({
+                    where: { userId: existingUser.id }
+                });
+            }
             await prisma.user.deleteMany({
                 where: { email: 'login@example.com' }
             });
