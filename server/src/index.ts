@@ -140,7 +140,7 @@ app.use(errorHandler);
 
 // SPA fallback (must be LAST - catch all non-API routes and serve index.html)
 if (process.env.NODE_ENV === 'production') {
-    app.get('/*', (_req: Request, res: Response) => {
+    app.get('/:path*', (_req: Request, res: Response) => {
         res.sendFile(path.join(__dirname, '../public', 'index.html'));
     });
 }
