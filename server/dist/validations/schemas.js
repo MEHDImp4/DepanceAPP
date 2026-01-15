@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.idParamSchema = exports.createTransferSchema = exports.updateTemplateSchema = exports.createTemplateSchema = exports.createRecurringSchema = exports.updateBudgetSchema = exports.createBudgetSchema = exports.updateCategorySchema = exports.createCategorySchema = exports.updateAccountSchema = exports.createAccountSchema = exports.transactionSchema = exports.updateProfileSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.idParamSchema = exports.updateGoalSchema = exports.createGoalSchema = exports.createTransferSchema = exports.updateTemplateSchema = exports.createTemplateSchema = exports.createRecurringSchema = exports.updateBudgetSchema = exports.createBudgetSchema = exports.updateCategorySchema = exports.createCategorySchema = exports.updateAccountSchema = exports.createAccountSchema = exports.transactionSchema = exports.updateProfileSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 // ============ AUTH SCHEMAS ============
 exports.registerSchema = zod_1.z.object({
@@ -135,6 +135,30 @@ exports.createTransferSchema = zod_1.z.object({
         to_account_id: zod_1.z.number().int().positive({ message: "Destination account is required" }),
         amount: zod_1.z.number().positive({ message: "Amount must be positive" }),
         description: zod_1.z.string().optional()
+    })
+});
+// ============ GOAL SCHEMAS ============
+exports.createGoalSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        name: zod_1.z.string().min(1, { message: "Goal name is required" }).max(100),
+        targetAmount: zod_1.z.number().positive({ message: "Target amount must be a positive number" }),
+        currentAmount: zod_1.z.number().nonnegative().optional().default(0),
+        deadline: zod_1.z.string().datetime().optional().nullable(),
+        color: zod_1.z.string().optional(),
+        icon: zod_1.z.string().optional()
+    })
+});
+exports.updateGoalSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        name: zod_1.z.string().min(1).max(100).optional(),
+        targetAmount: zod_1.z.number().positive().optional(),
+        currentAmount: zod_1.z.number().nonnegative().optional(),
+        deadline: zod_1.z.string().datetime().optional().nullable(),
+        color: zod_1.z.string().optional(),
+        icon: zod_1.z.string().optional()
+    }),
+    params: zod_1.z.object({
+        id: zod_1.z.string().regex(/^\d+$/, { message: "Invalid goal ID" })
     })
 });
 // ============ COMMON PARAM SCHEMAS ============

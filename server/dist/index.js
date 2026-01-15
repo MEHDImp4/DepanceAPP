@@ -24,6 +24,8 @@ const templateRoutes_1 = __importDefault(require("./routes/templateRoutes"));
 const categoryRoutes_1 = __importDefault(require("./routes/categoryRoutes"));
 const budgetRoutes_1 = __importDefault(require("./routes/budgetRoutes"));
 const recurringRoutes_1 = __importDefault(require("./routes/recurringRoutes"));
+const goalRoutes_1 = __importDefault(require("./routes/goalRoutes"));
+const analyticsRoutes_1 = __importDefault(require("./routes/analyticsRoutes"));
 // Environment validation
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
 for (const envVar of requiredEnvVars) {
@@ -43,14 +45,17 @@ app.use((0, helmet_1.default)({
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             imgSrc: ["'self'", "data:", "https:"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            connectSrc: ["'self'", process.env.NODE_ENV !== 'production' ? "*" : "'self'"],
+            connectSrc: ["'self'", "*"],
             frameSrc: ["'none'"],
             objectSrc: ["'none'"],
             baseUri: ["'self'"],
             formAction: ["'self'"],
-            upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+            upgradeInsecureRequests: null
         }
-    }
+    },
+    crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Allow usage without HTTPS
+    strictTransportSecurity: false, // Disable HSTS to prevent forced HTTPS upgrades
+    originAgentCluster: false // Disable Origin-Agent-Cluster to prevent isolation conflicts
 }));
 app.use((0, compression_1.default)());
 app.use((0, cookie_parser_1.default)());
@@ -75,6 +80,9 @@ app.use(globalLimiter);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:80')
     .split(',')
     .map(o => o.trim());
+if (process.env.APP_URL) {
+    allowedOrigins.push(process.env.APP_URL);
+}
 const corsOptions = {
     origin: (origin, callback) => {
         if (!origin)
@@ -91,6 +99,10 @@ const corsOptions = {
 };
 app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
+// Static files for production (must be FIRST to serve assets before API routes)
+if (process.env.NODE_ENV === 'production') {
+    app.use(express_1.default.static(path_1.default.join(__dirname, '../public')));
+}
 // Health Check
 app.get('/health', (_req, res) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
@@ -101,26 +113,24 @@ app.use('/api-docs', swagger_ui_express_1.default.serve, swagger_ui_express_1.de
     customSiteTitle: 'DepanceAPP API Documentation'
 }));
 // API Routes
-app.use('/auth', authLimiter, authRoutes_1.default);
-app.use('/accounts', accountRoutes_1.default);
-app.use('/transactions', transactionRoutes_1.default);
-app.use('/transfers', transferRoutes_1.default);
-app.use('/templates', templateRoutes_1.default);
-app.use('/categories', categoryRoutes_1.default);
-app.use('/budgets', budgetRoutes_1.default);
-app.use('/recurring', recurringRoutes_1.default);
-// Error handler
+app.use('/api/auth', authLimiter, authRoutes_1.default);
+app.use('/api/accounts', accountRoutes_1.default);
+app.use('/api/transactions', transactionRoutes_1.default);
+app.use('/api/transfers', transferRoutes_1.default);
+app.use('/api/templates', templateRoutes_1.default);
+app.use('/api/categories', categoryRoutes_1.default);
+app.use('/api/budgets', budgetRoutes_1.default);
+app.use('/api/recurring', recurringRoutes_1.default);
+app.use('/api/goals', goalRoutes_1.default);
+app.use('/api/analytics', analyticsRoutes_1.default);
+// Error handler (for API errors)
 app.use(errorHandler_1.default);
-// Static files for production
+// SPA fallback (must be LAST - catch all non-API routes and serve index.html)
 if (process.env.NODE_ENV === 'production') {
-    app.use(express_1.default.static(path_1.default.join(__dirname, '../public')));
     app.get('*', (_req, res) => {
         res.sendFile(path_1.default.join(__dirname, '../public', 'index.html'));
     });
 }
-// Start server
-app.listen(PORT, () => {
-    logger_1.default.info(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
-});
+// Server startup moved to server.ts
 exports.default = app;
 //# sourceMappingURL=index.js.map

@@ -168,6 +168,29 @@ export declare const createTransferSchema: z.ZodObject<{
         description: z.ZodOptional<z.ZodString>;
     }, z.core.$strip>;
 }, z.core.$strip>;
+export declare const createGoalSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        name: z.ZodString;
+        targetAmount: z.ZodNumber;
+        currentAmount: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
+        deadline: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        color: z.ZodOptional<z.ZodString>;
+        icon: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>;
+}, z.core.$strip>;
+export declare const updateGoalSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        name: z.ZodOptional<z.ZodString>;
+        targetAmount: z.ZodOptional<z.ZodNumber>;
+        currentAmount: z.ZodOptional<z.ZodNumber>;
+        deadline: z.ZodNullable<z.ZodOptional<z.ZodString>>;
+        color: z.ZodOptional<z.ZodString>;
+        icon: z.ZodOptional<z.ZodString>;
+    }, z.core.$strip>;
+    params: z.ZodObject<{
+        id: z.ZodString;
+    }, z.core.$strip>;
+}, z.core.$strip>;
 export declare const idParamSchema: z.ZodObject<{
     params: z.ZodObject<{
         id: z.ZodString;

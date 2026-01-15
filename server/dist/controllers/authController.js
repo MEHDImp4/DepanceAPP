@@ -15,13 +15,16 @@ const ACCESS_TOKEN_MS = 15 * 60 * 1000;
 const register = async (req, res, next) => {
     try {
         const { email, username, password } = req.body;
+        console.log(`[AUTH-DEBUG] Register attempt for email: ${email}, username: ${username}`);
         const existingEmail = await prisma_1.default.user.findUnique({ where: { email } });
         if (existingEmail) {
+            console.log(`[AUTH-DEBUG] Registration failed: Email ${email} already exists`);
             res.status(400).json({ error: 'Email already registered' });
             return;
         }
         const existingUsername = await prisma_1.default.user.findUnique({ where: { username } });
         if (existingUsername) {
+            console.log(`[AUTH-DEBUG] Registration failed: Username ${username} already taken`);
             res.status(400).json({ error: 'Username already taken' });
             return;
         }
@@ -40,13 +43,13 @@ const register = async (req, res, next) => {
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: false, // process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: REFRESH_TOKEN_MS
         });
         res.cookie('token', accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: false, // process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: ACCESS_TOKEN_MS
         });
@@ -65,6 +68,7 @@ const loginHistoryService_1 = require("../utils/loginHistoryService");
 const login = async (req, res, next) => {
     try {
         const { identifier, password } = req.body;
+        console.log(`[AUTH-DEBUG] Login attempt for identifier: ${identifier}`);
         const user = await prisma_1.default.user.findFirst({
             where: {
                 OR: [
@@ -76,6 +80,7 @@ const login = async (req, res, next) => {
         if (!user) {
             // Log generic failed attempt (using 0 or null as userId might be tricky if not found, usually skip or log as unknown)
             // Ideally we log by IP if user not found, but service expects userId.
+            console.log(`[AUTH-DEBUG] Login failed: User not found for identifier: ${identifier}`);
             res.status(401).json({ error: 'Invalid credentials' });
             return;
         }
@@ -109,13 +114,13 @@ const login = async (req, res, next) => {
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: false, // process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: REFRESH_TOKEN_MS
         });
         res.cookie('token', accessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: false, // process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: ACCESS_TOKEN_MS
         });
@@ -208,7 +213,7 @@ const refreshToken = async (req, res, next) => {
         const newAccessToken = jsonwebtoken_1.default.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
         res.cookie('token', newAccessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: false, // process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: ACCESS_TOKEN_MS
         });
