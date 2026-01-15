@@ -140,8 +140,13 @@ app.use(errorHandler);
 
 // SPA fallback (must be LAST - catch all non-API routes and serve index.html)
 if (process.env.NODE_ENV === 'production') {
-    app.use((_req: Request, res: Response) => {
-        res.sendFile(path.join(__dirname, '../public', 'index.html'));
+    app.use((req: Request, res: Response) => {
+        // Only serve index.html for routes without file extensions (avoid intercepting static assets)
+        if (!path.extname(req.path)) {
+            res.sendFile(path.join(__dirname, '../public', 'index.html'));
+        } else {
+            res.status(404).send('File not found');
+        }
     });
 }
 
