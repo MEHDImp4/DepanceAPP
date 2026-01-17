@@ -34,7 +34,7 @@ export function convertCurrency(
     rates?: Record<string, number>
 ): number {
     if (!rates) return amount;
-    if (from === to) return amount;
+    if (from.toUpperCase() === to.toUpperCase()) return amount;
 
     const fromRate = rates[from];
     const toRate = rates[to];

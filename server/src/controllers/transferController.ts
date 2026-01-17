@@ -45,7 +45,7 @@ export const createTransfer = async (req: Request, res: Response, next: NextFunc
         let conversionRate = 1;
         let isConversion = false;
 
-        if (fromAccount.currency !== toAccount.currency) {
+        if (fromAccount.currency.toUpperCase() !== toAccount.currency.toUpperCase()) {
             const convertedCents = await convertCurrency(originalAmount, fromAccount.currency, toAccount.currency);
             creditedAmount = Math.round(convertedCents);
             conversionRate = creditedAmount / originalAmount;

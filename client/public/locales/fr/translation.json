@@ -46,7 +46,11 @@
         "add_account": "Ajouter Compte",
         "my_accounts": "Mes Comptes",
         "active": "Actif",
-        "edit_account": "Modifier le Compte"
+        "edit_account": "Modifier le Compte",
+        "transfer_funds": "Transférer des Fonds",
+        "from_account": "Compte Source",
+        "to_account": "Compte Destination",
+        "confirm_transfer": "Confirmer le Transfert"
     },
     "templates": {
         "title": "Modèles",
@@ -114,6 +118,7 @@
         "delete": "Supprimer",
         "confirm_delete": "Êtes-vous sûr de vouloir supprimer ceci ?",
         "add": "Ajouter",
-        "select_account": "Choisir un compte"
+        "select_account": "Choisir un compte",
+        "description": "Description (Optionnel)"
     }
 }

@@ -47,7 +47,11 @@
         "my_accounts": "My Accounts",
         "active": "Active",
         "edit_account": "Edit Account",
-        "select_account": "Select Account"
+        "select_account": "Select Account",
+        "transfer_funds": "Transfer Funds",
+        "from_account": "From Account",
+        "to_account": "To Account",
+        "confirm_transfer": "Confirm Transfer"
     },
     "templates": {
         "title": "Templates",
@@ -115,6 +119,7 @@
         "details": "Details",
         "delete": "Delete",
         "confirm_delete": "Are you sure you want to delete this?",
-        "select_account": "Select Account"
+        "select_account": "Select Account",
+        "description": "Description (Optional)"
     }
 }
