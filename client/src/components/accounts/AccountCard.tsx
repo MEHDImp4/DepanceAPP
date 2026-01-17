@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Wallet, CreditCard, Building, ChevronRight } from "lucide-react";
+import { Wallet, CreditCard, Building, ChevronRight, PiggyBank } from "lucide-react";
 
 interface Account {
     id: number;
@@ -21,7 +21,7 @@ import { useTranslation } from "react-i18next";
 
 export function AccountCard({ account, index, onClick }: AccountCardProps) {
     const { t, i18n } = useTranslation();
-    const Icon = account.type === 'bank' ? Building : account.type === 'credit' ? CreditCard : Wallet;
+    const Icon = account.type === 'bank' ? Building : account.type === 'credit' ? CreditCard : account.type === 'savings' ? PiggyBank : Wallet;
     const colorClass = account.color || "bg-primary";
 
     return (
@@ -49,7 +49,8 @@ export function AccountCard({ account, index, onClick }: AccountCardProps) {
                     <p className="font-black tracking-tight text-[17px]">
                         {new Intl.NumberFormat(i18n.language, {
                             style: "decimal",
-                            maximumFractionDigits: 0
+                            maximumFractionDigits: 2,
+                            minimumFractionDigits: 2
                         }).format(account.balance)} {account.currency}
                     </p>
                     <div className="flex items-center justify-end space-x-1">

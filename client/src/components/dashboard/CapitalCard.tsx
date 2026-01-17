@@ -27,7 +27,8 @@ export function CapitalCard({ amount, currency }: CapitalCardProps) {
                     {(() => {
                         const formattedAmount = new Intl.NumberFormat(i18n.language, {
                             style: "decimal",
-                            maximumFractionDigits: 0
+                            maximumFractionDigits: 2,
+                            minimumFractionDigits: 2
                         }).format(amount);
 
                         const length = formattedAmount.length;

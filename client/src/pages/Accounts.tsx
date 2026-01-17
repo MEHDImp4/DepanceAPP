@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Plus } from "lucide-react";
+import { Plus, ArrowRightLeft } from "lucide-react";
 import { AccountCard } from "@/components/accounts/AccountCard";
 import { motion } from "framer-motion";
 
@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useAccounts, useCreateAccount, useUpdateAccount } from "@/hooks/use-api";
 import { useCurrencyRates, convertCurrency } from "@/hooks/use-currency";
 import { AddAccountModal } from "@/components/accounts/AddAccountModal";
+import { TransferModal } from "@/components/accounts/TransferModal";
 import type { Account } from "@/types";
 
 import { useAuthStore } from "@/store/auth-store";
@@ -18,6 +19,7 @@ export default function Accounts() {
     const createAccount = useCreateAccount();
     const updateAccount = useUpdateAccount();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
     const handleSave = (accountData: Omit<Account, "id"> | Account) => {
@@ -70,14 +72,24 @@ export default function Accounts() {
         <div className="pb-32 space-y-10">
             <div className="flex items-center justify-between pt-6 pb-2 px-1">
                 <h1 className="text-3xl font-black tracking-tight">{t('accounts.title')}</h1>
-                <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    onClick={handleAddClick}
-                    className="w-12 h-12 bg-primary text-primary-foreground flex items-center justify-center rounded-2xl shadow-xl shadow-primary/20 hover:opacity-90 transition-all"
-                    aria-label={t('accounts.add_account')}
-                >
-                    <Plus size={24} strokeWidth={3} />
-                </motion.button>
+                <div className="flex gap-2">
+                    <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setIsTransferModalOpen(true)}
+                        className="w-12 h-12 bg-card border border-border text-foreground flex items-center justify-center rounded-2xl shadow-xl shadow-primary/5 hover:bg-muted transition-all"
+                        aria-label={t('accounts.transfer_funds') || "Transfer Funds"}
+                    >
+                        <ArrowRightLeft size={24} strokeWidth={3} />
+                    </motion.button>
+                    <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        onClick={handleAddClick}
+                        className="w-12 h-12 bg-primary text-primary-foreground flex items-center justify-center rounded-2xl shadow-xl shadow-primary/20 hover:opacity-90 transition-all"
+                        aria-label={t('accounts.add_account')}
+                    >
+                        <Plus size={24} strokeWidth={3} />
+                    </motion.button>
+                </div>
             </div>
 
             {/* Overview Card - Premium Style */}
@@ -94,7 +106,8 @@ export default function Accounts() {
                     {(() => {
                         const formattedNetWorth = new Intl.NumberFormat(i18n.language, {
                             style: "decimal",
-                            maximumFractionDigits: 0
+                            maximumFractionDigits: 2,
+                            minimumFractionDigits: 2
                         }).format(totalNetWorth);
 
                         const length = formattedNetWorth.length;
@@ -140,6 +153,12 @@ export default function Accounts() {
                 }}
                 onAdd={handleSave}
                 account={selectedAccount}
+            />
+
+            <TransferModal
+                isOpen={isTransferModalOpen}
+                onClose={() => setIsTransferModalOpen(false)}
+                accounts={accounts}
             />
         </div>
     );

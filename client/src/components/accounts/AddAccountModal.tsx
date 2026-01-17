@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { X, Check, Building, Wallet, CreditCard } from "lucide-react";
+import { X, Check, Building, Wallet, CreditCard, PiggyBank } from "lucide-react";
 import type { Account } from "@/types";
 
 interface AddAccountModalProps {
@@ -25,6 +25,7 @@ const TYPES = [
     { value: "bank", icon: Building },
     { value: "cash", icon: Wallet },
     { value: "credit", icon: CreditCard },
+    { value: "savings", icon: PiggyBank },
 ];
 
 export function AddAccountModal({ isOpen, onClose, onAdd, account }: AddAccountModalProps) {

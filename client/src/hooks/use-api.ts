@@ -106,6 +106,19 @@ export function useCreateAccount() {
     });
 }
 
+export function useCreateTransfer() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (newTransfer: { from_account_id: number; to_account_id: number; amount: number; description?: string }) =>
+            api.post('/transfers', newTransfer),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['accounts'] });
+            queryClient.invalidateQueries({ queryKey: ['transactions'] });
+            queryClient.invalidateQueries({ queryKey: ['summary'] });
+        },
+    });
+}
+
 export function useUpdateAccount() {
     const queryClient = useQueryClient();
     return useMutation({
