@@ -41,10 +41,10 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Added unsafe-eval for Vite dynamic imports
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             imgSrc: ["'self'", "data:", "https:"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
             connectSrc: ["'self'", "*"],
             frameSrc: ["'none'"],
             objectSrc: ["'none'"],
@@ -109,7 +109,26 @@ app.use(express.json());
 
 // Static files for production (must be FIRST to serve assets before API routes)
 if (process.env.NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, '../public')));
+    const publicPath = path.join(__dirname, '../public');
+    logger.info(`Serving static files from: ${publicPath}`);
+
+    app.use(express.static(publicPath, {
+        maxAge: '1y',
+        etag: true,
+        lastModified: true,
+        setHeaders: (res, filePath) => {
+            // Ensure correct MIME types for all assets
+            if (filePath.endsWith('.js')) {
+                res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+            } else if (filePath.endsWith('.css')) {
+                res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+            } else if (filePath.endsWith('.json')) {
+                res.setHeader('Content-Type', 'application/json; charset=UTF-8');
+            } else if (filePath.endsWith('.woff') || filePath.endsWith('.woff2')) {
+                res.setHeader('Content-Type', 'font/woff2');
+            }
+        }
+    }));
 }
 
 // Health Check
@@ -141,11 +160,20 @@ app.use(errorHandler);
 // SPA fallback (must be LAST - catch all non-API routes and serve index.html)
 if (process.env.NODE_ENV === 'production') {
     app.use((req: Request, res: Response) => {
+        const ext = path.extname(req.path);
+
         // Only serve index.html for routes without file extensions (avoid intercepting static assets)
-        if (!path.extname(req.path)) {
-            res.sendFile(path.join(__dirname, '../public', 'index.html'));
-        } else {
+        // Also skip API routes and special routes
+        if (!ext && !req.path.startsWith('/api') && !req.path.startsWith('/health')) {
+            const indexPath = path.join(__dirname, '../public', 'index.html');
+            logger.debug(`SPA fallback serving index.html for: ${req.path}`);
+            res.sendFile(indexPath);
+        } else if (ext) {
+            // If we reached here with a file extension, the static middleware didn't find it
+            logger.warn(`Static asset not found: ${req.path}`);
             res.status(404).send('File not found');
+        } else {
+            res.status(404).json({ error: 'Route not found' });
         }
     });
 }
