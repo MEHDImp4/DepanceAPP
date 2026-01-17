@@ -80,34 +80,7 @@ const authLimiter = rateLimit({
 
 app.use(globalLimiter);
 
-// CORS configuration
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:80')
-    .split(',')
-    .map(o => o.trim());
-
-if (process.env.APP_URL) {
-    allowedOrigins.push(process.env.APP_URL);
-}
-
-const corsOptions: cors.CorsOptions = {
-    origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-
-        const allowNgrok = process.env.NODE_ENV !== 'production';
-
-        if (allowedOrigins.includes(origin) || (allowNgrok && origin.endsWith('.ngrok-free.app'))) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true
-};
-
-app.use(cors(corsOptions));
-app.use(express.json());
-
-// Static files for production (must be FIRST to serve assets before API routes)
+// Static files for production (must be served BEFORE CORS to avoid same-origin issues)
 if (process.env.NODE_ENV === 'production') {
     const publicPath = path.join(__dirname, '../public');
     logger.info(`Serving static files from: ${publicPath}`);
@@ -130,6 +103,36 @@ if (process.env.NODE_ENV === 'production') {
         }
     }));
 }
+
+// CORS configuration
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:80')
+    .split(',')
+    .map(o => o.trim());
+
+if (process.env.APP_URL) {
+    allowedOrigins.push(process.env.APP_URL);
+}
+
+logger.info(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
+
+const corsOptions: cors.CorsOptions = {
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+
+        const allowNgrok = process.env.NODE_ENV !== 'production';
+
+        if (allowedOrigins.includes(origin) || (allowNgrok && origin.endsWith('.ngrok-free.app'))) {
+            callback(null, true);
+        } else {
+            logger.warn(`CORS blocked origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true
+};
+
+app.use(cors(corsOptions));
+app.use(express.json());
 
 // Health Check
 app.get('/health', (_req: Request, res: Response) => {
