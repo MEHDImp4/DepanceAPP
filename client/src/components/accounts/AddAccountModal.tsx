@@ -3,8 +3,9 @@ import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { X, Check, Building, Wallet, CreditCard, PiggyBank } from "lucide-react";
+import { X, Check, Building, Wallet, CreditCard, PiggyBank, Trash2, AlertTriangle } from "lucide-react";
 import type { Account } from "@/types";
+import { useDeleteAccount } from "@/hooks/use-api";
 
 interface AddAccountModalProps {
     isOpen: boolean;
@@ -35,6 +36,9 @@ export function AddAccountModal({ isOpen, onClose, onAdd, account }: AddAccountM
     const [type, setType] = useState("bank");
     const [currency, setCurrency] = useState("USD");
     const [color, setColor] = useState("bg-blue-500");
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const deleteAccount = useDeleteAccount();
 
     // Pre-fill form when account prop changes (edit mode)
     useEffect(() => {
@@ -52,6 +56,7 @@ export function AddAccountModal({ isOpen, onClose, onAdd, account }: AddAccountM
             setCurrency("USD");
             setColor("bg-blue-500");
         }
+        setIsDeleting(false); // Reset delete state
     }, [account, isOpen]);
 
     // Block background scroll when modal is open
@@ -85,6 +90,21 @@ export function AddAccountModal({ isOpen, onClose, onAdd, account }: AddAccountM
         onClose();
     };
 
+    const handleDelete = () => {
+        if (!account) return;
+        deleteAccount.mutate(account.id, {
+            onSuccess: () => {
+                onClose();
+            },
+            onError: (error: any) => {
+                // Ideally show a toast, for now alert is simple fallback if needed or let global error handler catch it
+                // We'll rely on the UI to show errors if we had a dedicated error state in this modal
+                console.error("Failed to delete account", error);
+                alert(error.response?.data?.error || "Failed to delete account. Ensure balance is 0.");
+            }
+        });
+    };
+
     return createPortal(
         <AnimatePresence>
             {isOpen && (
@@ -111,99 +131,152 @@ export function AddAccountModal({ isOpen, onClose, onAdd, account }: AddAccountM
                             </div>
 
                             <div className="p-6 overflow-y-auto custom-scrollbar">
-                                <form onSubmit={handleSubmit} className="space-y-6">
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-muted-foreground">{t('common.name') || "Name"}</label>
-                                        <input
-                                            type="text"
-                                            required
-                                            value={name}
-                                            onChange={(e) => setName(e.target.value)}
-                                            className="w-full bg-muted/50 border border-transparent rounded-xl px-4 py-3 focus:bg-background focus:border-primary outline-none transition-colors"
-                                            placeholder="e.g. Chase Sapphire"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
+                                {isDeleting ? (
+                                    <motion.div
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        className="space-y-6 text-center"
+                                    >
+                                        <div className="w-16 h-16 bg-destructive/10 rounded-2xl flex items-center justify-center mx-auto text-destructive">
+                                            <AlertTriangle size={32} />
+                                        </div>
                                         <div className="space-y-2">
-                                            <label className="text-sm font-medium text-muted-foreground">{t('common.amount') || "Balance"}</label>
-                                            <input
-                                                type="number"
-                                                step="0.01"
-                                                required
-                                                disabled={!!account}
-                                                value={balance}
-                                                onChange={(e) => setBalance(e.target.value)}
-                                                className={cn(
-                                                    "w-full bg-muted/50 border border-transparent rounded-xl px-4 py-3 focus:bg-background focus:border-primary outline-none transition-colors",
-                                                    account && "opacity-50 cursor-not-allowed"
+                                            <h3 className="text-lg font-bold">{t('common.confirm_delete') || "Delete Account?"}</h3>
+                                            <p className="text-muted-foreground text-sm">
+                                                This action cannot be undone. You can only delete accounts with a balance of 0.
+                                            </p>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsDeleting(false)}
+                                                className="flex-1 py-4 rounded-xl font-bold bg-muted hover:bg-muted/80 transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleDelete}
+                                                disabled={deleteAccount.isPending}
+                                                className="flex-1 py-4 rounded-xl font-bold bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                                            >
+                                                {deleteAccount.isPending ? (
+                                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                                ) : (
+                                                    <>
+                                                        <Trash2 size={20} />
+                                                        <span>Delete</span>
+                                                    </>
                                                 )}
-                                                placeholder="0.00"
+                                            </button>
+                                        </div>
+                                    </motion.div>
+                                ) : (
+                                    <form onSubmit={handleSubmit} className="space-y-6">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-muted-foreground">{t('common.name') || "Name"}</label>
+                                            <input
+                                                type="text"
+                                                required
+                                                value={name}
+                                                onChange={(e) => setName(e.target.value)}
+                                                className="w-full bg-muted/50 border border-transparent rounded-xl px-4 py-3 focus:bg-background focus:border-primary outline-none transition-colors"
+                                                placeholder="e.g. Chase Sapphire"
                                             />
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-medium text-muted-foreground">Currency</label>
-                                            <select
-                                                value={currency}
-                                                onChange={(e) => setCurrency(e.target.value)}
-                                                className="w-full bg-muted/50 border border-transparent rounded-xl px-4 py-3 focus:bg-background focus:border-primary outline-none transition-colors appearance-none"
-                                            >
-                                                <option value="USD">USD ($)</option>
-                                                <option value="EUR">EUR (€)</option>
-                                                <option value="GBP">GBP (£)</option>
-                                                <option value="MAD">MAD (DH)</option>
-                                                <option value="JPY">JPY (¥)</option>
-                                                <option value="CAD">CAD ($)</option>
-                                                <option value="CHF">CHF (Fr)</option>
-                                                <option value="AUD">AUD ($)</option>
-                                                <option value="CNY">CNY (¥)</option>
-                                            </select>
-                                        </div>
-                                    </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-muted-foreground">Type</label>
-                                        <div className="grid grid-cols-3 gap-2">
-                                            {TYPES.map((tItem) => (
-                                                <button
-                                                    key={tItem.value}
-                                                    type="button"
-                                                    onClick={() => setType(tItem.value)}
-                                                    className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${type === tItem.value
-                                                        ? "border-primary bg-primary/5 text-primary"
-                                                        : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted"
-                                                        }`}
-                                                >
-                                                    <tItem.icon size={24} className="mb-1" />
-                                                    <span className="text-xs font-medium capitalize">{tItem.value}</span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="text-sm font-medium text-muted-foreground">Color</label>
-                                        <div className="grid grid-cols-6 gap-2">
-                                            {COLORS.map((c) => (
-                                                <button
-                                                    key={c}
-                                                    type="button"
-                                                    onClick={() => setColor(c)}
-                                                    className={`w-full aspect-square rounded-full transition-transform ${c} ${color === c ? "scale-110 ring-2 ring-offset-2 ring-primary" : "hover:scale-105"
-                                                        }`}
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-muted-foreground">{t('common.amount') || "Balance"}</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.01"
+                                                    required
+                                                    disabled={!!account}
+                                                    value={balance}
+                                                    onChange={(e) => setBalance(e.target.value)}
+                                                    className={cn(
+                                                        "w-full bg-muted/50 border border-transparent rounded-xl px-4 py-3 focus:bg-background focus:border-primary outline-none transition-colors",
+                                                        account && "opacity-50 cursor-not-allowed"
+                                                    )}
+                                                    placeholder="0.00"
                                                 />
-                                            ))}
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-medium text-muted-foreground">Currency</label>
+                                                <select
+                                                    value={currency}
+                                                    onChange={(e) => setCurrency(e.target.value)}
+                                                    className="w-full bg-muted/50 border border-transparent rounded-xl px-4 py-3 focus:bg-background focus:border-primary outline-none transition-colors appearance-none"
+                                                >
+                                                    <option value="USD">USD ($)</option>
+                                                    <option value="EUR">EUR (€)</option>
+                                                    <option value="GBP">GBP (£)</option>
+                                                    <option value="MAD">MAD (DH)</option>
+                                                    <option value="JPY">JPY (¥)</option>
+                                                    <option value="CAD">CAD ($)</option>
+                                                    <option value="CHF">CHF (Fr)</option>
+                                                    <option value="AUD">AUD ($)</option>
+                                                    <option value="CNY">CNY (¥)</option>
+                                                </select>
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <button
-                                        type="submit"
-                                        className="w-full bg-primary text-primary-foreground font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all"
-                                    >
-                                        <Check size={20} />
-                                        <span>{account ? t('common.save') || "Save Changes" : t('accounts.add_account') || "Add Account"}</span>
-                                    </button>
-                                </form>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-muted-foreground">Type</label>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {TYPES.map((tItem) => (
+                                                    <button
+                                                        key={tItem.value}
+                                                        type="button"
+                                                        onClick={() => setType(tItem.value)}
+                                                        className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${type === tItem.value
+                                                            ? "border-primary bg-primary/5 text-primary"
+                                                            : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted"
+                                                            }`}
+                                                    >
+                                                        <tItem.icon size={24} className="mb-1" />
+                                                        <span className="text-xs font-medium capitalize">{tItem.value}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-medium text-muted-foreground">Color</label>
+                                            <div className="grid grid-cols-6 gap-2">
+                                                {COLORS.map((c) => (
+                                                    <button
+                                                        key={c}
+                                                        type="button"
+                                                        onClick={() => setColor(c)}
+                                                        className={`w-full aspect-square rounded-full transition-transform ${c} ${color === c ? "scale-110 ring-2 ring-offset-2 ring-primary" : "hover:scale-105"
+                                                            }`}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            className="w-full bg-primary text-primary-foreground font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all"
+                                        >
+                                            <Check size={20} />
+                                            <span>{account ? t('common.save') || "Save Changes" : t('accounts.add_account') || "Add Account"}</span>
+                                        </button>
+
+                                        {account && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsDeleting(true)}
+                                                className="w-full bg-destructive/10 text-destructive font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-destructive/20 active:scale-95 transition-all"
+                                            >
+                                                <Trash2 size={20} />
+                                                <span>{t('common.delete') || "Delete Account"}</span>
+                                            </button>
+                                        )}
+                                    </form>
+                                )}
                             </div>
                         </motion.div>
                     </div>

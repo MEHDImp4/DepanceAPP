@@ -10,6 +10,7 @@ export default function Register() {
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const register = useAuthStore((state) => state.setAuth);
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const { t } = useTranslation();
@@ -17,6 +18,7 @@ export default function Register() {
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -27,6 +29,12 @@ export default function Register() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
+
+        if (password !== confirmPassword) {
+            setError(t("auth.password_mismatch") || "Passwords do not match");
+            return;
+        }
+
         setIsLoading(true);
 
         try {
@@ -103,6 +111,25 @@ export default function Register() {
                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
                             >
                                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
+
+                        <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+                            <input
+                                type={showConfirmPassword ? "text" : "password"}
+                                placeholder={t("auth.confirm_password_placeholder") || "Confirm Password"}
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className="w-full bg-muted/40 border border-transparent rounded-xl py-3 pl-10 pr-12 focus:border-primary focus:bg-background outline-none transition-colors"
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                            >
+                                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                             </button>
                         </div>
                     </div>

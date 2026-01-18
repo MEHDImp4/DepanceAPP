@@ -131,6 +131,18 @@ export function useUpdateAccount() {
     });
 }
 
+export function useDeleteAccount() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (id: number) =>
+            api.delete(`/accounts/${id}`),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['accounts'] });
+            queryClient.invalidateQueries({ queryKey: ['summary'] });
+        },
+    });
+}
+
 export function useCreateTemplate() {
     const queryClient = useQueryClient();
     return useMutation({
