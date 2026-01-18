@@ -104,7 +104,10 @@
         "login_button": "Se connecter",
         "register_button": "Créer un compte",
         "no_account": "Pas encore de compte ?",
-        "have_account": "Déjà un compte ?"
+        "have_account": "Déjà un compte ?",
+        "confirm_password_placeholder": "Confirmer le mot de passe",
+        "password_mismatch": "Les mots de passe ne correspondent pas",
+        "email_or_username_placeholder": "Email ou Nom d'utilisateur"
     },
     "common": {
         "name": "Nom",

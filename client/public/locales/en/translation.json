@@ -105,7 +105,10 @@
         "login_button": "Sign In",
         "register_button": "Create Account",
         "no_account": "Don't have an account?",
-        "have_account": "Already have an account?"
+        "have_account": "Already have an account?",
+        "confirm_password_placeholder": "Confirm Password",
+        "password_mismatch": "Passwords do not match",
+        "email_or_username_placeholder": "Email or Username"
     },
     "common": {
         "name": "Name",

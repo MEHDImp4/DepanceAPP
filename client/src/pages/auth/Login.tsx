@@ -4,7 +4,7 @@ import { useAuthStore } from "@/store/auth-store";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "@/lib/axios";
-import { Lock, Mail, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Lock, User, Eye, EyeOff, ArrowRight } from "lucide-react";
 
 export default function Login() {
     const [error, setError] = useState("");
@@ -63,10 +63,10 @@ export default function Login() {
 
                     <div className="space-y-4">
                         <div className="relative">
-                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
                             <input
                                 type="text"
-                                placeholder={t("auth.email_placeholder")}
+                                placeholder={t("auth.email_or_username_placeholder")}
                                 value={identifier}
                                 onChange={(e) => setIdentifier(e.target.value)}
                                 className="w-full bg-muted/40 border border-transparent rounded-xl py-3 pl-10 pr-4 focus:border-primary focus:bg-background outline-none transition-colors"
