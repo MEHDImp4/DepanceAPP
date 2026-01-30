@@ -37,6 +37,8 @@ export function AddAccountModal({ isOpen, onClose, onAdd, account }: AddAccountM
     const [currency, setCurrency] = useState("USD");
     const [color, setColor] = useState("bg-blue-500");
     const [isDeleting, setIsDeleting] = useState(false);
+    const [password, setPassword] = useState("");
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     const deleteAccount = useDeleteAccount();
 
@@ -57,6 +59,8 @@ export function AddAccountModal({ isOpen, onClose, onAdd, account }: AddAccountM
             setColor("bg-blue-500");
         }
         setIsDeleting(false); // Reset delete state
+        setPassword("");
+        setDeleteError(null);
     }, [account, isOpen]);
 
     // Block background scroll when modal is open
@@ -91,16 +95,17 @@ export function AddAccountModal({ isOpen, onClose, onAdd, account }: AddAccountM
     };
 
     const handleDelete = () => {
-        if (!account) return;
-        deleteAccount.mutate(account.id, {
+        if (!account || !password) return;
+
+        setDeleteError(null);
+
+        deleteAccount.mutate({ id: account.id, password }, {
             onSuccess: () => {
                 onClose();
             },
             onError: (error: any) => {
-                // Ideally show a toast, for now alert is simple fallback if needed or let global error handler catch it
-                // We'll rely on the UI to show errors if we had a dedicated error state in this modal
                 console.error("Failed to delete account", error);
-                alert(error.response?.data?.error || "Failed to delete account. Ensure balance is 0.");
+                setDeleteError(error.response?.data?.error || "Failed to delete account");
             }
         });
     };
@@ -143,8 +148,21 @@ export function AddAccountModal({ isOpen, onClose, onAdd, account }: AddAccountM
                                         <div className="space-y-2">
                                             <h3 className="text-lg font-bold">{t('common.confirm_delete') || "Delete Account?"}</h3>
                                             <p className="text-muted-foreground text-sm">
-                                                This action cannot be undone. You can only delete accounts with a balance of 0.
+                                                To delete this account, please enter your password. This action cannot be undone.
                                             </p>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <input
+                                                type="password"
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                placeholder="Enter your password"
+                                                className="w-full bg-muted/50 border border-transparent rounded-xl px-4 py-3 focus:bg-background focus:border-primary outline-none transition-colors text-center"
+                                            />
+                                            {deleteError && (
+                                                <p className="text-sm font-bold text-destructive">{deleteError}</p>
+                                            )}
                                         </div>
                                         <div className="flex gap-3">
                                             <button
@@ -157,8 +175,8 @@ export function AddAccountModal({ isOpen, onClose, onAdd, account }: AddAccountM
                                             <button
                                                 type="button"
                                                 onClick={handleDelete}
-                                                disabled={deleteAccount.isPending}
-                                                className="flex-1 py-4 rounded-xl font-bold bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                                                disabled={deleteAccount.isPending || !password}
+                                                className="flex-1 py-4 rounded-xl font-bold bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-50"
                                             >
                                                 {deleteAccount.isPending ? (
                                                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
