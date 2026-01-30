@@ -5,7 +5,7 @@ import { CreateGoalDialog } from "@/components/goals/CreateGoalDialog";
 import { AddMoneyDialog } from "@/components/goals/AddMoneyDialog";
 import type { Goal } from "@/types";
 import { Plus, Target } from "lucide-react";
-import { motion } from "framer-motion";
+
 
 export default function Goals() {
     const { data: goals, isLoading } = useGoals();
@@ -59,19 +59,14 @@ export default function Goals() {
             {goals && goals.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {goals.map((goal) => (
-                        <motion.div
-                            key={goal.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3 }}
-                        >
+                        <div key={goal.id}>
                             <GoalCard
                                 goal={goal}
                                 onEdit={handleEdit}
                                 onDelete={handleDelete}
                                 onAddMoney={() => setAddMoneyGoal(goal)}
                             />
-                        </motion.div>
+                        </div>
                     ))}
                 </div>
             ) : (

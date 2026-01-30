@@ -5,7 +5,7 @@ import { useSummary, useAccounts, useProcessRecurring } from "@/hooks/use-api";
 import { useEffect } from "react";
 import { useAuthStore } from "@/store/auth-store";
 import { useCurrencyRates, convertCurrency } from "@/hooks/use-currency";
-import { motion } from "framer-motion";
+
 import { Wallet } from "lucide-react";
 
 export default function Dashboard() {
@@ -41,13 +41,12 @@ export default function Dashboard() {
                 </div>
                 <h2 className="text-xl font-black tracking-tight">{t('common.error_dashboard_title')}</h2>
                 <p className="text-muted-foreground text-sm max-w-xs">{t('common.error_dashboard_desc')}</p>
-                <motion.button
-                    whileTap={{ scale: 0.95 }}
+                <button
                     onClick={() => window.location.reload()}
                     className="mt-4 px-8 py-3 bg-card border border-border rounded-2xl font-black uppercase tracking-widest text-[12px] hover:bg-muted transition-colors"
                 >
                     {t('common.retry')}
-                </motion.button>
+                </button>
             </div>
         );
     }

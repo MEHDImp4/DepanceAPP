@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+
 import { useTranslation } from "react-i18next";
 
 interface CapitalCardProps {
@@ -9,10 +9,7 @@ interface CapitalCardProps {
 export function CapitalCard({ amount, currency }: CapitalCardProps) {
     const { t, i18n } = useTranslation();
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        <div
             className="relative group overflow-hidden bg-card border border-border rounded-[2.5rem] p-8 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 active:scale-[0.98]"
         >
             {/* Decorative Mesh Gradient Background */}
@@ -53,6 +50,6 @@ export function CapitalCard({ amount, currency }: CapitalCardProps) {
                     </span>
                 </div>
             </div>
-        </motion.div>
+        </div>
     );
 }

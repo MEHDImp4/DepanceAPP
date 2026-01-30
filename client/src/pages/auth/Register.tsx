@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/auth-store";
 import { useTranslation } from "react-i18next";
-import { motion, AnimatePresence } from "framer-motion";
+
 import api from "@/lib/axios";
 import { Lock, Mail, User, Eye, EyeOff, ArrowRight } from "lucide-react";
 
@@ -57,18 +57,13 @@ export default function Register() {
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    <AnimatePresence>
-                        {error && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: "auto" }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="bg-destructive/15 text-destructive text-sm p-3 rounded-xl text-center font-bold"
-                            >
-                                {error}
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
+                    {error && (
+                        <div
+                            className="bg-destructive/15 text-destructive text-sm p-3 rounded-xl text-center font-bold"
+                        >
+                            {error}
+                        </div>
+                    )}
 
                     <div className="space-y-4">
                         <div className="relative">

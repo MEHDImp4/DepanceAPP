@@ -1,4 +1,4 @@
-import { motion } from "framer-motion";
+
 import type { Transaction } from "@/types";
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown } from "lucide-react";
@@ -30,12 +30,9 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
 
             <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-[2rem] overflow-hidden divide-y divide-border/30">
                 {transactions.map((transaction, index) => (
-                    <motion.div
+                    <div
                         key={transaction.id}
                         onClick={() => navigate(`/transactions/${transaction.id}`)}
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.05 }}
                         className="group flex items-center justify-between p-5 hover:bg-muted/40 transition-all duration-300 pointer-events-auto cursor-pointer"
                     >
                         <div className="flex items-center space-x-4">
@@ -72,7 +69,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                                 {new Date(transaction.created_at).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' })}
                             </p>
                         </div>
-                    </motion.div>
+                    </div>
                 ))}
             </div>
 

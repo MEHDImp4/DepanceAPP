@@ -5,7 +5,7 @@ import { Plus, Search, Filter, TrendingUp, TrendingDown } from "lucide-react";
 import type { Transaction } from "@/types";
 import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+
 import { useTransactions, useCreateTransaction, useAccounts, useCategories } from "@/hooks/use-api";
 import { useAuthStore } from "@/store/auth-store";
 
@@ -66,19 +66,17 @@ export default function Transactions() {
             <div className="flex flex-row items-center justify-between pt-6 pb-2 px-1">
                 <h1 className="text-3xl font-black tracking-tight">{t('transactions.title')}</h1>
                 <div className="flex space-x-3 w-auto justify-end">
-                    <motion.button
-                        whileTap={{ scale: 0.9 }}
+                    <button
                         className="w-10 h-10 bg-card border border-border flex items-center justify-center rounded-2xl shadow-xl hover:bg-muted transition-colors"
                     >
                         <Filter size={18} className="text-muted-foreground" />
-                    </motion.button>
-                    <motion.button
-                        whileTap={{ scale: 0.9 }}
+                    </button>
+                    <button
                         onClick={() => setIsAddModalOpen(true)}
                         className="w-10 h-10 bg-primary text-primary-foreground flex items-center justify-center rounded-2xl shadow-xl shadow-primary/20 hover:opacity-90 transition-all font-black"
                     >
                         <Plus size={20} strokeWidth={3} />
-                    </motion.button>
+                    </button>
                 </div>
             </div>
 
@@ -103,12 +101,9 @@ export default function Transactions() {
                         </h3>
                         <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-[2.5rem] overflow-hidden divide-y divide-border/30">
                             {items.map((transaction, index) => (
-                                <motion.div
+                                <div
                                     key={transaction.id}
                                     onClick={() => navigate(`/transactions/${transaction.id}`)}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: index * 0.05 }}
                                     className="group flex items-center justify-between p-5 hover:bg-muted/40 transition-all duration-300 pointer-events-auto cursor-pointer"
                                 >
                                     <div className="flex items-center space-x-4">
@@ -145,7 +140,7 @@ export default function Transactions() {
 
                                         </div>
                                     </div>
-                                </motion.div>
+                                </div>
                             ))}
                         </div>
                     </div>

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { LayoutDashboard, ArrowRightLeft, Wallet, Settings, LayoutGrid } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+
 import { useTranslation } from "react-i18next";
 
 export function BottomNav() {
@@ -28,10 +28,8 @@ export function BottomNav() {
                             className="relative flex flex-col items-center justify-center w-full py-2 group"
                         >
                             {isActive && (
-                                <motion.div
-                                    layoutId="activeTab"
+                                <div
                                     className="absolute inset-0 bg-primary/10 rounded-3xl"
-                                    transition={{ type: "spring", bounce: 0.3, duration: 0.6 }}
                                 />
                             )}
                             <div className={cn(

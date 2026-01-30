@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft, Calendar, Wallet, Tag, TrendingUp, TrendingDown } from "lucide-react";
 import { useTransaction, useAccounts, useCategories } from "@/hooks/use-api";
 import { useAuthStore } from "@/store/auth-store";
-import { motion } from "framer-motion";
+
 import { cn } from "@/lib/utils";
 import api from "@/lib/axios"; // Or use a delete hook if you make one
 
@@ -57,13 +57,12 @@ export default function TransactionDetails() {
         <div className="min-h-screen bg-background flex flex-col pt-4">
             {/* Minimal Header */}
             <div className="px-4 sm:px-6 flex items-center justify-between mb-8">
-                <motion.button
-                    whileTap={{ scale: 0.9 }}
+                <button
                     onClick={() => navigate(-1)}
                     className="w-10 h-10 bg-card/50 backdrop-blur-md border border-border/50 flex items-center justify-center rounded-2xl shadow-sm"
                 >
                     <ArrowLeft size={20} className="text-foreground" />
-                </motion.button>
+                </button>
                 <div className="flex flex-col items-center">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">{t('transactions.title')}</span>
                     <h1 className="font-bold text-[13px] sm:text-sm tracking-tight">#{transaction.id}</h1>
@@ -75,9 +74,7 @@ export default function TransactionDetails() {
 
                 {/* Hero section with Amount */}
                 <div className="flex flex-col items-center text-center space-y-6">
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
+                    <div
                         className={cn(
                             "w-24 h-24 rounded-[3rem] flex items-center justify-center shadow-2xl skew-y-1 transition-transform border-4 border-background",
                             transaction.type === 'income' ? "bg-emerald-500 shadow-emerald-500/20" : "bg-red-500 shadow-red-500/20"
@@ -88,13 +85,10 @@ export default function TransactionDetails() {
                         ) : (
                             <TrendingDown size={40} className="text-white" strokeWidth={2.5} />
                         )}
-                    </motion.div>
+                    </div>
 
                     <div className="space-y-1">
-                        <motion.h2
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.1 }}
+                        <h2
                             className={cn(
                                 "text-xl sm:text-2xl font-black tracking-tight",
                                 transaction.type === 'income' ? "text-emerald-500" : "text-foreground"
@@ -102,7 +96,7 @@ export default function TransactionDetails() {
                         >
                             {formatCurrency(transaction.amount, currency)}
                             {transaction.type === 'income' ? ' +' : ' -'}
-                        </motion.h2>
+                        </h2>
                         <p className="text-base sm:text-lg font-bold tracking-tight text-muted-foreground">{transaction.description}</p>
                     </div>
                 </div>
@@ -189,8 +183,7 @@ export default function TransactionDetails() {
 
                 {/* Dangerous Zone */}
                 <div className="pt-4">
-                    <motion.button
-                        whileTap={{ scale: 0.98 }}
+                    <button
                         onClick={async () => {
                             if (confirm("Delete this transaction?")) {
                                 try {
@@ -204,7 +197,7 @@ export default function TransactionDetails() {
                         className="w-full bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase tracking-[0.2em] text-[11px] py-5 rounded-3xl transition-all"
                     >
                         {t('transactions.delete')}
-                    </motion.button>
+                    </button>
                 </div>
             </div>
         </div>

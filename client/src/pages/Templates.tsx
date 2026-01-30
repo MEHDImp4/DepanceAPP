@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Plus, Wallet, ShoppingCart, Home, Car, Lightbulb, Coffee, Smartphone, Plane, TrendingUp, TrendingDown, Music, Tv2, Film, Ghost, PlayCircle, Apple, MonitorPlay, Dumbbell, Shirt, UtensilsCrossed, Settings2, Check, type LucideIcon } from "lucide-react";
-import { motion } from "framer-motion";
+
 import { cn } from "@/lib/utils";
 import { useTemplates, useCreateTemplate, useUpdateTemplate, useCreateTransaction } from "@/hooks/use-api";
 import { useState } from "react";
@@ -99,8 +99,7 @@ export default function Templates() {
                     </p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <motion.button
-                        whileTap={{ scale: 0.9 }}
+                    <button
                         onClick={() => {
                             setIsEditMode(!isEditMode);
                             if (isEditMode) setTemplateToEdit(null);
@@ -114,10 +113,9 @@ export default function Templates() {
                         aria-label="Manage Templates"
                     >
                         {isEditMode ? <Check size={22} strokeWidth={3} /> : <Settings2 size={22} strokeWidth={2.5} />}
-                    </motion.button>
+                    </button>
 
-                    <motion.button
-                        whileTap={{ scale: 0.9 }}
+                    <button
                         onClick={() => {
                             setTemplateToEdit(null);
                             setIsModalOpen(true);
@@ -126,7 +124,7 @@ export default function Templates() {
                         aria-label={t('templates.add_template')}
                     >
                         <Plus size={24} strokeWidth={3} />
-                    </motion.button>
+                    </button>
                 </div>
             </div>
 
@@ -136,16 +134,9 @@ export default function Templates() {
                     const isApplying = applyingId === template.id;
 
                     return (
-                        <motion.button
+                    return (
+                        <button
                             key={template.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{
-                                delay: index * 0.05,
-                                ease: [0.16, 1, 0.3, 1],
-                                duration: 0.6
-                            }}
-                            whileTap={{ scale: 0.98 }}
                             disabled={isApplying}
                             onClick={() => {
                                 if (isEditMode) {
@@ -174,12 +165,9 @@ export default function Templates() {
                                 <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/30" />
                                 <div className="absolute inset-0 bg-black/15 dark:bg-transparent" />
                                 {isApplying ? (
-                                    <motion.div
-                                        animate={{ rotate: 360 }}
-                                        transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-                                    >
+                                    <div>
                                         <Plus size={28} strokeWidth={3} className="drop-shadow-sm" />
-                                    </motion.div>
+                                    </div>
                                 ) : (
                                     <IconComponent size={28} strokeWidth={3} className="relative z-10 transition-transform duration-500 group-hover:scale-110 drop-shadow-sm" />
                                 )}
@@ -212,24 +200,20 @@ export default function Templates() {
                                 }).format(template.amount)}
                                 <span className="text-[0.7em] opacity-40 translate-y-[1px]">{template.type === 'income' ? ' +' : ' -'}</span>
                             </div>
-                        </motion.button>
+                        </button>
                     );
                 })}
 
                 {/* Add New Placeholder */}
-                <motion.button
+                <button
                     onClick={() => setIsModalOpen(true)}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: templates.length * 0.05 }}
-                    whileTap={{ scale: 0.98 }}
                     className="border-2 border-dashed border-muted-foreground/20 p-6 rounded-[2rem] flex flex-col items-center justify-center space-y-3 text-muted-foreground/40 hover:bg-muted/30 hover:text-primary hover:border-primary/30 transition-all duration-500 group"
                 >
                     <div className="w-14 h-14 rounded-[1.2rem] bg-muted/40 flex items-center justify-center group-hover:bg-primary/10 group-hover:scale-110 transition-all shrink-0">
                         <Plus size={24} />
                     </div>
                     <span className="text-[11px] font-black uppercase tracking-widest">{t('templates.create_new')}</span>
-                </motion.button>
+                </button>
             </div>
 
             <AddTemplateModal

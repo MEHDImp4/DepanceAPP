@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Plus, Repeat, Trash2, ArrowLeft, Calendar, Wallet } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+
 import { cn } from "@/lib/utils";
 import { useRecurring, useDeleteRecurring, useProcessRecurring } from "@/hooks/use-api";
 import { useState, useEffect } from "react";
@@ -35,13 +35,12 @@ export default function Recurring() {
             {/* Header */}
             <div className="flex items-center justify-between pt-6">
                 <div className="flex items-center gap-4">
-                    <motion.button
-                        whileTap={{ scale: 0.9 }}
+                    <button
                         onClick={() => navigate('/settings')}
                         className="p-2 rounded-xl bg-card border border-border text-muted-foreground hover:text-foreground transition-all"
                     >
                         <ArrowLeft size={20} />
-                    </motion.button>
+                    </button>
                     <div>
                         <h1 className="text-3xl font-extrabold tracking-tight">
                             {t('nav.recurring') || "Recurring"}
@@ -51,25 +50,21 @@ export default function Recurring() {
                         </p>
                     </div>
                 </div>
-                <motion.button
-                    whileTap={{ scale: 0.9 }}
+                <button
                     onClick={() => setIsModalOpen(true)}
                     className="w-12 h-12 bg-primary text-primary-foreground flex items-center justify-center rounded-2xl shadow-xl shadow-primary/20 hover:opacity-90 transition-all"
                 >
                     <Plus size={24} strokeWidth={3} />
-                </motion.button>
+                </button>
             </div>
 
             {/* List */}
             <div className="space-y-4">
                 {isLoading ? (
                     <div className="flex justify-center py-12">
-                        <motion.div
-                            animate={{ rotate: 360 }}
-                            transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                        >
+                        <div className="animate-spin">
                             <Repeat className="text-muted-foreground opacity-20" size={40} />
-                        </motion.div>
+                        </div>
                     </div>
                 ) : recurring.length === 0 ? (
                     <div className="bg-card/50 border border-dashed border-border rounded-[2.5rem] p-12 text-center space-y-4">
@@ -85,64 +80,58 @@ export default function Recurring() {
                     </div>
                 ) : (
                     <div className="grid gap-4">
-                        <AnimatePresence mode="popLayout">
-                            {recurring.map((item, index) => (
-                                <motion.div
-                                    key={item.id}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
-                                    transition={{ delay: index * 0.05 }}
-                                    className="relative group bg-card hover:bg-muted/30 border border-border/50 rounded-[2rem] p-6 flex flex-col items-center text-center gap-3 transition-all duration-300"
-                                >
-                                    <div className={cn(
-                                        "w-16 h-16 rounded-[1.4rem] flex items-center justify-center text-white shadow-lg relative overflow-hidden shrink-0 border border-black/10 dark:border-white/10",
-                                        item.category?.color || "bg-primary"
+                        {recurring.map((item, index) => (
+                            <div
+                                key={item.id}
+                                className="relative group bg-card hover:bg-muted/30 border border-border/50 rounded-[2rem] p-6 flex flex-col items-center text-center gap-3 transition-all duration-300"
+                            >
+                                <div className={cn(
+                                    "w-16 h-16 rounded-[1.4rem] flex items-center justify-center text-white shadow-lg relative overflow-hidden shrink-0 border border-black/10 dark:border-white/10",
+                                    item.category?.color || "bg-primary"
+                                )}>
+                                    <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/30" />
+                                    <div className="absolute inset-0 bg-black/15 dark:bg-transparent" />
+                                    <Repeat size={28} strokeWidth={3} className="relative z-10 drop-shadow-sm" />
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="font-extrabold tracking-tight text-[18px] leading-tight text-foreground/90">{item.description}</h4>
+                                    <div className="flex items-center justify-center gap-3 mt-1">
+                                        <span className="flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
+                                            <Calendar size={11} strokeWidth={2.5} />
+                                            {item.interval}
+                                        </span>
+                                        <span className="flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
+                                            <Wallet size={11} strokeWidth={2.5} />
+                                            {item.account?.name}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col items-center gap-1.5 shrink-0">
+                                    <span className={cn(
+                                        "font-black tracking-tighter text-[22px] leading-none flex items-center gap-1.5",
+                                        item.type === 'income' ? "text-emerald-500" : "text-foreground"
                                     )}>
-                                        <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/10 to-white/30" />
-                                        <div className="absolute inset-0 bg-black/15 dark:bg-transparent" />
-                                        <Repeat size={28} strokeWidth={3} className="relative z-10 drop-shadow-sm" />
-                                    </div>
+                                        {new Intl.NumberFormat(i18n.language, {
+                                            style: "currency",
+                                            currency: item.account?.currency || "USD"
+                                        }).format(item.amount)}
+                                        {item.type === 'income' ? ' +' : ' -'}
+                                    </span>
+                                    <span className="text-[11px] uppercase tracking-widest font-black text-muted-foreground/50">
+                                        Next: {format(new Date(item.next_run_date), "dd MMM", { locale: dateLocale })}
+                                    </span>
+                                </div>
 
-                                    <div className="flex-1 min-w-0">
-                                        <h4 className="font-extrabold tracking-tight text-[18px] leading-tight text-foreground/90">{item.description}</h4>
-                                        <div className="flex items-center justify-center gap-3 mt-1">
-                                            <span className="flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
-                                                <Calendar size={11} strokeWidth={2.5} />
-                                                {item.interval}
-                                            </span>
-                                            <span className="flex items-center gap-1 text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
-                                                <Wallet size={11} strokeWidth={2.5} />
-                                                {item.account?.name}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col items-center gap-1.5 shrink-0">
-                                        <span className={cn(
-                                            "font-black tracking-tighter text-[22px] leading-none flex items-center gap-1.5",
-                                            item.type === 'income' ? "text-emerald-500" : "text-foreground"
-                                        )}>
-                                            {new Intl.NumberFormat(i18n.language, {
-                                                style: "currency",
-                                                currency: item.account?.currency || "USD"
-                                            }).format(item.amount)}
-                                            {item.type === 'income' ? ' +' : ' -'}
-                                        </span>
-                                        <span className="text-[11px] uppercase tracking-widest font-black text-muted-foreground/50">
-                                            Next: {format(new Date(item.next_run_date), "dd MMM", { locale: dateLocale })}
-                                        </span>
-                                    </div>
-
-                                    <button
-                                        onClick={() => handleDelete(item.id)}
-                                        className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all absolute top-4 right-4"
-                                    >
-                                        <Trash2 size={18} />
-                                    </button>
-                                </motion.div>
-                            ))}
-                        </AnimatePresence>
+                                <button
+                                    onClick={() => handleDelete(item.id)}
+                                    className="opacity-0 group-hover:opacity-100 p-2 text-red-500 hover:bg-red-500/10 rounded-xl transition-all absolute top-4 right-4"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 )}
             </div>
