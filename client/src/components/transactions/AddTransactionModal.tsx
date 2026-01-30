@@ -107,7 +107,6 @@ export function AddTransactionModal({ isOpen, onClose, onAdd }: AddTransactionMo
     };
 
     return createPortal(
-    return createPortal(
         isOpen ? (
             <>
                 {/* Backdrop */}
@@ -272,7 +271,7 @@ export function AddTransactionModal({ isOpen, onClose, onAdd }: AddTransactionMo
                     </div>
                 </div>
             </>
-        ) : null,,
+        ) : null,
         document.body
     );
 }
