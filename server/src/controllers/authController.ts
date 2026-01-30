@@ -237,70 +237,75 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
         }
 
         if (new Date() > storedToken.expiresAt) {
-            // Rolling Refresh Token: Delete old one and issue a NEW one
             await prisma.refreshToken.delete({ where: { token: refreshTokenValue } });
-
-            const user = storedToken.user;
-
-            // precise rotation: create new refresh token
-            const newRefreshToken = jwt.sign(
-                { userId: user.id } as Partial<JwtPayload>,
-                process.env.JWT_SECRET!,
-                { expiresIn: REFRESH_TOKEN_EXPIRY }
-            );
-
-            // Issue new Access Token
-            const newAccessToken = jwt.sign(
-                { userId: user.id, email: user.email } as JwtPayload,
-                process.env.JWT_SECRET!,
-                { expiresIn: ACCESS_TOKEN_EXPIRY }
-            );
-
-            // Save new Refresh Token
-            await prisma.refreshToken.create({
-                data: {
-                    token: newRefreshToken,
-                    userId: user.id,
-                    expiresAt: new Date(Date.now() + REFRESH_TOKEN_MS)
-                }
-            });
-
-            // Set Cookies
-            res.cookie('refreshToken', newRefreshToken, {
-                httpOnly: true,
-                secure: false, // process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
-                maxAge: REFRESH_TOKEN_MS
-            });
-
-            res.cookie('token', newAccessToken, {
-                httpOnly: true,
-                secure: false, // process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
-                maxAge: ACCESS_TOKEN_MS
-            });
-
-            res.json({ message: 'Token refreshed' });
-        } catch (error) {
-            next(error);
+            res.status(401).json({ error: 'Refresh token expired' });
+            return;
         }
-    };
 
-    export const logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-        try {
-            const refreshTokenValue = req.cookies?.refreshToken as string | undefined;
-            if (refreshTokenValue) {
-                await prisma.refreshToken.delete({
-                    where: { token: refreshTokenValue }
-                }).catch(() => {
-                    // Ignore if already deleted or not found
-                });
+        // Rolling Refresh Token: Delete old one and issue a NEW one
+        await prisma.refreshToken.delete({ where: { token: refreshTokenValue } });
+
+        const user = storedToken.user;
+
+        // precise rotation: create new refresh token
+        const newRefreshToken = jwt.sign(
+            { userId: user.id } as Partial<JwtPayload>,
+            process.env.JWT_SECRET!,
+            { expiresIn: REFRESH_TOKEN_EXPIRY }
+        );
+
+        // Issue new Access Token
+        const newAccessToken = jwt.sign(
+            { userId: user.id, email: user.email } as JwtPayload,
+            process.env.JWT_SECRET!,
+            { expiresIn: ACCESS_TOKEN_EXPIRY }
+        );
+
+        // Save new Refresh Token
+        await prisma.refreshToken.create({
+            data: {
+                token: newRefreshToken,
+                userId: user.id,
+                expiresAt: new Date(Date.now() + REFRESH_TOKEN_MS)
             }
+        });
 
-            res.clearCookie('refreshToken');
-            res.clearCookie('token');
-            res.json({ message: 'Logged out successfully' });
-        } catch (error) {
-            next(error);
+        // Set Cookies
+        res.cookie('refreshToken', newRefreshToken, {
+            httpOnly: true,
+            secure: false, // process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: REFRESH_TOKEN_MS
+        });
+
+        res.cookie('token', newAccessToken, {
+            httpOnly: true,
+            secure: false, // process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: ACCESS_TOKEN_MS
+        });
+
+        res.json({ message: 'Token refreshed' });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const refreshTokenValue = req.cookies?.refreshToken as string | undefined;
+        if (refreshTokenValue) {
+            await prisma.refreshToken.delete({
+                where: { token: refreshTokenValue }
+            }).catch(() => {
+                // Ignore if already deleted or not found
+            });
         }
-    };
+
+        res.clearCookie('refreshToken');
+        res.clearCookie('token');
+        res.json({ message: 'Logged out successfully' });
+    } catch (error) {
+        next(error);
+    }
+};
