@@ -29,7 +29,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
             </div>
 
             <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-[2rem] overflow-hidden divide-y divide-border/30">
-                {transactions.map((transaction, index) => (
+                {transactions.map((transaction) => (
                     <div
                         key={transaction.id}
                         onClick={() => navigate(`/transactions/${transaction.id}`)}

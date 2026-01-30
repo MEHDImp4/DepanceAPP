@@ -100,7 +100,7 @@ export default function Transactions() {
                             {date}
                         </h3>
                         <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-[2.5rem] overflow-hidden divide-y divide-border/30">
-                            {items.map((transaction, index) => (
+                            {items.map((transaction) => (
                                 <div
                                     key={transaction.id}
                                     onClick={() => navigate(`/transactions/${transaction.id}`)}
