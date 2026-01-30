@@ -90,6 +90,11 @@ if (process.env.NODE_ENV === 'production') {
         etag: true,
         lastModified: true,
         setHeaders: (res, filePath) => {
+            // Disable cache for critical PWA and SPA entry files
+            if (filePath.endsWith('sw.js') || filePath.endsWith('index.html') || filePath.endsWith('manifest.webmanifest')) {
+                res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            }
+
             // Ensure correct MIME types for all assets
             if (filePath.endsWith('.js')) {
                 res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
