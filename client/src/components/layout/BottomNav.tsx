@@ -42,8 +42,8 @@ export function BottomNav() {
                                         "transition-colors duration-300",
                                         isActive ? "text-primary" : "text-muted-foreground"
                                     )}
-                                    fill={isActive ? "currentColor" : "none"}
-                                    strokeWidth={isActive ? 0 : 2}
+                                    absoluteStrokeWidth
+                                    strokeWidth={isActive ? 2.5 : 2}
                                 />
                             </div>
                             <span className={cn(
