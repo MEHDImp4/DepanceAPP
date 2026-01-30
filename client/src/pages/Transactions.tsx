@@ -6,7 +6,7 @@ import type { Transaction } from "@/types";
 import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
 import { cn } from "@/lib/utils";
 
-import { useTransactions, useCreateTransaction, useAccounts, useCategories } from "@/hooks/use-api";
+import { useTransactions, useCreateTransaction, useCategories } from "@/hooks/use-api";
 import { useAuthStore } from "@/store/auth-store";
 
 // Helper to group transactions by date
@@ -29,7 +29,7 @@ export default function Transactions() {
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
     const { data: transactions = [], isLoading } = useTransactions();
-    const { data: accounts = [] } = useAccounts();
+
     const { data: categories = [] } = useCategories();
     const user = useAuthStore((state) => state.user);
     const { mutate: createTransaction } = useCreateTransaction();

@@ -1,13 +1,15 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useGoals, useDeleteGoal } from "@/hooks/use-api";
 import { GoalCard } from "@/components/goals/GoalCard";
 import { CreateGoalDialog } from "@/components/goals/CreateGoalDialog";
 import { AddMoneyDialog } from "@/components/goals/AddMoneyDialog";
 import type { Goal } from "@/types";
-import { Plus, Target } from "lucide-react";
+import { Plus } from "lucide-react";
 
 
 export default function Goals() {
+    const { t } = useTranslation();
     const { data: goals, isLoading } = useGoals();
     const { mutate: deleteGoal } = useDeleteGoal();
 
