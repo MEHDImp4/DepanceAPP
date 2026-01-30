@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Wallet, CreditCard, Building, ChevronRight, PiggyBank } from "lucide-react";
 
@@ -13,22 +12,18 @@ interface Account {
 
 interface AccountCardProps {
     account: Account;
-    index: number;
     onClick?: (account: Account) => void;
 }
 
 import { useTranslation } from "react-i18next";
 
-export function AccountCard({ account, index, onClick }: AccountCardProps) {
+export function AccountCard({ account, onClick }: AccountCardProps) {
     const { t, i18n } = useTranslation();
     const Icon = account.type === 'bank' ? Building : account.type === 'credit' ? CreditCard : account.type === 'savings' ? PiggyBank : Wallet;
     const colorClass = account.color || "bg-primary";
 
     return (
-        <motion.div
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: index * 0.05 }}
+        <div
             onClick={() => onClick?.(account)}
             className="group flex items-center justify-between p-5 hover:bg-muted/40 transition-all duration-300 cursor-pointer"
         >
@@ -62,6 +57,6 @@ export function AccountCard({ account, index, onClick }: AccountCardProps) {
                 </div>
                 <ChevronRight size={18} className="text-muted-foreground/30 group-hover:text-foreground group-hover:translate-x-1 transition-all" />
             </div>
-        </motion.div >
+        </div>
     );
 }

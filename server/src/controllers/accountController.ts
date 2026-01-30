@@ -21,7 +21,7 @@ interface IdParams {
 
 export const getSummary = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const userId = req.user!.userId;
+        const userId = parseInt(String(req.user!.userId));
         const summary = await accountService.getAccountSummary(userId);
         res.json(summary);
     } catch (error) {
@@ -32,7 +32,7 @@ export const getSummary = async (req: Request, res: Response, next: NextFunction
 export const createAccount = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const body = req.body as CreateAccountBody;
-        const userId = req.user!.userId;
+        const userId = parseInt(String(req.user!.userId));
 
         const account = await accountService.createAccount({ ...body, userId });
         res.status(201).json(account);
@@ -43,7 +43,7 @@ export const createAccount = async (req: Request, res: Response, next: NextFunct
 
 export const getAccounts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const userId = req.user!.userId;
+        const userId = parseInt(String(req.user!.userId));
         const accounts = await accountService.getUserAccounts(userId);
         res.json(accounts);
     } catch (error) {
@@ -55,7 +55,7 @@ export const updateAccount = async (req: Request<IdParams, unknown, UpdateAccoun
     try {
         const { id } = req.params;
         const body = req.body as UpdateAccountBody;
-        const userId = req.user!.userId;
+        const userId = parseInt(String(req.user!.userId));
 
         try {
             const updated = await accountService.updateAccount({
@@ -80,7 +80,7 @@ export const deleteAccount = async (req: Request<IdParams>, res: Response, next:
     try {
         const { id } = req.params;
         const { password } = req.body;
-        const userId = req.user!.userId;
+        const userId = parseInt(String(req.user!.userId)); // Ensure number
 
         try {
             await accountService.deleteAccount(parseInt(id), userId, password);

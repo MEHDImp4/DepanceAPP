@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Plus, ArrowRightLeft } from "lucide-react";
 import { AccountCard } from "@/components/accounts/AccountCard";
-import { motion } from "framer-motion";
 
 import { useState } from "react";
 import { useAccounts, useCreateAccount, useUpdateAccount } from "@/hooks/use-api";
@@ -73,29 +72,25 @@ export default function Accounts() {
             <div className="flex items-center justify-between pt-6 pb-2 px-1">
                 <h1 className="text-3xl font-black tracking-tight">{t('accounts.title')}</h1>
                 <div className="flex gap-2">
-                    <motion.button
-                        whileTap={{ scale: 0.9 }}
+                    <button
                         onClick={() => setIsTransferModalOpen(true)}
                         className="w-12 h-12 bg-card border border-border text-foreground flex items-center justify-center rounded-2xl shadow-xl shadow-primary/5 hover:bg-muted transition-all"
                         aria-label={t('accounts.transfer_funds') || "Transfer Funds"}
                     >
                         <ArrowRightLeft size={24} strokeWidth={3} />
-                    </motion.button>
-                    <motion.button
-                        whileTap={{ scale: 0.9 }}
+                    </button>
+                    <button
                         onClick={handleAddClick}
                         className="w-12 h-12 bg-primary text-primary-foreground flex items-center justify-center rounded-2xl shadow-xl shadow-primary/20 hover:opacity-90 transition-all"
                         aria-label={t('accounts.add_account')}
                     >
                         <Plus size={24} strokeWidth={3} />
-                    </motion.button>
+                    </button>
                 </div>
             </div>
 
             {/* Overview Card - Premium Style */}
-            <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+            <div
                 className="relative group overflow-hidden bg-card border border-border rounded-[2.5rem] p-8 shadow-2xl shadow-primary/5"
             >
                 {/* Decorative Mesh Gradient */}
@@ -126,7 +121,7 @@ export default function Accounts() {
                         );
                     })()}
                 </div>
-            </motion.div>
+            </div>
 
             {/* List with Premium Grouping */}
             <div className="space-y-4">
@@ -134,11 +129,10 @@ export default function Accounts() {
                     {t('accounts.my_accounts')}
                 </h3>
                 <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-[2rem] overflow-hidden divide-y divide-border/30">
-                    {accounts.map((account, index) => (
+                    {accounts.map((account) => (
                         <AccountCard
                             key={account.id}
                             account={account}
-                            index={index}
                             onClick={handleEditAccount}
                         />
                     ))}

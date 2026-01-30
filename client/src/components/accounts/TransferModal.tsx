@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { motion, AnimatePresence } from "framer-motion";
 import { X, Check, ArrowRightLeft } from "lucide-react";
 import type { Account } from "@/types";
 import { useCreateTransfer } from "@/hooks/use-api";
@@ -74,21 +73,15 @@ export function TransferModal({ isOpen, onClose, accounts }: TransferModalProps)
     };
 
     return createPortal(
-        <AnimatePresence>
+        <>
             {isOpen && (
                 <>
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                    <div
                         onClick={onClose}
                         className="fixed top-0 left-0 w-screen h-[100dvh] bg-black/40 backdrop-blur-sm z-[9999]"
                     />
                     <div className="fixed inset-0 flex items-center justify-center p-4 z-[10000] pointer-events-none">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        <div
                             className="w-full max-w-md bg-card border border-border rounded-[2rem] shadow-2xl pointer-events-auto max-h-[85vh] flex flex-col overflow-hidden"
                         >
                             <div className="flex items-center justify-between p-6 pb-4 border-b border-border/10 bg-card z-10 sticky top-0">
@@ -191,11 +184,11 @@ export function TransferModal({ isOpen, onClose, accounts }: TransferModalProps)
                                     </button>
                                 </form>
                             </div>
-                        </motion.div>
+                        </div>
                     </div>
                 </>
             )}
-        </AnimatePresence>,
+        </>,
         document.body
     );
 }
