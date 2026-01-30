@@ -3,14 +3,13 @@ import { BottomNav } from "./BottomNav";
 
 export function MobileLayout() {
     return (
-        <div className="min-h-screen bg-background pb-28 overflow-x-hidden">
-            {/* Background Decorative Element */}
-            <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-                <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary/2 rounded-full blur-[100px]" />
-                <div className="absolute top-[20%] -right-[10%] w-[30%] h-[30%] bg-indigo-500/3 rounded-full blur-[120px]" />
+        <div className="min-h-screen bg-background pb-24 overflow-x-hidden relative selection:bg-primary/20">
+            {/* Background Decorative Element - Reduced for OLED purity but kept subtle */}
+            <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden opacity-20">
+                <div className="absolute -top-[10%] -left-[10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[100px]" />
             </div>
 
-            <main className="container mx-auto px-4 py-6 max-w-md">
+            <main className="container mx-auto px-4 py-4 max-w-md">
                 <Outlet />
             </main>
             <BottomNav />

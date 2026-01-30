@@ -19,32 +19,32 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between px-1">
-                <h3 className="text-[13px] uppercase tracking-[0.2em] font-black text-muted-foreground/60">
+            <div className="flex items-center justify-between px-2">
+                <h3 className="text-[11px] uppercase tracking-[0.2em] font-bold text-muted-foreground">
                     {t('dashboard.recent_transactions')}
                 </h3>
-                <Link to="/transactions" className="text-[12px] font-black uppercase tracking-widest text-primary hover:opacity-70">
+                <Link to="/transactions" className="text-[11px] font-bold uppercase tracking-widest text-primary hover:text-primary/80 transition-colors">
                     {t('common.see_all')}
                 </Link>
             </div>
 
-            <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-[2rem] overflow-hidden divide-y divide-border/30">
+            <div className="bg-card border border-border rounded-[2rem] overflow-hidden divide-y divide-border/40">
                 {transactions.map((transaction) => (
                     <div
                         key={transaction.id}
                         onClick={() => navigate(`/transactions/${transaction.id}`)}
-                        className="group flex items-center justify-between p-5 hover:bg-muted/40 pointer-events-auto cursor-pointer"
+                        className="group flex items-center justify-between p-5 hover:bg-muted/30 active:bg-muted/50 transition-colors cursor-pointer"
                     >
                         <div className="flex items-center space-x-4">
                             <div className={cn(
-                                "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg",
-                                transaction.type === 'income' ? "bg-emerald-500" : "bg-red-500"
+                                "w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md",
+                                transaction.type === 'income' ? "bg-emerald-500/90" : "bg-red-500/90"
                             )}>
-                                {transaction.type === 'income' ? <TrendingUp size={20} strokeWidth={2.5} /> : <TrendingDown size={20} strokeWidth={2.5} />}
+                                {transaction.type === 'income' ? <TrendingUp size={18} strokeWidth={2.5} /> : <TrendingDown size={18} strokeWidth={2.5} />}
                             </div>
                             <div>
-                                <p className="font-bold tracking-tight text-[15px]">{transaction.description}</p>
-                                <div className="h-4 flex items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mt-0.5">
+                                <p className="font-semibold tracking-tight text-[14px] text-foreground/90">{transaction.description}</p>
+                                <div className="h-4 flex items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-0.5">
                                     {(() => {
                                         const category = categories.find(c => c.id === transaction.category_id);
                                         return category ? (
@@ -59,13 +59,13 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
 
                         <div className="text-right">
                             <p className={cn(
-                                "font-black tracking-tight text-[14px]",
-                                transaction.type === 'income' ? "text-emerald-600" : "text-foreground"
+                                "font-bold tracking-tight text-[14px]",
+                                transaction.type === 'income' ? "text-emerald-500" : "text-foreground"
                             )}>
                                 {new Intl.NumberFormat(i18n.language, { style: "currency", currency: user?.currency || 'USD' }).format(transaction.amount)}
                                 {transaction.type === 'income' ? ' +' : ' -'}
                             </p>
-                            <p className="text-[10px] font-bold text-muted-foreground/40 uppercase tracking-tighter">
+                            <p className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-tighter">
                                 {new Date(transaction.created_at).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' })}
                             </p>
                         </div>

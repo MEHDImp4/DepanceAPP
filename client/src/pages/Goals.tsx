@@ -31,30 +31,34 @@ export default function Goals() {
         }
     };
 
-
-
     if (isLoading) {
-        return <div className="p-8 text-center">Loading goals...</div>;
+        return (
+            <div className="flex items-center justify-center h-screen pb-24">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+            </div>
+        );
     }
 
     return (
         <div className="space-y-6 pb-24 md:pb-0">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
-                <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
-                        <Target className="w-8 h-8 text-primary" />
-                        Savings Goals
-                    </h1>
-                    <p className="text-muted-foreground mt-1">Visualize and track your financial targets.</p>
+            <header className="flex flex-col space-y-4 px-2 pt-4">
+                <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('nav.goals')}</h1>
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">
+                            Visualize your targets
+                        </p>
+                    </div>
+                    {goals && goals.length > 0 && (
+                        <button
+                            onClick={handleCreate}
+                            className="bg-primary text-primary-foreground w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 hover:scale-105 transition-transform"
+                        >
+                            <Plus size={20} strokeWidth={2.5} />
+                        </button>
+                    )}
                 </div>
-                <button
-                    onClick={handleCreate}
-                    className="bg-primary text-primary-foreground px-4 py-2.5 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 transition-opacity w-full sm:w-auto justify-center"
-                >
-                    <Plus size={20} />
-                    <span className="inline">New Goal</span>
-                </button>
-            </div>
+            </header>
 
             {goals && goals.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -70,17 +74,17 @@ export default function Goals() {
                     ))}
                 </div>
             ) : (
-                <div className="text-center py-20 bg-white/5 rounded-3xl border border-white/5 border-dashed">
-                    <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-                        🌱
+                <div className="text-center py-20 bg-muted/10 rounded-[2.5rem] border border-dashed border-border/50">
+                    <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                        🎯
                     </div>
-                    <h3 className="text-xl font-semibold mb-2">No goals yet</h3>
-                    <p className="text-muted-foreground max-w-sm mx-auto mb-6">
-                        Start saving for your dreams today. Create your first goal to track your progress.
+                    <h3 className="text-lg font-bold mb-2">No goals yet</h3>
+                    <p className="text-muted-foreground max-w-sm mx-auto mb-6 text-sm">
+                        Start saving for your dreams today.
                     </p>
                     <button
                         onClick={handleCreate}
-                        className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-medium hover:opacity-90 transition-opacity"
+                        className="bg-primary text-primary-foreground px-6 py-3 rounded-xl font-bold uppercase tracking-widest text-xs hover:opacity-90 transition-opacity"
                     >
                         Create Goal
                     </button>

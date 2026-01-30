@@ -18,7 +18,7 @@ export function BottomNav() {
 
     return (
         <div className="fixed bottom-6 left-4 right-4 z-50 pointer-events-none">
-            <nav className="max-w-md mx-auto pointer-events-auto bg-card/70 backdrop-blur-lg border border-white/20 dark:border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-[2.5rem] p-2 flex justify-around items-center">
+            <nav className="max-w-md mx-auto pointer-events-auto bg-card/85 backdrop-blur-xl border border-white/10 shadow-2xl shadow-black/40 rounded-[2.5rem] p-2 flex justify-around items-center">
                 {navItems.map(({ icon: Icon, label, path }) => {
                     const isActive = location.pathname === path;
                     return (
@@ -29,29 +29,27 @@ export function BottomNav() {
                         >
                             {isActive && (
                                 <div
-                                    className="absolute inset-0 bg-primary/10 rounded-3xl"
+                                    className="absolute inset-0 bg-primary/15 rounded-3xl"
                                 />
                             )}
                             <div className={cn(
                                 "relative z-10 p-1.5 rounded-2xl transition-all duration-300",
-                                isActive ? "scale-110" : "group-hover:scale-105"
+                                isActive ? "scale-110" : "group-active:scale-95"
                             )}>
                                 <Icon
-                                    size={20}
+                                    size={22}
                                     className={cn(
                                         "transition-colors duration-300",
                                         isActive ? "text-primary" : "text-muted-foreground"
                                     )}
-                                    strokeWidth={isActive ? 2.5 : 2}
+                                    fill={isActive ? "currentColor" : "none"}
+                                    strokeWidth={isActive ? 0 : 2}
                                 />
                             </div>
                             <span className={cn(
-                                "relative z-10 text-[9px] font-black uppercase tracking-widest transition-all duration-300",
+                                "relative z-10 text-[10px] font-bold uppercase tracking-widest transition-all duration-300 mt-0.5",
                                 isActive ? "text-primary" : "text-muted-foreground",
-                                // Hide text on small screens (<380px), show on larger screens
                                 "hidden xs:block",
-                                // On very small screens, maybe show only active label? 
-                                // For now, let's keep it simple: hidden on tiny screens to fix the crash.
                                 "max-[380px]:hidden"
                             )}>
                                 {label}

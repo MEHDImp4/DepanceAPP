@@ -25,8 +25,6 @@ function groupTransactionsByDate(transactions: Transaction[], locale: string) {
     return groups;
 }
 
-// Initial Mock Data (Expanded) - REMOVED
-
 export default function Transactions() {
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
@@ -36,7 +34,9 @@ export default function Transactions() {
     const user = useAuthStore((state) => state.user);
     const { mutate: createTransaction } = useCreateTransaction();
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const [search, setSearch] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState<number | 'all'>('all');
 
     const handleAddTransaction = (transactionData: Omit<Transaction, "id" | "created_at"> & { account_id: number }) => {
         createTransaction(transactionData, {
@@ -44,11 +44,11 @@ export default function Transactions() {
         });
     };
 
-
-
-    const filteredTransactions = transactions.filter(t =>
-        t.description.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const filteredTransactions = transactions.filter(t => {
+        const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
+        const matchesCategory = categoryFilter === 'all' || t.category_id === categoryFilter;
+        return matchesSearch && matchesCategory;
+    });
 
     const groupedTransactions = groupTransactionsByDate(filteredTransactions, i18n.language);
 
@@ -61,98 +61,141 @@ export default function Transactions() {
     }
 
     return (
-        <div className="pb-32 space-y-8">
-            {/* Header */}
-            <div className="flex flex-row items-center justify-between pt-6 pb-2 px-1">
-                <h1 className="text-3xl font-black tracking-tight">{t('transactions.title')}</h1>
-                <div className="flex space-x-3 w-auto justify-end">
+        <div className="space-y-6 pb-24">
+            <header className="flex flex-col space-y-4 px-2 pt-4">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-2xl font-bold tracking-tight text-foreground">{t('nav.transactions')}</h1>
                     <button
-                        className="w-10 h-10 bg-card border border-border flex items-center justify-center rounded-2xl shadow-xl hover:bg-muted"
+                        onClick={() => setIsFilterOpen(!isFilterOpen)}
+                        className={cn(
+                            "p-2.5 rounded-xl border transition-all duration-200",
+                            isFilterOpen
+                                ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
+                                : "bg-card border-border text-muted-foreground hover:bg-muted"
+                        )}
                     >
-                        <Filter size={18} className="text-muted-foreground" />
-                    </button>
-                    <button
-                        onClick={() => setIsAddModalOpen(true)}
-                        className="w-10 h-10 bg-primary text-primary-foreground flex items-center justify-center rounded-2xl shadow-xl shadow-primary/20 hover:opacity-90 font-black"
-                    >
-                        <Plus size={20} strokeWidth={3} />
+                        <Filter size={20} strokeWidth={2} />
                     </button>
                 </div>
-            </div>
 
-            {/* Premium Search */}
-            <div className="relative group px-1">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary" size={20} strokeWidth={3} />
-                <input
-                    type="text"
-                    placeholder={t('transactions.search_placeholder')}
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-card/50 backdrop-blur-sm border border-border/50 rounded-[1.5rem] py-4 pl-12 pr-4 outline-none focus:ring-4 focus:ring-primary/5 focus:bg-card focus:border-primary/20 font-bold tracking-tight text-[15px]"
-                />
-            </div>
+                {isFilterOpen && (
+                    <div className="bg-card border border-border rounded-2xl p-4 shadow-xl space-y-4 animate-in slide-in-from-top-2 duration-200">
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                                {t('common.search')}
+                            </label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+                                <input
+                                    type="text"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder={t('common.search_placeholder')}
+                                    className="w-full pl-9 pr-4 py-2.5 bg-muted/50 border border-border rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-muted-foreground/50"
+                                />
+                            </div>
+                        </div>
 
-            {/* Transaction List with Premium Grouping */}
-            <div className="space-y-10">
-                {Object.entries(groupedTransactions).map(([date, items]) => (
-                    <div key={date} className="space-y-4">
-                        <h3 className="text-[13px] font-black uppercase tracking-[0.4em] text-muted-foreground/60 px-2">
-                            {date}
-                        </h3>
-                        <div className="bg-card/50 backdrop-blur-sm border border-border/50 rounded-[2.5rem] overflow-hidden divide-y divide-border/30">
-                            {items.map((transaction) => (
-                                <div
-                                    key={transaction.id}
-                                    onClick={() => navigate(`/transactions/${transaction.id}`)}
-                                    className="group flex items-center justify-between p-5 hover:bg-muted/40 pointer-events-auto cursor-pointer"
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">
+                                {t('transactions.category')}
+                            </label>
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    onClick={() => setCategoryFilter('all')}
+                                    className={cn(
+                                        "px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border transition-all",
+                                        categoryFilter === 'all'
+                                            ? "bg-primary text-primary-foreground border-primary"
+                                            : "bg-background border-border text-muted-foreground hover:border-primary/50"
+                                    )}
                                 >
-                                    <div className="flex items-center space-x-4">
-                                        <div className={cn(
-                                            "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg",
-                                            transaction.type === 'income' ? "bg-emerald-500" : "bg-red-500"
-                                        )}>
-                                            {transaction.type === 'income' ? <TrendingUp size={20} strokeWidth={2.5} /> : <TrendingDown size={20} strokeWidth={2.5} />}
-                                        </div>
-                                        <div>
-                                            <p className="font-bold tracking-tight text-[15px]">{transaction.description}</p>
-                                            <div className="h-4 flex items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mt-0.5">
-                                                {(() => {
-                                                    const category = categories.find(c => c.id === transaction.category_id);
-                                                    return category ? (
-                                                        <span>{category.name}</span>
-                                                    ) : (
-                                                        <span>{t('transactions.uncategorized')}</span>
-                                                    );
-                                                })()}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center space-x-4">
-                                        <div className="text-right">
-                                            <p className={cn(
-                                                "font-black tracking-tight text-[15px]",
-                                                transaction.type === 'income' ? "text-emerald-600" : "text-foreground"
-                                            )}>
-                                                {new Intl.NumberFormat(i18n.language, { style: "currency", currency: accounts.find(a => a.id === transaction.account_id)?.currency || user?.currency || 'USD' }).format(transaction.amount)}
-                                                {transaction.type === 'income' ? ' +' : ' -'}
-                                            </p>
-
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                                    {t('common.all')}
+                                </button>
+                                {categories.map(category => (
+                                    <button
+                                        key={category.id}
+                                        onClick={() => setCategoryFilter(category.id)}
+                                        className={cn(
+                                            "px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border transition-all",
+                                            categoryFilter === category.id
+                                                ? "bg-primary text-primary-foreground border-primary"
+                                                : "bg-background border-border text-muted-foreground hover:border-primary/50"
+                                        )}
+                                    >
+                                        {category.name}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                ))}
+                )}
+            </header>
+
+            <div className="space-y-8">
+                {filteredTransactions.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground bg-muted/20 rounded-[2rem] border border-dashed border-border/50">
+                        <p>{t('transactions.no_results')}</p>
+                    </div>
+                ) : (
+                    Object.entries(groupedTransactions).map(([date, items]) => (
+                        <div key={date} className="space-y-3">
+                            <h3 className="text-[11px] font-bold uppercase tracking-[0.3em] text-muted-foreground px-2">
+                                {date}
+                            </h3>
+                            <div className="bg-card border border-border rounded-[2rem] overflow-hidden divide-y divide-border/40">
+                                {items.map((transaction) => (
+                                    <div
+                                        key={transaction.id}
+                                        onClick={() => navigate(`/transactions/${transaction.id}`)}
+                                        className="group flex items-center justify-between p-5 hover:bg-muted/30 active:bg-muted/50 transition-colors cursor-pointer"
+                                    >
+                                        <div className="flex items-center space-x-4">
+                                            <div className={cn(
+                                                "w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md",
+                                                transaction.type === 'income' ? "bg-emerald-500/90" : "bg-red-500/90"
+                                            )}>
+                                                {transaction.type === 'income' ? <TrendingUp size={18} strokeWidth={2.5} /> : <TrendingDown size={18} strokeWidth={2.5} />}
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold tracking-tight text-[14px] text-foreground/90">{transaction.description}</p>
+                                                <div className="h-4 flex items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-0.5">
+                                                    {(() => {
+                                                        const category = categories.find(c => c.id === transaction.category_id);
+                                                        return category ? (
+                                                            <span>{category.name}</span>
+                                                        ) : (
+                                                            <span>{t('transactions.uncategorized')}</span>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className={cn(
+                                                "font-bold tracking-tight text-[14px]",
+                                                transaction.type === 'income' ? "text-emerald-500" : "text-foreground"
+                                            )}>
+                                                {new Intl.NumberFormat(i18n.language, { style: "currency", currency: user?.currency || 'USD' }).format(transaction.amount)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
 
-            {/* Empty State */}
-            {filteredTransactions.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                    <p>{t('transactions.no_results')}</p>
-                </div>
-            )}
+            {/* Floating Action Button */}
+            <div className="fixed bottom-24 right-4 z-40">
+                <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/30 flex items-center justify-center hover:scale-105 active:scale-95 transition-all duration-200"
+                >
+                    <Plus size={28} strokeWidth={2.5} />
+                </button>
+            </div>
 
             <AddTransactionModal
                 isOpen={isAddModalOpen}
