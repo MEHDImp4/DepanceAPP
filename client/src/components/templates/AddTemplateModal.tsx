@@ -124,7 +124,6 @@ export function AddTemplateModal({ isOpen, onClose, onAdd, onUpdate, templateToE
     };
 
     return createPortal(
-    return createPortal(
         isOpen ? (
             <>
                 {/* Backdrop */}
@@ -290,7 +289,7 @@ export function AddTemplateModal({ isOpen, onClose, onAdd, onUpdate, templateToE
                     </div>
                 </div>
             </>
-        ) : null,,
+        ) : null,
         document.body
     );
 }

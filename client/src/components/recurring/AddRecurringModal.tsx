@@ -240,14 +240,15 @@ export function AddRecurringModal({ isOpen, onClose }: AddRecurringModalProps) {
                                     disabled={createRecurring.isPending}
                                     className="w-full bg-primary text-primary-foreground font-bold py-4 rounded-xl flex items-center justify-center space-x-2 active:scale-[0.98] transition-transform disabled:opacity-50"
                                 >
-                                    {createRecurring.isPending ? <div className="animate-spin">
-                                        <Repeat size={20} />
-                                    </div>
+                                    {createRecurring.isPending ? (
+                                        <div className="animate-spin">
+                                            <Repeat size={20} />
+                                        </div>
                                     ) : (
-                                    <>
-                                        <Check size={20} />
-                                        <span>{t('recurring.create_button') || "Create Recurring"}</span>
-                                    </>
+                                        <>
+                                            <Check size={20} />
+                                            <span>{t('recurring.create_button') || "Create Recurring"}</span>
+                                        </>
                                     )}
                                 </button>
                             </form>

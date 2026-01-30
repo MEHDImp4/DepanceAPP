@@ -80,7 +80,7 @@ export default function Recurring() {
                     </div>
                 ) : (
                     <div className="grid gap-4">
-                        {recurring.map((item, index) => (
+                        {recurring.map((item) => (
                             <div
                                 key={item.id}
                                 className="relative group bg-card hover:bg-muted/30 border border-border/50 rounded-[2rem] p-6 flex flex-col items-center text-center gap-3 transition-all duration-300"

@@ -129,11 +129,10 @@ export default function Templates() {
             </div>
 
             <div className="grid grid-cols-1 gap-4">
-                {templates.map((template, index) => {
+                {templates.map((template) => {
                     const IconComponent = ICON_MAP[template.icon_name || 'Default'] || Wallet;
                     const isApplying = applyingId === template.id;
 
-                    return (
                     return (
                         <button
                             key={template.id}
