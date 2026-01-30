@@ -136,7 +136,7 @@ model Template {
   color              String?
   icon_name          String? // Store icon name string
   default_account_id Int?
-  default_account    Account? @relation(fields: [default_account_id], references: [id])
+  default_account    Account? @relation(fields: [default_account_id], references: [id], onDelete: SetNull)
   category_id        Int?
   category           Category? @relation(fields: [category_id], references: [id])
   type               String   @default("expense")
@@ -173,7 +173,7 @@ model RecurringTransaction {
   updated_at    DateTime @updatedAt
 
   category Category? @relation(fields: [category_id], references: [id])
-  account  Account   @relation(fields: [account_id], references: [id])
+  account  Account   @relation(fields: [account_id], references: [id], onDelete: Cascade)
   user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
