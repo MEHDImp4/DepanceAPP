@@ -6,8 +6,8 @@ import type { JwtPayload } from '../types';
 
 const BCRYPT_SALT_ROUNDS = 10;
 const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
-const REFRESH_TOKEN_MS = 7 * 24 * 60 * 60 * 1000;
+const REFRESH_TOKEN_EXPIRY = '2d';
+const REFRESH_TOKEN_MS = 2 * 24 * 60 * 60 * 1000;
 const ACCESS_TOKEN_MS = 15 * 60 * 1000;
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -237,46 +237,70 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
         }
 
         if (new Date() > storedToken.expiresAt) {
+            // Rolling Refresh Token: Delete old one and issue a NEW one
             await prisma.refreshToken.delete({ where: { token: refreshTokenValue } });
-            res.status(401).json({ error: 'Refresh token expired' });
-            return;
-        }
 
-        const user = storedToken.user;
-        const newAccessToken = jwt.sign(
-            { userId: user.id, email: user.email } as JwtPayload,
-            process.env.JWT_SECRET!,
-            { expiresIn: ACCESS_TOKEN_EXPIRY }
-        );
+            const user = storedToken.user;
 
-        res.cookie('token', newAccessToken, {
-            httpOnly: true,
-            secure: false, // process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
-            maxAge: ACCESS_TOKEN_MS
-        });
+            // precise rotation: create new refresh token
+            const newRefreshToken = jwt.sign(
+                { userId: user.id } as Partial<JwtPayload>,
+                process.env.JWT_SECRET!,
+                { expiresIn: REFRESH_TOKEN_EXPIRY }
+            );
 
-        res.json({ message: 'Token refreshed' });
-    } catch (error) {
-        next(error);
-    }
-};
+            // Issue new Access Token
+            const newAccessToken = jwt.sign(
+                { userId: user.id, email: user.email } as JwtPayload,
+                process.env.JWT_SECRET!,
+                { expiresIn: ACCESS_TOKEN_EXPIRY }
+            );
 
-export const logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-        const refreshTokenValue = req.cookies?.refreshToken as string | undefined;
-        if (refreshTokenValue) {
-            await prisma.refreshToken.delete({
-                where: { token: refreshTokenValue }
-            }).catch(() => {
-                // Ignore if already deleted or not found
+            // Save new Refresh Token
+            await prisma.refreshToken.create({
+                data: {
+                    token: newRefreshToken,
+                    userId: user.id,
+                    expiresAt: new Date(Date.now() + REFRESH_TOKEN_MS)
+                }
             });
-        }
 
-        res.clearCookie('refreshToken');
-        res.clearCookie('token');
-        res.json({ message: 'Logged out successfully' });
-    } catch (error) {
-        next(error);
-    }
-};
+            // Set Cookies
+            res.cookie('refreshToken', newRefreshToken, {
+                httpOnly: true,
+                secure: false, // process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: REFRESH_TOKEN_MS
+            });
+
+            res.cookie('token', newAccessToken, {
+                httpOnly: true,
+                secure: false, // process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: ACCESS_TOKEN_MS
+            });
+
+            res.json({ message: 'Token refreshed' });
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    export const logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            const refreshTokenValue = req.cookies?.refreshToken as string | undefined;
+            if (refreshTokenValue) {
+                await prisma.refreshToken.delete({
+                    where: { token: refreshTokenValue }
+                }).catch(() => {
+                    // Ignore if already deleted or not found
+                });
+            }
+
+            res.clearCookie('refreshToken');
+            res.clearCookie('token');
+            res.json({ message: 'Logged out successfully' });
+        } catch (error) {
+            next(error);
+        }
+    };
