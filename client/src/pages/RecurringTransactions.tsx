@@ -83,7 +83,7 @@ export default function Recurring() {
                         {recurring.map((item) => (
                             <div
                                 key={item.id}
-                                className="relative group bg-card hover:bg-muted/30 border border-border/50 rounded-[2rem] p-6 flex flex-col items-center text-center gap-3 transition-all duration-300"
+                                className="relative group bg-card hover:bg-muted/30 border border-border/50 rounded-[2rem] p-6 flex flex-col items-center text-center gap-3"
                             >
                                 <div className={cn(
                                     "w-16 h-16 rounded-[1.4rem] flex items-center justify-center text-white shadow-lg relative overflow-hidden shrink-0 border border-black/10 dark:border-white/10",

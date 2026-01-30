@@ -10,10 +10,10 @@ export function CapitalCard({ amount, currency }: CapitalCardProps) {
     const { t, i18n } = useTranslation();
     return (
         <div
-            className="relative group overflow-hidden bg-card border border-border rounded-[2.5rem] p-8 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/5 active:scale-[0.98]"
+            className="relative group overflow-hidden bg-card border border-border rounded-[2.5rem] p-8"
         >
             {/* Decorative Mesh Gradient Background */}
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors" />
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
 
             <div className="relative space-y-3">
                 <h2 className="text-[13px] font-black uppercase tracking-[0.3em] text-muted-foreground/60">
@@ -33,7 +33,7 @@ export function CapitalCard({ amount, currency }: CapitalCardProps) {
                         const textSizeClass = length > 13 ? "text-2xl" : length > 10 ? "text-3xl" : length > 7 ? "text-4xl" : "text-5xl";
 
                         return (
-                            <span className={`${textSizeClass} font-black tracking-tighter text-foreground transition-all duration-300`}>
+                            <span className={`${textSizeClass} font-black tracking-tighter text-foreground`}>
                                 {formattedAmount}
                             </span>
                         );
@@ -44,7 +44,7 @@ export function CapitalCard({ amount, currency }: CapitalCardProps) {
                 </div>
 
                 <div className="pt-2 flex items-center space-x-2">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)] animate-pulse" />
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
                     <span className="text-[12px] font-bold text-muted-foreground uppercase tracking-widest">
                         {t('dashboard.live_balance')}
                     </span>

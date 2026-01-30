@@ -146,14 +146,15 @@ export default function Templates() {
                                 }
                             }}
                             className={cn(
-                                "relative group overflow-hidden bg-card/60 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] shadow-xl hover:shadow-primary/10 transition-all duration-500 text-center flex flex-col items-center space-y-3",
+                                "relative group overflow-hidden bg-card/60 backdrop-blur-xl border border-white/10 p-6 rounded-[2rem] shadow-xl hover:shadow-primary/10 text-center flex flex-col items-center space-y-3",
                                 isApplying && "ring-2 ring-primary/50 bg-primary/5",
                                 isEditMode && "ring-2 ring-emerald-500/30 bg-emerald-500/5 group-hover:ring-emerald-500/50"
                             )}
                         >
                             {/* Animated Background Glow */}
+                            {/* Animated Background Glow - REMOVED ANIMATION */}
                             <div className={cn(
-                                "absolute -top-12 -right-12 w-32 h-32 rounded-full blur-3xl opacity-5 transition-all duration-700 group-hover:opacity-15 group-hover:scale-110",
+                                "absolute -top-12 -right-12 w-32 h-32 rounded-full blur-3xl opacity-5",
                                 template.color || "bg-primary"
                             )} />
 
@@ -168,12 +169,12 @@ export default function Templates() {
                                         <Plus size={28} strokeWidth={3} className="drop-shadow-sm" />
                                     </div>
                                 ) : (
-                                    <IconComponent size={28} strokeWidth={3} className="relative z-10 transition-transform duration-500 group-hover:scale-110 drop-shadow-sm" />
+                                    <IconComponent size={28} strokeWidth={3} className="relative z-10 drop-shadow-sm" />
                                 )}
                             </div>
 
                             <div className="space-y-0.5 flex-1">
-                                <h3 className="font-extrabold tracking-tight text-[18px] leading-tight text-foreground/90 group-hover:text-primary transition-colors duration-300">
+                                <h3 className="font-extrabold tracking-tight text-[18px] leading-tight text-foreground/90 group-hover:text-primary">
                                     {template.name}
                                 </h3>
                                 <div className="flex items-center justify-center gap-2">

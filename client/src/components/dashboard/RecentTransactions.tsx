@@ -23,7 +23,7 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                 <h3 className="text-[13px] uppercase tracking-[0.2em] font-black text-muted-foreground/60">
                     {t('dashboard.recent_transactions')}
                 </h3>
-                <Link to="/transactions" className="text-[12px] font-black uppercase tracking-widest text-primary hover:opacity-70 transition-opacity">
+                <Link to="/transactions" className="text-[12px] font-black uppercase tracking-widest text-primary hover:opacity-70">
                     {t('common.see_all')}
                 </Link>
             </div>
@@ -33,11 +33,11 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                     <div
                         key={transaction.id}
                         onClick={() => navigate(`/transactions/${transaction.id}`)}
-                        className="group flex items-center justify-between p-5 hover:bg-muted/40 transition-all duration-300 pointer-events-auto cursor-pointer"
+                        className="group flex items-center justify-between p-5 hover:bg-muted/40 pointer-events-auto cursor-pointer"
                     >
                         <div className="flex items-center space-x-4">
                             <div className={cn(
-                                "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3",
+                                "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg",
                                 transaction.type === 'income' ? "bg-emerald-500" : "bg-red-500"
                             )}>
                                 {transaction.type === 'income' ? <TrendingUp size={20} strokeWidth={2.5} /> : <TrendingDown size={20} strokeWidth={2.5} />}

@@ -18,7 +18,7 @@ export function GoalCard({ goal, onEdit, onDelete, onAddMoney }: GoalCardProps) 
     const isCompleted = goal.currentAmount >= goal.targetAmount;
 
     return (
-        <div className="bg-card/50 backdrop-blur-xl border border-white/10 p-5 rounded-2xl flex flex-col gap-4 shadow-sm hover:shadow-md transition-all">
+        <div className="bg-card/50 backdrop-blur-xl border border-white/10 p-5 rounded-2xl flex flex-col gap-4 shadow-sm hover:shadow-md">
             <div className="flex justify-between items-start">
                 <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-xl bg-primary/10 text-2xl flex items-center justify-center">
@@ -36,13 +36,13 @@ export function GoalCard({ goal, onEdit, onDelete, onAddMoney }: GoalCardProps) 
                 <div className="flex gap-2">
                     <button
                         onClick={() => onEdit(goal)}
-                        className="p-2 hover:bg-white/10 rounded-lg transition-colors text-muted-foreground hover:text-foreground"
+                        className="p-2 hover:bg-white/10 rounded-lg text-muted-foreground hover:text-foreground"
                     >
                         <Pencil size={16} />
                     </button>
                     <button
                         onClick={() => onDelete(goal.id)}
-                        className="p-2 hover:bg-red-500/10 rounded-lg transition-colors text-muted-foreground hover:text-red-500"
+                        className="p-2 hover:bg-red-500/10 rounded-lg text-muted-foreground hover:text-red-500"
                     >
                         <Trash2 size={16} />
                     </button>
@@ -82,7 +82,7 @@ export function GoalCard({ goal, onEdit, onDelete, onAddMoney }: GoalCardProps) 
 
             <button
                 onClick={() => onAddMoney(goal)}
-                className="w-full mt-2 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-medium flex items-center justify-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-2 py-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary font-medium flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={isCompleted}
             >
                 <Plus size={18} />

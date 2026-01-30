@@ -25,11 +25,11 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
     return (
         <div
             onClick={() => onClick?.(account)}
-            className="group flex items-center justify-between p-5 hover:bg-muted/40 transition-all duration-300 cursor-pointer"
+            className="group flex items-center justify-between p-5 hover:bg-muted/40 cursor-pointer"
         >
             <div className="flex items-center space-x-4 min-w-0 flex-1 mr-4">
                 <div className={cn(
-                    "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 flex-shrink-0",
+                    "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg flex-shrink-0",
                     colorClass
                 )}>
                     <Icon size={20} />
@@ -55,7 +55,7 @@ export function AccountCard({ account, onClick }: AccountCardProps) {
                         </span>
                     </div>
                 </div>
-                <ChevronRight size={18} className="text-muted-foreground/30 group-hover:text-foreground group-hover:translate-x-1 transition-all" />
+                <ChevronRight size={18} className="text-muted-foreground/30 group-hover:text-foreground" />
             </div>
         </div>
     );

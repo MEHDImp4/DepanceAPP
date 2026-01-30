@@ -67,13 +67,13 @@ export default function Transactions() {
                 <h1 className="text-3xl font-black tracking-tight">{t('transactions.title')}</h1>
                 <div className="flex space-x-3 w-auto justify-end">
                     <button
-                        className="w-10 h-10 bg-card border border-border flex items-center justify-center rounded-2xl shadow-xl hover:bg-muted transition-colors"
+                        className="w-10 h-10 bg-card border border-border flex items-center justify-center rounded-2xl shadow-xl hover:bg-muted"
                     >
                         <Filter size={18} className="text-muted-foreground" />
                     </button>
                     <button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="w-10 h-10 bg-primary text-primary-foreground flex items-center justify-center rounded-2xl shadow-xl shadow-primary/20 hover:opacity-90 transition-all font-black"
+                        className="w-10 h-10 bg-primary text-primary-foreground flex items-center justify-center rounded-2xl shadow-xl shadow-primary/20 hover:opacity-90 font-black"
                     >
                         <Plus size={20} strokeWidth={3} />
                     </button>
@@ -82,13 +82,13 @@ export default function Transactions() {
 
             {/* Premium Search */}
             <div className="relative group px-1">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" size={20} strokeWidth={3} />
+                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary" size={20} strokeWidth={3} />
                 <input
                     type="text"
                     placeholder={t('transactions.search_placeholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-card/50 backdrop-blur-sm border border-border/50 rounded-[1.5rem] py-4 pl-12 pr-4 outline-none focus:ring-4 focus:ring-primary/5 focus:bg-card focus:border-primary/20 transition-all font-bold tracking-tight text-[15px]"
+                    className="w-full bg-card/50 backdrop-blur-sm border border-border/50 rounded-[1.5rem] py-4 pl-12 pr-4 outline-none focus:ring-4 focus:ring-primary/5 focus:bg-card focus:border-primary/20 font-bold tracking-tight text-[15px]"
                 />
             </div>
 
@@ -104,18 +104,18 @@ export default function Transactions() {
                                 <div
                                     key={transaction.id}
                                     onClick={() => navigate(`/transactions/${transaction.id}`)}
-                                    className="group flex items-center justify-between p-5 hover:bg-muted/40 transition-all duration-300 pointer-events-auto cursor-pointer"
+                                    className="group flex items-center justify-between p-5 hover:bg-muted/40 pointer-events-auto cursor-pointer"
                                 >
                                     <div className="flex items-center space-x-4">
                                         <div className={cn(
-                                            "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3",
+                                            "w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg",
                                             transaction.type === 'income' ? "bg-emerald-500" : "bg-red-500"
                                         )}>
                                             {transaction.type === 'income' ? <TrendingUp size={20} strokeWidth={2.5} /> : <TrendingDown size={20} strokeWidth={2.5} />}
                                         </div>
                                         <div>
                                             <p className="font-bold tracking-tight text-[15px]">{transaction.description}</p>
-                                            <div className="h-4 flex items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 transition-colors group-hover:text-primary/70 mt-0.5">
+                                            <div className="h-4 flex items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mt-0.5">
                                                 {(() => {
                                                     const category = categories.find(c => c.id === transaction.category_id);
                                                     return category ? (
