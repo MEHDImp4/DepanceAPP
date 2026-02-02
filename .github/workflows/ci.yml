@@ -61,3 +61,11 @@ jobs:
         DATABASE_URL: mysql://root:root@localhost:3306/depance_db
         JWT_SECRET: test_secret_key_for_ci
       run: npm test
+
+    - name: Install Client Dependencies
+      working-directory: ./client
+      run: npm ci
+
+    - name: Run Client Tests
+      working-directory: ./client
+      run: npm run test:run

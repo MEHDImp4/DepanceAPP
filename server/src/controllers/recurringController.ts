@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { toCents, fromCents } from '../utils/money';
+import * as recurringService from '../services/recurringService';
 
 interface CreateRecurringBody {
     amount: number;
@@ -12,7 +13,7 @@ interface CreateRecurringBody {
     category_id?: number | null;
 }
 
-const MAX_RECURRING_LOOPS = 12;
+
 
 export const getRecurring = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -85,83 +86,11 @@ export const deleteRecurring = async (req: Request, res: Response, next: NextFun
     }
 };
 
-interface RecurringRule {
-    id: number;
-    amount: number;
-    description: string;
-    type: string;
-    interval: string;
-    next_run_date: Date;
-    account_id: number;
-    category_id: number | null;
-}
-
-async function processRuleCycles(
-    rule: RecurringRule,
-    userId: number,
-    now: Date
-): Promise<{ id: number; amount: number }[]> {
-    const nextDate = new Date(rule.next_run_date);
-    const createdTransactions: { id: number; amount: number }[] = [];
-    let safetyCounter = 0;
-
-    while (nextDate <= now && safetyCounter < MAX_RECURRING_LOOPS) {
-        const balanceChange = rule.type === 'income' ? rule.amount : -rule.amount;
-
-        const [tx] = await prisma.$transaction([
-            prisma.transaction.create({
-                data: {
-                    amount: rule.amount,
-                    description: `${rule.description} (Auto)`,
-                    type: rule.type,
-                    account_id: rule.account_id,
-                    category_id: rule.category_id,
-                    user_id: userId,
-                    created_at: new Date(nextDate)
-                }
-            }),
-            prisma.account.update({
-                where: { id: rule.account_id },
-                data: { balance: { increment: balanceChange } }
-            })
-        ]);
-
-        createdTransactions.push({ id: tx.id, amount: tx.amount });
-
-        if (rule.interval === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
-        else if (rule.interval === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
-        else if (rule.interval === 'yearly') nextDate.setFullYear(nextDate.getFullYear() + 1);
-
-        safetyCounter++;
-    }
-
-    if (createdTransactions.length > 0) {
-        await prisma.recurringTransaction.update({
-            where: { id: rule.id },
-            data: { next_run_date: nextDate }
-        });
-    }
-
-    return createdTransactions;
-}
-
 export const processRecurring = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const userId = req.user!.userId;
-        const now = new Date();
+        const createdTransactions = await recurringService.processDueTransactions(userId);
 
-        const dueRules = await prisma.recurringTransaction.findMany({
-            where: {
-                user_id: userId,
-                active: true,
-                next_run_date: { lte: now }
-            }
-        });
-
-        const results = await Promise.all(
-            dueRules.map(rule => processRuleCycles(rule, userId, now))
-        );
-        const createdTransactions = results.flat();
         const txsWithFloat = createdTransactions.map(tx => ({ ...tx, amount: fromCents(tx.amount) }));
 
         res.json({ processed: txsWithFloat.length, transactions: txsWithFloat });

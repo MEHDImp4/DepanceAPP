@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
@@ -10,13 +11,13 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      visualizer({
+      mode !== 'test' && visualizer({
         filename: 'stats.html',
         open: false,
         gzipSize: true,
         brotliSize: true,
       }),
-      VitePWA({
+      mode !== 'test' && VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.png', 'apple-touch-icon.png'],
         manifest: {
@@ -90,10 +91,11 @@ export default defineConfig(({ mode }) => {
           ]
         }
       })
-    ],
+    ].filter(Boolean),
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
+        "virtual:pwa-register/react": path.resolve(__dirname, "./test/mocks/pwa-register.ts"),
       },
     },
     server: {
@@ -110,6 +112,11 @@ export default defineConfig(({ mode }) => {
     preview: {
       host: true,
       allowedHosts: true,
-    }
+    },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      setupFiles: './vitest.setup.ts',
+    },
   }
 })
