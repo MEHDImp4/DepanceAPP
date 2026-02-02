@@ -55,14 +55,14 @@ export const register = async (req: Request, res: Response, next: NextFunction):
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: false, // process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: REFRESH_TOKEN_MS
         });
 
         res.cookie('token', accessToken, {
             httpOnly: true,
-            secure: false, // process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: ACCESS_TOKEN_MS
         });
@@ -146,14 +146,14 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: false, // process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: REFRESH_TOKEN_MS
         });
 
         res.cookie('token', accessToken, {
             httpOnly: true,
-            secure: false, // process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: ACCESS_TOKEN_MS
         });
@@ -206,6 +206,38 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
             data: { currency }
         });
         res.json({ id: updated.id, email: updated.email, username: updated.username, currency: updated.currency });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const changePassword = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const { oldPassword, newPassword } = req.body as { oldPassword: string; newPassword: string };
+        const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        const isValid = await bcrypt.compare(oldPassword, user.password_hash);
+        if (!isValid) {
+            await logFailedLogin(user.id, req); // Optional: log this as a suspicious event?
+            res.status(400).json({ error: 'Incorrect old password' });
+            return;
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { password_hash: hashedPassword }
+        });
+
+        // Optional: Invalidate all refresh tokens/sessions on password change for security
+        // await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+
+        res.json({ message: 'Password updated successfully' });
     } catch (error) {
         next(error);
     }
@@ -273,14 +305,14 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
         // Set Cookies
         res.cookie('refreshToken', newRefreshToken, {
             httpOnly: true,
-            secure: false, // process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: REFRESH_TOKEN_MS
         });
 
         res.cookie('token', newAccessToken, {
             httpOnly: true,
-            secure: false, // process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: ACCESS_TOKEN_MS
         });

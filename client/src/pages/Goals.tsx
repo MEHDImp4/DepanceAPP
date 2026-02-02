@@ -77,9 +77,6 @@ export default function Goals() {
                 </div>
             ) : (
                 <div className="text-center py-20 bg-muted/10 rounded-[2.5rem] border border-dashed border-border/50">
-                    <div className="w-16 h-16 bg-muted/20 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-                        🎯
-                    </div>
                     <h3 className="text-lg font-bold mb-2">No goals yet</h3>
                     <p className="text-muted-foreground max-w-sm mx-auto mb-6 text-sm">
                         Start saving for your dreams today.

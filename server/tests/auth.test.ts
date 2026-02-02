@@ -7,7 +7,7 @@ describe('Auth Endpoints', () => {
     const testUser = {
         username: 'testuser',
         email: 'test@example.com',
-        password: 'password123'
+        password: 'Password123!'
     };
 
     it('should register a new user', async () => {

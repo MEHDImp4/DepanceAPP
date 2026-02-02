@@ -24,6 +24,8 @@ import Templates from "./pages/Templates";
 import RecurringTransactions from "./pages/RecurringTransactions";
 import Goals from "./pages/Goals";
 import Settings from "./pages/Settings";
+import ProfileInfo from "./pages/settings/ProfileInfo";
+import SecurityPrivacy from "./pages/settings/SecurityPrivacy";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ReloadPrompt from "./components/ReloadPrompt";
@@ -48,6 +50,8 @@ function App() {
             <Route path="/recurring" element={<RecurringTransactions />} />
             <Route path="/goals" element={<Goals />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/settings/profile" element={<ProfileInfo />} />
+            <Route path="/settings/security" element={<SecurityPrivacy />} />
           </Route>
         </Routes>
         <ReloadPrompt />

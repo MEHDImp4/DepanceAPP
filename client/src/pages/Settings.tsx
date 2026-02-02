@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/auth-store";
 import { useUpdateProfile } from "@/hooks/use-api";
-import { Moon, Sun, User, Bell, Shield, ChevronRight, LogOut, Globe, Repeat, Target, type LucideIcon } from "lucide-react";
+import { Moon, Sun, User as UserIcon, Bell, Shield, ChevronRight, LogOut, Globe, Repeat, Target, type LucideIcon } from "lucide-react";
+import type { User } from "@/types";
 import { cn } from "@/lib/utils";
 import { PremiumSelect } from "@/components/ui/PremiumSelect";
 import { useNavigate } from "react-router-dom";
@@ -67,7 +68,7 @@ export default function Settings() {
 
     const handleCurrencyChange = (currency: string) => {
         updateProfile.mutate({ currency }, {
-            onSuccess: (response) => {
+            onSuccess: (response: { data: User }) => {
                 updateUser(response.data);
             }
         });
@@ -160,8 +161,18 @@ export default function Settings() {
         {
             title: t('settings.account'),
             items: [
-                { icon: User as LucideIcon, label: t('settings.profile_info'), color: "bg-gray-400" },
-                { icon: Shield as LucideIcon, label: t('settings.security_privacy'), color: "bg-amber-500" },
+                {
+                    icon: UserIcon as LucideIcon,
+                    label: t('settings.profile_info'),
+                    color: "bg-gray-400",
+                    onClick: () => navigate('/settings/profile')
+                },
+                {
+                    icon: Shield as LucideIcon,
+                    label: t('settings.security_privacy'),
+                    color: "bg-amber-500",
+                    onClick: () => navigate('/settings/security')
+                },
             ]
         }
     ];

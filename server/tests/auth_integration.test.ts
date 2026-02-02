@@ -13,7 +13,7 @@ describe('Auth Integration Tests', () => {
                 .send({
                     email: 'invalid-email',
                     username: 'testuser',
-                    password: 'password123'
+                    password: 'Password123!'
                 });
             expect(res.statusCode).toEqual(400);
             expect(res.body.error).toContain('Invalid email');
@@ -46,7 +46,7 @@ describe('Auth Integration Tests', () => {
                 .send({
                     email: 'newuser@example.com',
                     username: 'newuser',
-                    password: 'password123'
+                    password: 'Password123!'
                 });
             expect(res.statusCode).toEqual(201);
             expect(res.body.user).toHaveProperty('id');
@@ -75,7 +75,7 @@ describe('Auth Integration Tests', () => {
             await request(app).post('/api/auth/register').send({
                 email: 'login@example.com',
                 username: 'loginuser',
-                password: 'password123'
+                password: 'Password123!'
             });
 
             // Delete the refresh token created during registration
@@ -95,7 +95,7 @@ describe('Auth Integration Tests', () => {
                 .post('/api/auth/login')
                 .send({
                     identifier: 'login@example.com',
-                    password: 'password123'
+                    password: 'Password123!'
                 });
 
             expect(res.statusCode).toEqual(200);
@@ -115,6 +115,96 @@ describe('Auth Integration Tests', () => {
                     password: 'wrongpassword'
                 });
             expect(res.statusCode).toEqual(401);
+        });
+    });
+
+    describe('POST /auth/change-password', () => {
+        let token: string;
+        let userId: number;
+
+        beforeEach(async () => {
+            // Create user and get token
+            await prisma.user.deleteMany({ where: { email: 'passcheck@example.com' } });
+            const regRes = await request(app).post('/api/auth/register').send({
+                email: 'passcheck@example.com',
+                username: 'passcheck',
+                password: 'OldPassword123!'
+            });
+            userId = regRes.body.userId;
+            const loginRes = await request(app).post('/api/auth/login').send({
+                identifier: 'passcheck@example.com',
+                password: 'OldPassword123!'
+            });
+            // Extract cookie
+            const cookies = loginRes.headers['set-cookie'];
+            if (!Array.isArray(cookies)) {
+                throw new Error('No cookies set or cookies is not an array');
+            }
+            const tokenCookie = cookies.find((c: string) => c.startsWith('token='));
+            if (!tokenCookie) {
+                throw new Error('Token cookie not found');
+            }
+            token = tokenCookie.split(';')[0].split('=')[1];
+        });
+
+        afterEach(async () => {
+            // cleanup
+            if (userId) {
+                await prisma.refreshToken.deleteMany({ where: { userId } });
+                await prisma.loginHistory.deleteMany({ where: { userId } });
+                await prisma.user.delete({ where: { id: userId } });
+            }
+        });
+
+        it('should change password successfully', async () => {
+            const res = await request(app)
+                .post('/api/auth/change-password')
+                .set('Cookie', `token=${token}`)
+                .send({
+                    oldPassword: 'OldPassword123!',
+                    newPassword: 'NewPassword123!'
+                });
+
+            expect(res.statusCode).toEqual(200);
+            expect(res.body.message).toEqual('Password updated successfully');
+
+            // Verify login with OLD password fails
+            const failRes = await request(app).post('/api/auth/login').send({
+                identifier: 'passcheck@example.com',
+                password: 'OldPassword123!'
+            });
+            expect(failRes.statusCode).toEqual(401);
+
+            // Verify login with NEW password succeeds
+            const successRes = await request(app).post('/api/auth/login').send({
+                identifier: 'passcheck@example.com',
+                password: 'NewPassword123!'
+            });
+            expect(successRes.statusCode).toEqual(200);
+        });
+
+        it('should fail if old password is wrong', async () => {
+            const res = await request(app)
+                .post('/api/auth/change-password')
+                .set('Cookie', `token=${token}`)
+                .send({
+                    oldPassword: 'WrongPassword123!',
+                    newPassword: 'NewPassword123!'
+                });
+
+            expect(res.statusCode).toEqual(400);
+        });
+
+        it('should fail if new password is too short', async () => {
+            const res = await request(app)
+                .post('/api/auth/change-password')
+                .set('Cookie', `token=${token}`)
+                .send({
+                    oldPassword: 'OldPassword123!',
+                    newPassword: 'short'
+                });
+
+            expect(res.statusCode).toEqual(400);
         });
     });
 });

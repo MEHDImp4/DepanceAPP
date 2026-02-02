@@ -20,6 +20,33 @@ export function useUpdateProfile() {
     });
 }
 
+export function useChangePassword() {
+    return useMutation({
+        mutationFn: (data: any) =>
+            api.post('/auth/change-password', data),
+    });
+}
+
+export function useLoginHistory() {
+    return useQuery({
+        queryKey: ['loginHistory'],
+        queryFn: async () => {
+            const { data } = await api.get('/auth/login-history');
+            return data;
+        },
+    });
+}
+
+export function useSecurityAlerts() {
+    return useQuery({
+        queryKey: ['securityAlerts'],
+        queryFn: async () => {
+            const { data } = await api.get('/auth/security-alerts');
+            return data;
+        },
+    });
+}
+
 export function useCategories() {
     return useQuery({
         queryKey: ['categories'],

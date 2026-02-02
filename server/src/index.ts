@@ -54,7 +54,11 @@ app.use(helmet({
         }
     },
     crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Allow usage without HTTPS
-    strictTransportSecurity: false, // Disable HSTS to prevent forced HTTPS upgrades
+    strictTransportSecurity: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true
+    },
     originAgentCluster: false // Disable Origin-Agent-Cluster to prevent isolation conflicts
 }));
 app.use(compression());
@@ -64,7 +68,7 @@ app.set('trust proxy', 1);
 // Rate limiting
 const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 1000,
+    max: 300,
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests, please try again later.' }
