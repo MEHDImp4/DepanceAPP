@@ -14,6 +14,8 @@ jobs:
     strategy:
       matrix:
         node-version: [20.x]
+    
+    timeout-minutes: 10
 
     services:
       mysql:
@@ -37,7 +39,9 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        cache-dependency-path: server/package-lock.json
+        cache-dependency-path: |
+          server/package-lock.json
+          client/package-lock.json
     
     - name: Install Dependencies
       working-directory: ./server
