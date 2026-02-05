@@ -55,7 +55,7 @@ async function processRuleCycles(
         const balanceChange = rule.type === 'income' ? rule.amount : -rule.amount;
 
         try {
-            const [tx] = await prisma.$transaction([
+            const results = await prisma.$transaction([
                 prisma.transaction.create({
                     data: {
                         amount: rule.amount,
@@ -72,6 +72,7 @@ async function processRuleCycles(
                     data: { balance: { increment: balanceChange } }
                 })
             ]);
+            const tx = results[0];
 
             createdTransactions.push({ id: tx.id, amount: tx.amount });
             logger.info(`Processed recurring transaction ${rule.id} for date ${nextDate.toISOString()}`);
