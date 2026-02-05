@@ -13,9 +13,10 @@ interface AddTransactionModalProps {
     isOpen: boolean;
     onClose: () => void;
     onAdd: (transaction: Omit<Transaction, "id" | "created_at"> & { account_id: number }) => void;
+    initialData?: Partial<Transaction>;
 }
 
-export function AddTransactionModal({ isOpen, onClose, onAdd }: AddTransactionModalProps) {
+export function AddTransactionModal({ isOpen, onClose, onAdd, initialData }: AddTransactionModalProps) {
     const { t } = useTranslation();
     const { data: accounts } = useAccounts();
     const { data: categories } = useCategories();
@@ -31,6 +32,29 @@ export function AddTransactionModal({ isOpen, onClose, onAdd }: AddTransactionMo
     const [isAddingCategory, setIsAddingCategory] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState("");
     const createCategory = useCreateCategory();
+
+    // Reset or populate form when modal opens or initialData changes
+    useEffect(() => {
+        if (isOpen) {
+            if (initialData) {
+                setFormData({
+                    amount: initialData.amount?.toString() || "",
+                    description: initialData.description || "",
+                    type: (initialData.type as "income" | "expense") || "expense",
+                    account_id: initialData.account_id || accounts?.[0]?.id || 0,
+                    category_id: initialData.category_id || 0
+                });
+            } else {
+                setFormData({
+                    amount: "",
+                    description: "",
+                    type: "expense",
+                    account_id: accounts?.[0]?.id || 0,
+                    category_id: 0
+                });
+            }
+        }
+    }, [isOpen, initialData, accounts]);
 
     const handleCreateCategory = () => {
         if (!newCategoryName.trim()) return;
@@ -86,12 +110,12 @@ export function AddTransactionModal({ isOpen, onClose, onAdd }: AddTransactionMo
         };
     }, [isOpen]);
 
-    // Update default account when accounts are loaded
+    // Update default account when accounts are loaded (only if not using initialData)
     useEffect(() => {
-        if (accounts && accounts.length > 0 && formData.account_id === 0) {
+        if (!initialData && accounts && accounts.length > 0 && formData.account_id === 0) {
             setFormData(prev => ({ ...prev, account_id: accounts[0].id }));
         }
-    }, [accounts, formData.account_id]);
+    }, [accounts, formData.account_id, initialData]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -102,7 +126,8 @@ export function AddTransactionModal({ isOpen, onClose, onAdd }: AddTransactionMo
             account_id: Number(formData.account_id),
             category_id: formData.category_id > 0 ? Number(formData.category_id) : undefined
         });
-        setFormData({ amount: "", description: "", type: "expense", account_id: accounts?.[0]?.id || 0, category_id: 0 });
+        // We don't reset here immediately because the modal might be closing,
+        // and the useEffect will handle reset on next open.
         onClose();
     };
 

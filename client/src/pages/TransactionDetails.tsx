@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, Calendar, Wallet, Tag, TrendingUp, TrendingDown } from "lucide-react";
-import { useTransaction, useAccounts, useCategories } from "@/hooks/use-api";
+import { ArrowLeft, Calendar, Wallet, Tag, TrendingUp, TrendingDown, RefreshCcw } from "lucide-react";
+import { useTransaction, useAccounts, useCategories, useCreateTransaction } from "@/hooks/use-api";
 import { useAuthStore } from "@/store/auth-store";
+import type { Transaction } from "@/types";
+import { AddTransactionModal } from "@/components/transactions/AddTransactionModal";
 
 import { cn } from "@/lib/utils";
 import api from "@/lib/axios"; // Or use a delete hook if you make one
@@ -12,6 +15,8 @@ export default function TransactionDetails() {
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
     const user = useAuthStore((state) => state.user);
+    const [isRedoModalOpen, setIsRedoModalOpen] = useState(false);
+    const { mutate: createTransaction } = useCreateTransaction();
 
     // Convert id to number safely
     const transactionId = Number(id);
@@ -25,6 +30,15 @@ export default function TransactionDetails() {
             style: "currency",
             currency: currency
         }).format(amount);
+    };
+
+    const handleRedoTransaction = (transactionData: Omit<Transaction, "id" | "created_at"> & { account_id: number }) => {
+        createTransaction(transactionData, {
+            onSuccess: () => {
+                setIsRedoModalOpen(false);
+                navigate('/transactions');
+            }
+        });
     };
 
     if (isLoading) {
@@ -181,8 +195,16 @@ export default function TransactionDetails() {
                     </div>
                 </div>
 
-                {/* Dangerous Zone */}
-                <div className="pt-4">
+                {/* Actions */}
+                <div className="space-y-3 pt-4">
+                    <button
+                        onClick={() => setIsRedoModalOpen(true)}
+                        className="w-full bg-primary text-primary-foreground font-bold py-5 rounded-3xl flex items-center justify-center space-x-2 shadow-lg shadow-primary/25 active:scale-[0.98] transition-all"
+                    >
+                        <RefreshCcw size={18} strokeWidth={2.5} />
+                        <span>{t('transactions.repeat_transaction', 'Repeat Transaction')}</span>
+                    </button>
+
                     <button
                         onClick={async () => {
                             if (confirm("Delete this transaction?")) {
@@ -194,12 +216,19 @@ export default function TransactionDetails() {
                                 }
                             }
                         }}
-                        className="w-full bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase tracking-[0.2em] text-[11px] py-5 rounded-3xl transition-all"
+                        className="w-full bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 text-red-500 font-black uppercase tracking-[0.2em] text-[11px] py-4 rounded-3xl transition-all"
                     >
                         {t('transactions.delete')}
                     </button>
                 </div>
             </div>
+
+            <AddTransactionModal
+                isOpen={isRedoModalOpen}
+                onClose={() => setIsRedoModalOpen(false)}
+                onAdd={handleRedoTransaction}
+                initialData={transaction}
+            />
         </div>
     );
 }
