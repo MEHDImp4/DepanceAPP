@@ -2,19 +2,34 @@ import prisma from '../src/utils/prisma';
 import { processDueTransactions } from '../src/services/recurringService';
 
 // Mock prisma
-jest.mock('../src/utils/prisma', () => ({
-    recurringTransaction: {
+jest.mock('../src/utils/prisma', () => {
+    const mockDelegate = {
         findMany: jest.fn(),
-        update: jest.fn(),
-    },
-    transaction: {
         create: jest.fn(),
-    },
-    account: {
         update: jest.fn(),
-    },
-    $transaction: jest.fn((promises) => Promise.all(promises)),
-}));
+        delete: jest.fn(),
+        deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    };
+
+    return {
+        __esModule: true,
+        default: {
+            $connect: jest.fn(),
+            $disconnect: jest.fn(),
+            $transaction: jest.fn((promises) => Promise.all(promises)),
+            transaction: { ...mockDelegate },
+            account: { ...mockDelegate },
+            budget: { ...mockDelegate },
+            recurringTransaction: { ...mockDelegate },
+            category: { ...mockDelegate },
+            refreshToken: { ...mockDelegate },
+            loginHistory: { ...mockDelegate },
+            user: { ...mockDelegate },
+            goal: { ...mockDelegate },
+            template: { ...mockDelegate },
+        },
+    };
+});
 
 describe('Recurring Service', () => {
     afterEach(() => {

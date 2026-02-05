@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 import prisma from '../utils/prisma';
 import type { JwtPayload } from '../types';
 
@@ -40,7 +41,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
             { expiresIn: ACCESS_TOKEN_EXPIRY }
         );
         const refreshToken = jwt.sign(
-            { userId: user.id } as Partial<JwtPayload>,
+            { userId: user.id, jti: randomUUID() } as Partial<JwtPayload>,
             process.env.JWT_SECRET!,
             { expiresIn: REFRESH_TOKEN_EXPIRY }
         );
@@ -131,7 +132,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
             { expiresIn: ACCESS_TOKEN_EXPIRY }
         );
         const refreshToken = jwt.sign(
-            { userId: user.id } as Partial<JwtPayload>,
+            { userId: user.id, jti: randomUUID() } as Partial<JwtPayload>,
             process.env.JWT_SECRET!,
             { expiresIn: REFRESH_TOKEN_EXPIRY }
         );
@@ -281,7 +282,7 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
 
         // precise rotation: create new refresh token
         const newRefreshToken = jwt.sign(
-            { userId: user.id } as Partial<JwtPayload>,
+            { userId: user.id, jti: randomUUID() } as Partial<JwtPayload>,
             process.env.JWT_SECRET!,
             { expiresIn: REFRESH_TOKEN_EXPIRY }
         );
