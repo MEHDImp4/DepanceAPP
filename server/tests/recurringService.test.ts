@@ -37,13 +37,16 @@ describe('Recurring Service', () => {
     });
 
     it('should process due recurring transactions', async () => {
+        const now = new Date();
+        const pastDate = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 1 day ago
+
         const mockRecurring = {
             id: 1,
             amount: 1000,
             description: 'Test Rent',
             type: 'expense',
             interval: 'monthly',
-            next_run_date: new Date('2023-01-01'), // Past date
+            next_run_date: pastDate,
             account_id: 1,
             category_id: 1,
             user_id: 1,
