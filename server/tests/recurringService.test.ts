@@ -1,7 +1,7 @@
 import prisma from '../src/utils/prisma';
 import { processDueTransactions } from '../src/services/recurringService';
 
-// Mock prisma
+// Mock prisma - must be at top level before imports are resolved by Jest
 jest.mock('../src/utils/prisma', () => {
     const mockDelegate = {
         findMany: jest.fn(),
@@ -14,9 +14,9 @@ jest.mock('../src/utils/prisma', () => {
     return {
         __esModule: true,
         default: {
-            $connect: jest.fn(),
-            $disconnect: jest.fn(),
-            $transaction: jest.fn((promises) => Promise.all(promises)),
+            $connect: jest.fn().mockResolvedValue(undefined),
+            $disconnect: jest.fn().mockResolvedValue(undefined),
+            $transaction: jest.fn(),
             transaction: { ...mockDelegate },
             account: { ...mockDelegate },
             budget: { ...mockDelegate },
@@ -32,7 +32,7 @@ jest.mock('../src/utils/prisma', () => {
 });
 
 describe('Recurring Service', () => {
-    afterEach(() => {
+    beforeEach(() => {
         jest.clearAllMocks();
     });
 
@@ -52,8 +52,9 @@ describe('Recurring Service', () => {
         const mockTx = { id: 101, amount: 1000 };
 
         (prisma.recurringTransaction.findMany as jest.Mock).mockResolvedValue([mockRecurring]);
-        (prisma.transaction.create as jest.Mock).mockResolvedValue(mockTx);
-        (prisma.account.update as jest.Mock).mockResolvedValue({});
+        // Mock $transaction to return array with the created transaction first
+        (prisma.$transaction as jest.Mock).mockResolvedValue([mockTx, {}]);
+        (prisma.recurringTransaction.update as jest.Mock).mockResolvedValue({});
 
         const result = await processDueTransactions();
 
@@ -68,6 +69,6 @@ describe('Recurring Service', () => {
         const result = await processDueTransactions();
 
         expect(result).toHaveLength(0);
-        expect(prisma.transaction.create).not.toHaveBeenCalled();
+        expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 });

@@ -4,6 +4,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
 // AuthProvider removed in favor of Zustand store
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { isAxiosError } from "axios";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -11,7 +12,12 @@ const queryClient = new QueryClient({
       staleTime: 1000 * 60 * 5, // 5 minutes
       gcTime: 1000 * 60 * 30, // 30 minutes
       refetchOnWindowFocus: false,
-      retry: 1,
+      retry: (failureCount, error) => {
+        if (isAxiosError(error) && error.response?.status === 401) {
+          return false;
+        }
+        return failureCount < 1;
+      },
     },
   },
 });
