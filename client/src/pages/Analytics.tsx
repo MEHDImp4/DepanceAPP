@@ -1,9 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Activity, ArrowDownRight, ArrowUpRight, TrendingUp } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, TrendingUp } from 'lucide-react';
 
-import { PageHeader } from '@/components/layout/PageHeader';
 import { useSpendingTrends } from '@/hooks/use-api';
 import { SpendingChart } from '@/components/analytics/SpendingChart';
 import { cn } from '@/lib/utils';
@@ -41,10 +40,10 @@ export default function Analytics() {
 
     return (
         <div className="space-y-6 pb-24">
-            <PageHeader
-                title="Analytics"
-                description={t('nav.analytics_desc', 'Visualize your spending trends over time')} // You might need to add this to translations
-            />
+            <header className="flex flex-col space-y-4 px-2 pt-4">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">Analytics</h1>
+                <p className="text-sm font-medium text-muted-foreground">{t('nav.analytics_desc', 'Visualize your spending trends over time')}</p>
+            </header>
 
             {/* Main Chart Card */}
             <motion.div
