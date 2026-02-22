@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ArrowRightLeft, Wallet, Settings, LayoutGrid } from "lucide-react";
+import { LayoutDashboard, ArrowRightLeft, Wallet, Settings, LayoutGrid, PieChart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useTranslation } from "react-i18next";
@@ -13,6 +13,7 @@ export function BottomNav() {
         { icon: ArrowRightLeft, label: t('nav.transact'), path: "/transactions" },
         { icon: LayoutGrid, label: t('nav.templates'), path: "/templates" },
         { icon: Wallet, label: t('nav.accounts'), path: "/accounts" },
+        { icon: PieChart, label: 'Analytics', path: "/analytics" },
         { icon: Settings, label: t('nav.settings'), path: "/settings" },
     ];
 

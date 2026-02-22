@@ -260,3 +260,20 @@ export function useRecap() {
         staleTime: 1000 * 60 * 60, // 1 hour
     });
 }
+
+export interface SpendingTrend {
+    date: string;
+    income: number;
+    expense: number;
+}
+
+export function useSpendingTrends(period: 'week' | 'month' | 'year' | 'all') {
+    return useQuery({
+        queryKey: ['spendingTrends', period],
+        queryFn: async () => {
+            const { data } = await api.get<SpendingTrend[]>(`/analytics/spending-trends?period=${period}`);
+            return data;
+        },
+        staleTime: 1000 * 60 * 5, // 5 minutes
+    });
+}

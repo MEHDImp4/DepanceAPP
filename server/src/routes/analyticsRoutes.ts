@@ -7,5 +7,6 @@ const router = Router();
 router.use(authMiddleware);
 
 router.get('/recap', analyticsController.getMonthlyRecap);
+router.get('/spending-trends', analyticsController.getSpendingTrends);
 
 export default router;
