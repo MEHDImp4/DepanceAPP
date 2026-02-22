@@ -12,7 +12,9 @@
         "home": "Home",
         "transact": "Transact",
         "recurring": "Recurring",
-        "goals": "Goals"
+        "goals": "Goals",
+        "analytics": "Analytics",
+        "analytics_desc": "Visualize your spending trends over time"
     },
     "dashboard": {
         "total_capital": "Total Capital",

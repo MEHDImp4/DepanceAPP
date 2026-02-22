@@ -6,12 +6,14 @@ import { ArrowDownRight, ArrowUpRight, TrendingUp } from 'lucide-react';
 import { useSpendingTrends } from '@/hooks/use-api';
 import { SpendingChart } from '@/components/analytics/SpendingChart';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/auth-store';
 
 type Period = 'week' | 'month' | 'year' | 'all';
 
 export default function Analytics() {
     const { t, i18n } = useTranslation();
     const isFr = i18n.language.startsWith('fr');
+    const user = useAuthStore((state) => state.user);
     const [period, setPeriod] = useState<Period>('month');
 
     const { data: trends, isLoading } = useSpendingTrends(period);
@@ -33,7 +35,7 @@ export default function Analytics() {
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat(isFr ? 'fr-FR' : 'en-US', {
             style: 'currency',
-            currency: 'EUR',
+            currency: user?.currency || 'USD',
             maximumFractionDigits: 0
         }).format(value);
     };

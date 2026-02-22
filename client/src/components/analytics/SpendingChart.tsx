@@ -3,6 +3,7 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianG
 import { format, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { fr, enUS } from 'date-fns/locale';
+import { useAuthStore } from '@/store/auth-store';
 
 interface SpendingChartProps {
     data: { date: string; income: number; expense: number }[];
@@ -13,6 +14,7 @@ export function SpendingChart({ data, period }: SpendingChartProps) {
     const { i18n } = useTranslation();
     const isFr = i18n.language.startsWith('fr');
     const locale = isFr ? fr : enUS;
+    const user = useAuthStore((state) => state.user);
 
     const formattedData = useMemo(() => {
         return data.map(point => {
@@ -40,7 +42,7 @@ export function SpendingChart({ data, period }: SpendingChartProps) {
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat(isFr ? 'fr-FR' : 'en-US', {
             style: 'currency',
-            currency: 'EUR',
+            currency: user?.currency || 'USD',
             maximumFractionDigits: 0
         }).format(value);
     };
@@ -54,8 +56,8 @@ export function SpendingChart({ data, period }: SpendingChartProps) {
     }
 
     return (
-        <div className="w-full h-full min-h-[250px] relative">
-            <ResponsiveContainer width="100%" height="100%">
+        <div className="w-full h-full min-h-[280px] relative">
+            <ResponsiveContainer width="99%" height={280}>
                 <AreaChart data={formattedData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                     <defs>
                         <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
@@ -83,7 +85,7 @@ export function SpendingChart({ data, period }: SpendingChartProps) {
                         axisLine={false}
                         tickLine={false}
                         tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                        tickFormatter={(value) => `€${value}`}
+                        tickFormatter={(value) => new Intl.NumberFormat(isFr ? 'fr-FR' : 'en-US', { style: 'currency', currency: user?.currency || 'USD', notation: 'compact', maximumFractionDigits: 0 }).format(value)}
                     />
 
                     <Tooltip
