@@ -1,0 +1,98 @@
+
+> client@0.0.0 lint
+> eslint .
+
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\components\accounts\AddAccountModal.tsx
+  105:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\components\accounts\TransferModal.tsx
+  69:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\components\goals\CreateGoalDialog.tsx
+  49:13  error  Error: Cannot access variable before it is declared
+
+`resetForm` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\components\goals\CreateGoalDialog.tsx:49:13
+  47 |             setSelectedIcon(goalToEdit.icon || ICONS[0]);
+  48 |         } else {
+> 49 |             resetForm();
+     |             ^^^^^^^^^ `resetForm` accessed before it is declared
+  50 |         }
+  51 |     }, [goalToEdit, isOpen]);
+  52 |
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\components\goals\CreateGoalDialog.tsx:65:5
+  63 |     }, [isOpen]);
+  64 |
+> 65 |     const resetForm = () => {
+     |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+> 66 |         setName("");
+     | ^^^^^^^^^^^^^^^^^^^^
+> 67 |         setTargetAmount("");
+     | ^^^^^^^^^^^^^^^^^^^^
+> 68 |         setCurrentAmount("");
+     | ^^^^^^^^^^^^^^^^^^^^
+> 69 |         setDeadline("");
+     | ^^^^^^^^^^^^^^^^^^^^
+> 70 |         setSelectedColor(COLORS[0].value);
+     | ^^^^^^^^^^^^^^^^^^^^
+> 71 |         setSelectedIcon(ICONS[0]);
+     | ^^^^^^^^^^^^^^^^^^^^
+> 72 |     };
+     | ^^^^^^^ `resetForm` is declared here
+  73 |
+  74 |     const handleSubmit = (e: React.FormEvent) => {
+  75 |         e.preventDefault();  react-hooks/immutability
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\components\recurring\AddRecurringModal.tsx
+  159:83  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\components\ui\CategoryIcon.tsx
+  13:43  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\components\ui\PremiumSelect.tsx
+  13:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\hooks\use-api.ts
+   25:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  174:36  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  222:31  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\lib\axios.ts
+  16:18  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  18:30  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  18:42  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\lib\utils.test.ts
+  11:35  error  Unexpected constant truthiness on the left-hand side of a `&&` expression  no-constant-binary-expression
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\pages\Dashboard.tsx
+  21:8  warning  React Hook useEffect has a missing dependency: 'processRecurring'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\pages\RecurringTransactions.tsx
+  23:8  warning  React Hook useEffect has a missing dependency: 'processRecurring'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\pages\TransactionDetails.tsx
+  214:42  warning  'e' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\pages\auth\Login.tsx
+  35:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\pages\auth\Register.tsx
+  44:23  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\src\pages\settings\SecurityPrivacy.tsx
+   35:28  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  130:56  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\mehdi\Documents\GitHub\DepanceAPP\client\test\mocks\pwa-register.ts
+  2:31  warning  'options' is defined but never used       @typescript-eslint/no-unused-vars
+  2:41  warning  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  4:31  warning  'value' is defined but never used         @typescript-eslint/no-unused-vars
+  5:32  warning  'value' is defined but never used         @typescript-eslint/no-unused-vars
+  6:31  warning  'reloadPage' is defined but never used    @typescript-eslint/no-unused-vars
+
+Γ£û 25 problems (2 errors, 23 warnings)
+

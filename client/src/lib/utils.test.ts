@@ -8,7 +8,8 @@ describe('cn utility', () => {
     });
 
     it('handles conditional classes', () => {
-        const result = cn('flex', false && 'justify-center', 'items-center');
+        const condition = false;
+        const result = cn('flex', condition && 'justify-center', 'items-center');
         expect(result).toBe('flex items-center');
     });
 

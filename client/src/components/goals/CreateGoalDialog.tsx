@@ -14,7 +14,7 @@ interface CreateGoalDialogProps {
 
 const COLORS = [
     { name: "Blue", value: "bg-blue-500", glow: "shadow-blue-500/20" },
-    { name: "Purple", value: "bg-purple-500", glow: "shadow-purple-500/20" },
+    { name: "Teal", value: "bg-teal-500", glow: "shadow-teal-500/20" },
     { name: "Green", value: "bg-green-500", glow: "shadow-green-500/20" },
     { name: "Amber", value: "bg-amber-500", glow: "shadow-amber-500/20" },
     { name: "Red", value: "bg-red-500", glow: "shadow-red-500/20" },
@@ -36,6 +36,15 @@ export function CreateGoalDialog({ isOpen, onClose, goalToEdit }: CreateGoalDial
     const [deadline, setDeadline] = useState("");
     const [selectedColor, setSelectedColor] = useState(COLORS[0].value);
     const [selectedIcon, setSelectedIcon] = useState(ICONS[0]);
+
+    const resetForm = () => {
+        setName("");
+        setTargetAmount("");
+        setCurrentAmount("");
+        setDeadline("");
+        setSelectedColor(COLORS[0].value);
+        setSelectedIcon(ICONS[0]);
+    };
 
     useEffect(() => {
         if (goalToEdit) {
@@ -61,15 +70,6 @@ export function CreateGoalDialog({ isOpen, onClose, goalToEdit }: CreateGoalDial
             document.body.style.overflow = 'unset';
         };
     }, [isOpen]);
-
-    const resetForm = () => {
-        setName("");
-        setTargetAmount("");
-        setCurrentAmount("");
-        setDeadline("");
-        setSelectedColor(COLORS[0].value);
-        setSelectedIcon(ICONS[0]);
-    };
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

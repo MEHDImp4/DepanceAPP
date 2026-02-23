@@ -59,7 +59,7 @@ export function StoryOverlay({ isOpen, onClose }: StoryOverlayProps) {
                 {step === 0 && (
                     <div className="space-y-6">
                         <div className="text-6xl animate-bounce">📅</div>
-                        <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                        <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-teal-500 bg-clip-text text-transparent">
                             {recap.month} Recap
                         </h2>
                         <p className="text-xl text-gray-300">
@@ -88,7 +88,7 @@ export function StoryOverlay({ isOpen, onClose }: StoryOverlayProps) {
                         <h3 className="text-2xl font-light text-gray-400">Top Category</h3>
                         {recap.topCategory ? (
                             <>
-                                <div className="w-24 h-24 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center mx-auto text-4xl border-2 border-purple-500/50">
+                                <div className="w-24 h-24 rounded-full bg-teal-500/20 text-teal-400 flex items-center justify-center mx-auto text-4xl border-2 border-teal-500/50">
                                     {recap.topCategory.icon || <Tag />}
                                 </div>
                                 <div>
@@ -113,7 +113,7 @@ export function StoryOverlay({ isOpen, onClose }: StoryOverlayProps) {
                                         <h4 className="font-bold text-xl">{recap.biggestPurchase.description}</h4>
                                         <p className="text-sm text-gray-400">{new Date(recap.biggestPurchase.created_at).toLocaleDateString()}</p>
                                     </div>
-                                    <ShoppingBag className="text-purple-400" />
+                                    <ShoppingBag className="text-teal-400" />
                                 </div>
                                 <p className="text-3xl font-bold text-left">{formatCurrency(recap.biggestPurchase.amount)}</p>
                             </div>

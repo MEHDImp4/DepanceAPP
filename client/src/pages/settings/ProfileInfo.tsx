@@ -84,7 +84,7 @@ export default function ProfileInfo() {
                             {t('auth.email') || "Email"}
                         </label>
                         <div className="flex items-center space-x-4 p-4 rounded-xl bg-muted/30 border border-border/50">
-                            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500">
+                            <div className="p-2 rounded-lg bg-teal-500/10 text-teal-500">
                                 <AtSign size={20} />
                             </div>
                             <span className="font-bold flex-1 truncate">{user?.email}</span>
