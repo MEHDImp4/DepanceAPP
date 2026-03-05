@@ -1,6 +1,7 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ArrowRightLeft, Wallet, Settings, LayoutGrid, PieChart } from "lucide-react";
+import { LayoutDashboard, ArrowRightLeft, Wallet, Settings, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { MoreMenuDrawer } from "./MoreMenuDrawer";
 
 import { useTranslation } from "react-i18next";
 
@@ -11,11 +12,12 @@ export function BottomNav() {
     const navItems = [
         { icon: LayoutDashboard, label: t('nav.home'), path: "/" },
         { icon: ArrowRightLeft, label: t('nav.transact'), path: "/transactions" },
-        { icon: LayoutGrid, label: t('nav.templates'), path: "/templates" },
         { icon: Wallet, label: t('nav.accounts'), path: "/accounts" },
-        { icon: PieChart, label: 'Analytics', path: "/analytics" },
         { icon: Settings, label: t('nav.settings'), path: "/settings" },
     ];
+
+    // Check if current path is one of the "More" items to highlight the more button
+    const isMoreActive = ["/templates", "/goals", "/recurring"].includes(location.pathname);
 
     return (
         <div className="fixed bottom-6 left-4 right-4 z-50 pointer-events-none">
@@ -58,6 +60,37 @@ export function BottomNav() {
                         </Link>
                     );
                 })}
+
+                {/* The "More" Button that triggers the drawer */}
+                <MoreMenuDrawer>
+                    <button className="relative flex flex-col items-center justify-center w-full py-2 group cursor-pointer focus:outline-none focus:ring-0">
+                        {isMoreActive && (
+                            <div className="absolute inset-0 bg-primary/15 rounded-3xl" />
+                        )}
+                        <div className={cn(
+                            "relative z-10 p-1.5 rounded-2xl transition-all duration-300",
+                            isMoreActive ? "scale-110" : "group-active:scale-95"
+                        )}>
+                            <Menu
+                                size={22}
+                                className={cn(
+                                    "transition-colors duration-300",
+                                    isMoreActive ? "text-primary" : "text-muted-foreground"
+                                )}
+                                absoluteStrokeWidth
+                                strokeWidth={isMoreActive ? 2.5 : 2}
+                            />
+                        </div>
+                        <span className={cn(
+                            "relative z-10 text-[10px] font-bold uppercase tracking-widest transition-all duration-300 mt-0.5",
+                            isMoreActive ? "text-primary" : "text-muted-foreground",
+                            "hidden xs:block",
+                            "max-[380px]:hidden"
+                        )}>
+                            {t('nav.more', 'More')}
+                        </span>
+                    </button>
+                </MoreMenuDrawer>
             </nav>
         </div>
     );

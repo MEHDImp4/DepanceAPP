@@ -35,7 +35,6 @@ import SecurityPrivacy from "./pages/settings/SecurityPrivacy";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ReloadPrompt from "./components/ReloadPrompt";
-import Analytics from "./pages/Analytics";
 
 function App() {
   return (
@@ -53,7 +52,6 @@ function App() {
             <Route path="/transactions" element={<Transactions />} />
             <Route path="/transactions/:id" element={<TransactionDetails />} />
             <Route path="/accounts" element={<Accounts />} />
-            <Route path="/analytics" element={<Analytics />} />
             <Route path="/templates" element={<Templates />} />
             <Route path="/recurring" element={<RecurringTransactions />} />
             <Route path="/goals" element={<Goals />} />

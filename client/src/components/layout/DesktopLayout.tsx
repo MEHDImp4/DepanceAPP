@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ArrowRightLeft, Wallet, Settings } from "lucide-react";
+import { LayoutDashboard, ArrowRightLeft, Wallet, Settings, LayoutGrid, Target, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { useTranslation } from "react-i18next";
@@ -12,7 +12,9 @@ export function DesktopLayout() {
         { icon: LayoutDashboard, label: t('nav.dashboard'), path: "/" },
         { icon: ArrowRightLeft, label: t('nav.transactions'), path: "/transactions" },
         { icon: Wallet, label: t('nav.accounts'), path: "/accounts" },
-        { icon: LayoutDashboard, label: t('nav.templates'), path: "/templates" }, // Reusing icon for now or need new import
+        { icon: LayoutGrid, label: t('nav.templates'), path: "/templates" },
+        { icon: Target, label: t('nav.goals', 'Goals'), path: "/goals" },
+        { icon: Repeat, label: t('nav.recurring', 'Recurring'), path: "/recurring" },
         { icon: Settings, label: t('nav.settings'), path: "/settings" },
     ];
 
