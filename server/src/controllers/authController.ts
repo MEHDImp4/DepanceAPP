@@ -7,8 +7,8 @@ import type { JwtPayload } from '../types';
 
 const BCRYPT_SALT_ROUNDS = 10;
 const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '2d';
-const REFRESH_TOKEN_MS = 2 * 24 * 60 * 60 * 1000;
+const REFRESH_TOKEN_EXPIRY = '30d';
+const REFRESH_TOKEN_MS = 30 * 24 * 60 * 60 * 1000;
 const ACCESS_TOKEN_MS = 15 * 60 * 1000;
 
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

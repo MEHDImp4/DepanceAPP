@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ArrowRightLeft, Wallet, Settings, Menu } from "lucide-react";
+import { LayoutDashboard, ArrowRightLeft, Wallet, LayoutGrid, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MoreMenuDrawer } from "./MoreMenuDrawer";
 
@@ -13,11 +13,11 @@ export function BottomNav() {
         { icon: LayoutDashboard, label: t('nav.home'), path: "/" },
         { icon: ArrowRightLeft, label: t('nav.transact'), path: "/transactions" },
         { icon: Wallet, label: t('nav.accounts'), path: "/accounts" },
-        { icon: Settings, label: t('nav.settings'), path: "/settings" },
+        { icon: LayoutGrid, label: t('nav.templates'), path: "/templates" },
     ];
 
     // Check if current path is one of the "More" items to highlight the more button
-    const isMoreActive = ["/templates", "/goals", "/recurring"].includes(location.pathname);
+    const isMoreActive = ["/settings", "/goals", "/recurring"].includes(location.pathname);
 
     return (
         <div className="fixed bottom-6 left-4 right-4 z-50 pointer-events-none">

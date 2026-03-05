@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Target, Repeat, LayoutGrid, ChevronRight } from "lucide-react";
+import { Target, Repeat, Settings, ChevronRight } from "lucide-react";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,7 @@ export function MoreMenuDrawer({ children }: MoreMenuDrawerProps) {
     const [open, setOpen] = useState(false);
 
     const menuItems = [
-        { icon: LayoutGrid, label: t('nav.templates'), path: "/templates", color: "text-blue-500", bg: "bg-blue-500/10" },
+        { icon: Settings, label: t('nav.settings'), path: "/settings", color: "text-slate-500", bg: "bg-slate-500/10" },
         { icon: Target, label: t('nav.goals', 'Goals'), path: "/goals", color: "text-pink-500", bg: "bg-pink-500/10" },
         { icon: Repeat, label: t('nav.recurring', 'Recurring'), path: "/recurring", color: "text-orange-500", bg: "bg-orange-500/10" },
     ];
