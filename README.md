@@ -15,7 +15,7 @@
 
 ---
 
-## <img src="https://api.iconify.design/lucide:sparkles.svg" width="28" /> Key Features
+## <img src="https://api.iconify.design/lucide:sparkles.svg?color=%23a8a29e" width="28" style="vertical-align: middle;" /> Key Features
 
 - **<img src="https://api.iconify.design/lucide:bar-chart-2.svg?color=%23a8a29e" width="20" style="vertical-align: middle;" /> Comprehensive Dashboard:** Get a real-time overview of your net worth, recent activity, and budget status.
 - **<img src="https://api.iconify.design/lucide:pie-chart.svg?color=%23a8a29e" width="20" style="vertical-align: middle;" /> Analytics & Trends:** Interactive charts and monthly recaps to visualize your income vs. expense progress.
@@ -32,7 +32,7 @@
 
 ---
 
-## <img src="https://api.iconify.design/lucide:rocket.svg" width="28" /> Getting Started
+## <img src="https://api.iconify.design/lucide:rocket.svg?color=%23a8a29e" width="28" style="vertical-align: middle;" /> Getting Started
 
 You can run DepanceAPP in minutes using Docker.
 
@@ -98,7 +98,7 @@ You can run DepanceAPP in minutes using Docker.
 
 ---
 
-## <img src="https://api.iconify.design/lucide:settings.svg" width="28" /> Configuration
+## <img src="https://api.iconify.design/lucide:settings.svg?color=%23a8a29e" width="28" style="vertical-align: middle;" /> Configuration
 
 You can configure the application using environment variables.
 
@@ -115,7 +115,7 @@ You can configure the application using environment variables.
 
 ---
 
-## <img src="https://api.iconify.design/lucide:wrench.svg" width="28" /> Development (Contribution)
+## <img src="https://api.iconify.design/lucide:wrench.svg?color=%23a8a29e" width="28" style="vertical-align: middle;" /> Development (Contribution)
 
 We welcome contributions! Here is how to run the project locally for development.
 
@@ -159,7 +159,7 @@ We welcome contributions! Here is how to run the project locally for development
 
 ---
 
-## <img src="https://api.iconify.design/lucide:users.svg" width="28" /> Contributing
+## <img src="https://api.iconify.design/lucide:users.svg?color=%23a8a29e" width="28" style="vertical-align: middle;" /> Contributing
 
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
@@ -171,7 +171,7 @@ Contributions are what make the open-source community such an amazing place to l
 
 ---
 
-## <img src="https://api.iconify.design/lucide:file-text.svg" width="28" /> License
+## <img src="https://api.iconify.design/lucide:file-text.svg?color=%23a8a29e" width="28" style="vertical-align: middle;" /> License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
