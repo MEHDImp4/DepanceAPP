@@ -11,8 +11,7 @@
 
 **DepanceAPP** is a powerful, open-source, self-hosted Personal Finance Management (PFM) application. Built with privacy and performance in mind, it allows you to take full control of your financial data without relying on third-party cloud services.
 
-![Dashboard Preview](<img width="2636" height="1104" alt="image" src="https://github.com/user-attachments/assets/6a658dac-1b21-407f-893f-4fe3751737d1" />
-)
+![Dashboard Preview](https://github.com/user-attachments/assets/6a658dac-1b21-407f-893f-4fe3751737d1)
 
 ---
 
