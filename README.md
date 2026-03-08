@@ -15,22 +15,24 @@
 
 ---
 
-## ✨ Key Features
+## <img src="https://api.iconify.design/lucide:sparkles.svg" width="28" /> Key Features
 
-- **📊 Comprehensive Dashboard:** Get a real-time overview of your net worth, recent activity, and budget status.
-- **💰 Account Management:** Track unlimited accounts (Bank, Cash, Savings) with multi-currency support.
-- **💸 Transaction Tracking:** Easily log income and expenses with smart categorization and custom tags.
-- **📈 Budgeting:** Set monthly limits for specific categories and track your spending progress visually.
-- **🔄 Recurring Transactions:** Automate your fixed expenses (rent, subscriptions) and income (salary).
-- **🔒 Privacy First:** Your data lives on your server. No external tracking, no data selling.
-- **🛡️ Enterprise-Grade Security:**
+- **<img src="https://api.iconify.design/lucide:bar-chart-2.svg" width="20" /> Comprehensive Dashboard:** Get a real-time overview of your net worth, recent activity, and budget status.
+- **<img src="https://api.iconify.design/lucide:pie-chart.svg" width="20" /> Analytics & Trends:** Interactive charts and monthly recaps to visualize your income vs. expense progress.
+- **<img src="https://api.iconify.design/lucide:smartphone.svg" width="20" /> Mobile-Optimized UI:** Responsive layout with smooth bottom navigation and side drawers for easy access on the go.
+- **<img src="https://api.iconify.design/lucide:wallet.svg" width="20" /> Account Management:** Track unlimited accounts (Bank, Cash, Savings) with multi-currency support.
+- **<img src="https://api.iconify.design/lucide:banknote.svg" width="20" /> Transaction Tracking:** Easily log income and expenses with smart categorization and custom tags.
+- **<img src="https://api.iconify.design/lucide:trending-up.svg" width="20" /> Budgeting:** Set monthly limits for specific categories and track your spending progress visually.
+- **<img src="https://api.iconify.design/lucide:refresh-cw.svg" width="20" /> Recurring Transactions:** Automate your fixed expenses (rent, subscriptions) and income (salary).
+- **<img src="https://api.iconify.design/lucide:lock.svg" width="20" /> Privacy First:** Your data lives on your server. No external tracking, no data selling.
+- **<img src="https://api.iconify.design/lucide:shield-check.svg" width="20" /> Enterprise-Grade Security:**
   - Secure Authentication (JWT + Refresh Tokens)
   - Account Lockout protection against brute-force attacks
   - Detailed Login History & Audit Logs
 
 ---
 
-## 🚀 Getting Started
+## <img src="https://api.iconify.design/lucide:rocket.svg" width="28" /> Getting Started
 
 You can run DepanceAPP in minutes using Docker.
 
@@ -96,7 +98,7 @@ You can run DepanceAPP in minutes using Docker.
 
 ---
 
-## ⚙️ Configuration
+## <img src="https://api.iconify.design/lucide:settings.svg" width="28" /> Configuration
 
 You can configure the application using environment variables.
 
@@ -113,7 +115,7 @@ You can configure the application using environment variables.
 
 ---
 
-## 🛠️ Development (Contribution)
+## <img src="https://api.iconify.design/lucide:wrench.svg" width="28" /> Development (Contribution)
 
 We welcome contributions! Here is how to run the project locally for development.
 
@@ -157,7 +159,7 @@ We welcome contributions! Here is how to run the project locally for development
 
 ---
 
-## 🤝 Contributing
+## <img src="https://api.iconify.design/lucide:users.svg" width="28" /> Contributing
 
 Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
@@ -169,12 +171,12 @@ Contributions are what make the open-source community such an amazing place to l
 
 ---
 
-## 📄 License
+## <img src="https://api.iconify.design/lucide:file-text.svg" width="28" /> License
 
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
 
 <p align="center">
-  Made with ❤️ by <a href="https://github.com/mehdimp4">Mehdi</a>
+  Made with <img src="https://api.iconify.design/lucide:heart.svg?color=%23ef4444" width="16" /> by <a href="https://github.com/mehdimp4">Mehdi</a>
 </p>
