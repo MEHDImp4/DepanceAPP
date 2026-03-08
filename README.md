@@ -17,15 +17,15 @@
 
 ## <img src="https://api.iconify.design/lucide:sparkles.svg" width="28" /> Key Features
 
-- **<img src="https://api.iconify.design/lucide:bar-chart-2.svg" width="20" /> Comprehensive Dashboard:** Get a real-time overview of your net worth, recent activity, and budget status.
-- **<img src="https://api.iconify.design/lucide:pie-chart.svg" width="20" /> Analytics & Trends:** Interactive charts and monthly recaps to visualize your income vs. expense progress.
-- **<img src="https://api.iconify.design/lucide:smartphone.svg" width="20" /> Mobile-Optimized UI:** Responsive layout with smooth bottom navigation and side drawers for easy access on the go.
-- **<img src="https://api.iconify.design/lucide:wallet.svg" width="20" /> Account Management:** Track unlimited accounts (Bank, Cash, Savings) with multi-currency support.
-- **<img src="https://api.iconify.design/lucide:banknote.svg" width="20" /> Transaction Tracking:** Easily log income and expenses with smart categorization and custom tags.
-- **<img src="https://api.iconify.design/lucide:trending-up.svg" width="20" /> Budgeting:** Set monthly limits for specific categories and track your spending progress visually.
-- **<img src="https://api.iconify.design/lucide:refresh-cw.svg" width="20" /> Recurring Transactions:** Automate your fixed expenses (rent, subscriptions) and income (salary).
-- **<img src="https://api.iconify.design/lucide:lock.svg" width="20" /> Privacy First:** Your data lives on your server. No external tracking, no data selling.
-- **<img src="https://api.iconify.design/lucide:shield-check.svg" width="20" /> Enterprise-Grade Security:**
+- **<img src="https://api.iconify.design/lucide:bar-chart-2.svg?color=white" width="20" style="vertical-align: middle;" /> Comprehensive Dashboard:** Get a real-time overview of your net worth, recent activity, and budget status.
+- **<img src="https://api.iconify.design/lucide:pie-chart.svg?color=white" width="20" style="vertical-align: middle;" /> Analytics & Trends:** Interactive charts and monthly recaps to visualize your income vs. expense progress.
+- **<img src="https://api.iconify.design/lucide:smartphone.svg?color=white" width="20" style="vertical-align: middle;" /> Mobile-Optimized UI:** Responsive layout with smooth bottom navigation and side drawers for easy access on the go.
+- **<img src="https://api.iconify.design/lucide:wallet.svg?color=white" width="20" style="vertical-align: middle;" /> Account Management:** Track unlimited accounts (Bank, Cash, Savings) with multi-currency support.
+- **<img src="https://api.iconify.design/lucide:banknote.svg?color=white" width="20" style="vertical-align: middle;" /> Transaction Tracking:** Easily log income and expenses with smart categorization and custom tags.
+- **<img src="https://api.iconify.design/lucide:trending-up.svg?color=white" width="20" style="vertical-align: middle;" /> Budgeting:** Set monthly limits for specific categories and track your spending progress visually.
+- **<img src="https://api.iconify.design/lucide:refresh-cw.svg?color=white" width="20" style="vertical-align: middle;" /> Recurring Transactions:** Automate your fixed expenses (rent, subscriptions) and income (salary).
+- **<img src="https://api.iconify.design/lucide:lock.svg?color=white" width="20" style="vertical-align: middle;" /> Privacy First:** Your data lives on your server. No external tracking, no data selling.
+- **<img src="https://api.iconify.design/lucide:shield-check.svg?color=white" width="20" style="vertical-align: middle;" /> Enterprise-Grade Security:**
   - Secure Authentication (JWT + Refresh Tokens)
   - Account Lockout protection against brute-force attacks
   - Detailed Login History & Audit Logs
