@@ -11,14 +11,6 @@ declare global {
         }
     }
 }
-export interface User {
-    id: number;
-    email: string;
-    username: string;
-    password_hash: string;
-    currency: string;
-    created_at: Date;
-}
 export interface Account {
     id: number;
     name: string;

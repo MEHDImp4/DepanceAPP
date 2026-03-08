@@ -17,6 +17,12 @@ export declare const updateProfileSchema: z.ZodObject<{
         currency: z.ZodString;
     }, z.core.$strip>;
 }, z.core.$strip>;
+export declare const changePasswordSchema: z.ZodObject<{
+    body: z.ZodObject<{
+        oldPassword: z.ZodString;
+        newPassword: z.ZodString;
+    }, z.core.$strip>;
+}, z.core.$strip>;
 export declare const transactionSchema: z.ZodObject<{
     body: z.ZodObject<{
         amount: z.ZodNumber;

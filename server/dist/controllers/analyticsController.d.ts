@@ -1,3 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
 export declare const getMonthlyRecap: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+export declare const getSpendingTrends: (req: Request, res: Response, next: NextFunction) => Promise<void>;
 //# sourceMappingURL=analyticsController.d.ts.map

@@ -1,13 +1,18 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.idParamSchema = exports.updateGoalSchema = exports.createGoalSchema = exports.createTransferSchema = exports.updateTemplateSchema = exports.createTemplateSchema = exports.createRecurringSchema = exports.updateBudgetSchema = exports.createBudgetSchema = exports.updateCategorySchema = exports.createCategorySchema = exports.updateAccountSchema = exports.createAccountSchema = exports.transactionSchema = exports.updateProfileSchema = exports.loginSchema = exports.registerSchema = void 0;
+exports.idParamSchema = exports.updateGoalSchema = exports.createGoalSchema = exports.createTransferSchema = exports.updateTemplateSchema = exports.createTemplateSchema = exports.createRecurringSchema = exports.updateBudgetSchema = exports.createBudgetSchema = exports.updateCategorySchema = exports.createCategorySchema = exports.updateAccountSchema = exports.createAccountSchema = exports.transactionSchema = exports.changePasswordSchema = exports.updateProfileSchema = exports.loginSchema = exports.registerSchema = void 0;
 const zod_1 = require("zod");
 // ============ AUTH SCHEMAS ============
 exports.registerSchema = zod_1.z.object({
     body: zod_1.z.object({
         email: zod_1.z.string().email({ message: "Invalid email format" }),
         username: zod_1.z.string().min(3, { message: "Username must be at least 3 characters long" }),
-        password: zod_1.z.string().min(8, { message: "Password must be at least 8 characters long" })
+        password: zod_1.z.string()
+            .min(8, { message: "Password must be at least 8 characters long" })
+            .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
+            .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
+            .regex(/[0-9]/, { message: "Password must contain at least one number" })
+            .regex(/[^A-Za-z0-9]/, { message: "Password must contain at least one special character" })
     })
 });
 exports.loginSchema = zod_1.z.object({
@@ -19,6 +24,17 @@ exports.loginSchema = zod_1.z.object({
 exports.updateProfileSchema = zod_1.z.object({
     body: zod_1.z.object({
         currency: zod_1.z.string().length(3, { message: "Currency must be a 3-letter code" })
+    })
+});
+exports.changePasswordSchema = zod_1.z.object({
+    body: zod_1.z.object({
+        oldPassword: zod_1.z.string().min(1, { message: "Old password is required" }),
+        newPassword: zod_1.z.string()
+            .min(8, { message: "New password must be at least 8 characters long" })
+            .regex(/[A-Z]/, { message: "Password must contain at least one uppercase letter" })
+            .regex(/[a-z]/, { message: "Password must contain at least one lowercase letter" })
+            .regex(/[0-9]/, { message: "Password must contain at least one number" })
+            .regex(/[^A-Za-z0-9]/, { message: "Password must contain at least one special character" })
     })
 });
 // ============ TRANSACTION SCHEMAS ============

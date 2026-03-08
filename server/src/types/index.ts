@@ -16,14 +16,6 @@ declare global {
 }
 
 // Database Models (matching Prisma schema)
-export interface User {
-    id: number;
-    email: string;
-    username: string;
-    password_hash: string;
-    currency: string;
-    created_at: Date;
-}
 
 export interface Account {
     id: number;

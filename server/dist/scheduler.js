@@ -36,12 +36,29 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const analyticsController = __importStar(require("../controllers/analyticsController"));
-const authMiddleware_1 = __importDefault(require("../middleware/authMiddleware"));
-const router = (0, express_1.Router)();
-router.use(authMiddleware_1.default);
-router.get('/recap', analyticsController.getMonthlyRecap);
-router.get('/spending-trends', analyticsController.getSpendingTrends);
-exports.default = router;
-//# sourceMappingURL=analyticsRoutes.js.map
+exports.initScheduler = void 0;
+const node_cron_1 = __importDefault(require("node-cron"));
+const logger_1 = __importDefault(require("./utils/logger"));
+const recurringService = __importStar(require("./services/recurringService"));
+const initScheduler = () => {
+    logger_1.default.info('Initializing scheduler...');
+    // Run every day at midnight (00:00)
+    node_cron_1.default.schedule('0 0 * * *', async () => {
+        logger_1.default.info('Running daily recurring transaction check...');
+        try {
+            const processed = await recurringService.processDueTransactions();
+            if (processed.length > 0) {
+                logger_1.default.info(`Scheduler processed ${processed.length} recurring transactions.`);
+            }
+            else {
+                logger_1.default.info('No due recurring transactions found.');
+            }
+        }
+        catch (error) {
+            logger_1.default.error('Error running daily recurring transaction job:', error);
+        }
+    });
+    logger_1.default.info('Scheduler initialized. Jobs are running.');
+};
+exports.initScheduler = initScheduler;
+//# sourceMappingURL=scheduler.js.map

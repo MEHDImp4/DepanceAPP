@@ -48,5 +48,8 @@ router.post('/refresh', authController.refreshToken);
 router.post('/logout', authController.logout);
 router.get('/profile', authMiddleware_1.default, authController.getProfile);
 router.put('/profile', authMiddleware_1.default, (0, validate_1.default)(schemas_1.updateProfileSchema), authController.updateProfile);
+router.post('/change-password', authMiddleware_1.default, (0, validate_1.default)(schemas_1.changePasswordSchema), authController.changePassword);
+router.get('/login-history', authMiddleware_1.default, authController.getLoginHistory);
+router.get('/security-alerts', authMiddleware_1.default, authController.getSecurityAlerts);
 exports.default = router;
 //# sourceMappingURL=authRoutes.js.map

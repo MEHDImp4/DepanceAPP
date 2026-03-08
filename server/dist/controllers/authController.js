@@ -3,14 +3,15 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logout = exports.refreshToken = exports.updateProfile = exports.getProfile = exports.getSecurityAlerts = exports.getLoginHistory = exports.login = exports.register = void 0;
+exports.logout = exports.refreshToken = exports.changePassword = exports.updateProfile = exports.getProfile = exports.getSecurityAlerts = exports.getLoginHistory = exports.login = exports.register = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const crypto_1 = require("crypto");
 const prisma_1 = __importDefault(require("../utils/prisma"));
 const BCRYPT_SALT_ROUNDS = 10;
 const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '7d';
-const REFRESH_TOKEN_MS = 7 * 24 * 60 * 60 * 1000;
+const REFRESH_TOKEN_EXPIRY = '30d';
+const REFRESH_TOKEN_MS = 30 * 24 * 60 * 60 * 1000;
 const ACCESS_TOKEN_MS = 15 * 60 * 1000;
 const register = async (req, res, next) => {
     try {
@@ -33,7 +34,7 @@ const register = async (req, res, next) => {
             data: { email, username, password_hash: hashedPassword }
         });
         const accessToken = jsonwebtoken_1.default.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
-        const refreshToken = jsonwebtoken_1.default.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
+        const refreshToken = jsonwebtoken_1.default.sign({ userId: user.id, jti: (0, crypto_1.randomUUID)() }, process.env.JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
         await prisma_1.default.refreshToken.create({
             data: {
                 token: refreshToken,
@@ -43,13 +44,13 @@ const register = async (req, res, next) => {
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: false, // process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: REFRESH_TOKEN_MS
         });
         res.cookie('token', accessToken, {
             httpOnly: true,
-            secure: false, // process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: ACCESS_TOKEN_MS
         });
@@ -104,7 +105,7 @@ const login = async (req, res, next) => {
         // Check for new device
         const deviceCheck = await (0, loginHistoryService_1.isNewDeviceOrLocation)(user.id, req);
         const accessToken = jsonwebtoken_1.default.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
-        const refreshToken = jsonwebtoken_1.default.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
+        const refreshToken = jsonwebtoken_1.default.sign({ userId: user.id, jti: (0, crypto_1.randomUUID)() }, process.env.JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
         await prisma_1.default.refreshToken.create({
             data: {
                 token: refreshToken,
@@ -114,13 +115,13 @@ const login = async (req, res, next) => {
         });
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: false, // process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: REFRESH_TOKEN_MS
         });
         res.cookie('token', accessToken, {
             httpOnly: true,
-            secure: false, // process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: ACCESS_TOKEN_MS
         });
@@ -182,6 +183,34 @@ const updateProfile = async (req, res, next) => {
     }
 };
 exports.updateProfile = updateProfile;
+const changePassword = async (req, res, next) => {
+    try {
+        const { oldPassword, newPassword } = req.body;
+        const user = await prisma_1.default.user.findUnique({ where: { id: req.user.userId } });
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+        const isValid = await bcryptjs_1.default.compare(oldPassword, user.password_hash);
+        if (!isValid) {
+            await (0, loginHistoryService_1.logFailedLogin)(user.id, req); // Optional: log this as a suspicious event?
+            res.status(400).json({ error: 'Incorrect old password' });
+            return;
+        }
+        const hashedPassword = await bcryptjs_1.default.hash(newPassword, BCRYPT_SALT_ROUNDS);
+        await prisma_1.default.user.update({
+            where: { id: user.id },
+            data: { password_hash: hashedPassword }
+        });
+        // Optional: Invalidate all refresh tokens/sessions on password change for security
+        // await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+        res.json({ message: 'Password updated successfully' });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+exports.changePassword = changePassword;
 const refreshToken = async (req, res, next) => {
     try {
         const refreshTokenValue = req.cookies?.refreshToken;
@@ -209,11 +238,31 @@ const refreshToken = async (req, res, next) => {
             res.status(401).json({ error: 'Refresh token expired' });
             return;
         }
+        // Rolling Refresh Token: Delete old one and issue a NEW one
+        await prisma_1.default.refreshToken.delete({ where: { token: refreshTokenValue } });
         const user = storedToken.user;
+        // precise rotation: create new refresh token
+        const newRefreshToken = jsonwebtoken_1.default.sign({ userId: user.id, jti: (0, crypto_1.randomUUID)() }, process.env.JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
+        // Issue new Access Token
         const newAccessToken = jsonwebtoken_1.default.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+        // Save new Refresh Token
+        await prisma_1.default.refreshToken.create({
+            data: {
+                token: newRefreshToken,
+                userId: user.id,
+                expiresAt: new Date(Date.now() + REFRESH_TOKEN_MS)
+            }
+        });
+        // Set Cookies
+        res.cookie('refreshToken', newRefreshToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: REFRESH_TOKEN_MS
+        });
         res.cookie('token', newAccessToken, {
             httpOnly: true,
-            secure: false, // process.env.NODE_ENV === 'production',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
             maxAge: ACCESS_TOKEN_MS
         });

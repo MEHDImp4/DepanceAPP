@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -6,7 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.processRecurring = exports.deleteRecurring = exports.createRecurring = exports.getRecurring = void 0;
 const prisma_1 = __importDefault(require("../utils/prisma"));
 const money_1 = require("../utils/money");
-const MAX_RECURRING_LOOPS = 12;
+const recurringService = __importStar(require("../services/recurringService"));
 const getRecurring = async (req, res, next) => {
     try {
         const userId = req.user.userId;
@@ -78,59 +111,10 @@ const deleteRecurring = async (req, res, next) => {
     }
 };
 exports.deleteRecurring = deleteRecurring;
-async function processRuleCycles(rule, userId, now) {
-    const nextDate = new Date(rule.next_run_date);
-    const createdTransactions = [];
-    let safetyCounter = 0;
-    while (nextDate <= now && safetyCounter < MAX_RECURRING_LOOPS) {
-        const balanceChange = rule.type === 'income' ? rule.amount : -rule.amount;
-        const [tx] = await prisma_1.default.$transaction([
-            prisma_1.default.transaction.create({
-                data: {
-                    amount: rule.amount,
-                    description: `${rule.description} (Auto)`,
-                    type: rule.type,
-                    account_id: rule.account_id,
-                    category_id: rule.category_id,
-                    user_id: userId,
-                    created_at: new Date(nextDate)
-                }
-            }),
-            prisma_1.default.account.update({
-                where: { id: rule.account_id },
-                data: { balance: { increment: balanceChange } }
-            })
-        ]);
-        createdTransactions.push({ id: tx.id, amount: tx.amount });
-        if (rule.interval === 'weekly')
-            nextDate.setDate(nextDate.getDate() + 7);
-        else if (rule.interval === 'monthly')
-            nextDate.setMonth(nextDate.getMonth() + 1);
-        else if (rule.interval === 'yearly')
-            nextDate.setFullYear(nextDate.getFullYear() + 1);
-        safetyCounter++;
-    }
-    if (createdTransactions.length > 0) {
-        await prisma_1.default.recurringTransaction.update({
-            where: { id: rule.id },
-            data: { next_run_date: nextDate }
-        });
-    }
-    return createdTransactions;
-}
 const processRecurring = async (req, res, next) => {
     try {
         const userId = req.user.userId;
-        const now = new Date();
-        const dueRules = await prisma_1.default.recurringTransaction.findMany({
-            where: {
-                user_id: userId,
-                active: true,
-                next_run_date: { lte: now }
-            }
-        });
-        const results = await Promise.all(dueRules.map(rule => processRuleCycles(rule, userId, now)));
-        const createdTransactions = results.flat();
+        const createdTransactions = await recurringService.processDueTransactions(userId);
         const txsWithFloat = createdTransactions.map(tx => ({ ...tx, amount: (0, money_1.fromCents)(tx.amount) }));
         res.json({ processed: txsWithFloat.length, transactions: txsWithFloat });
     }

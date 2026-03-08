@@ -1,27 +1,45 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.deleteAccount = exports.updateAccount = exports.getAccounts = exports.createAccount = exports.getSummary = void 0;
-const prisma_1 = __importDefault(require("../utils/prisma"));
-const currencyService_1 = require("../utils/currencyService");
-const money_1 = require("../utils/money");
+const accountService = __importStar(require("../services/accountService"));
 const getSummary = async (req, res, next) => {
     try {
-        const userId = req.user.userId;
-        const [user, accounts] = await Promise.all([
-            prisma_1.default.user.findUnique({ where: { id: userId } }),
-            prisma_1.default.account.findMany({ where: { user_id: userId } })
-        ]);
-        const targetCurrency = user?.currency || 'USD';
-        const amounts = await Promise.all(accounts.map(acc => (0, currencyService_1.convertCurrency)(acc.balance, acc.currency, targetCurrency)));
-        const totalBalanceCents = amounts.reduce((sum, amount) => sum + amount, 0);
-        res.json({
-            totalBalance: (0, money_1.fromCents)(totalBalanceCents),
-            currency: targetCurrency,
-            accountCount: accounts.length
-        });
+        const userId = parseInt(String(req.user.userId));
+        const summary = await accountService.getAccountSummary(userId);
+        res.json(summary);
     }
     catch (error) {
         next(error);
@@ -30,19 +48,10 @@ const getSummary = async (req, res, next) => {
 exports.getSummary = getSummary;
 const createAccount = async (req, res, next) => {
     try {
-        const { name, type, balance, currency, color } = req.body;
-        const userId = req.user.userId;
-        const account = await prisma_1.default.account.create({
-            data: {
-                name,
-                type: type || 'normal',
-                color: color || 'bg-primary',
-                currency: currency || 'USD',
-                balance: (0, money_1.toCents)(balance || 0),
-                user_id: userId
-            }
-        });
-        res.status(201).json({ ...account, balance: (0, money_1.fromCents)(account.balance) });
+        const body = req.body;
+        const userId = parseInt(String(req.user.userId));
+        const account = await accountService.createAccount({ ...body, userId });
+        res.status(201).json(account);
     }
     catch (error) {
         next(error);
@@ -51,16 +60,9 @@ const createAccount = async (req, res, next) => {
 exports.createAccount = createAccount;
 const getAccounts = async (req, res, next) => {
     try {
-        const userId = req.user.userId;
-        const accounts = await prisma_1.default.account.findMany({
-            where: { user_id: userId },
-            orderBy: { created_at: 'asc' }
-        });
-        const accountsWithFloat = accounts.map(acc => ({
-            ...acc,
-            balance: (0, money_1.fromCents)(acc.balance)
-        }));
-        res.json(accountsWithFloat);
+        const userId = parseInt(String(req.user.userId));
+        const accounts = await accountService.getUserAccounts(userId);
+        res.json(accounts);
     }
     catch (error) {
         next(error);
@@ -70,20 +72,24 @@ exports.getAccounts = getAccounts;
 const updateAccount = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { name, type, currency } = req.body;
-        const userId = req.user.userId;
-        const account = await prisma_1.default.account.findFirst({
-            where: { id: parseInt(id), user_id: userId }
-        });
-        if (!account) {
-            res.status(404).json({ error: 'Account not found' });
-            return;
+        const body = req.body;
+        const userId = parseInt(String(req.user.userId));
+        try {
+            const updated = await accountService.updateAccount({
+                id: parseInt(id),
+                userId,
+                ...body
+            });
+            res.json(updated);
         }
-        const updated = await prisma_1.default.account.update({
-            where: { id: parseInt(id) },
-            data: { name, type, currency }
-        });
-        res.json({ ...updated, balance: (0, money_1.fromCents)(updated.balance) });
+        catch (error) {
+            if (error.message === 'Account not found') {
+                res.status(404).json({ error: 'Account not found' });
+            }
+            else {
+                throw error;
+            }
+        }
     }
     catch (error) {
         next(error);
@@ -93,20 +99,26 @@ exports.updateAccount = updateAccount;
 const deleteAccount = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const userId = req.user.userId;
-        const account = await prisma_1.default.account.findFirst({
-            where: { id: parseInt(id), user_id: userId }
-        });
-        if (!account) {
-            res.status(404).json({ error: 'Account not found' });
-            return;
+        const { password } = req.body;
+        const userId = parseInt(String(req.user.userId)); // Ensure number
+        try {
+            await accountService.deleteAccount(parseInt(id), userId, password);
+            res.json({ message: 'Account deleted' });
         }
-        if (account.balance !== 0) {
-            res.status(400).json({ error: 'Cannot delete account with non-zero balance' });
-            return;
+        catch (error) {
+            if (error.message === 'Password is required') {
+                res.status(400).json({ error: error.message });
+            }
+            else if (error.message === 'User not found' || error.message === 'Account not found') {
+                res.status(404).json({ error: error.message });
+            }
+            else if (error.message === 'Invalid password') {
+                res.status(401).json({ error: error.message });
+            }
+            else {
+                throw error;
+            }
         }
-        await prisma_1.default.account.delete({ where: { id: parseInt(id) } });
-        res.json({ message: 'Account deleted' });
     }
     catch (error) {
         next(error);

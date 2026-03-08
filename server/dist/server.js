@@ -5,8 +5,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const index_1 = __importDefault(require("./index"));
 const logger_1 = __importDefault(require("./utils/logger"));
+const scheduler_1 = require("./scheduler");
 const PORT = process.env.PORT || 3001;
-index_1.default.listen(PORT, () => {
-    logger_1.default.info(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
-});
+(0, scheduler_1.initScheduler)();
+// Only start server if run directly (not if imported by tests)
+if (require.main === module) {
+    index_1.default.listen(PORT, () => {
+        logger_1.default.info(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+    });
+}
 //# sourceMappingURL=server.js.map
