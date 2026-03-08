@@ -1,6 +1,6 @@
 # DepanceAPP
 
-![License](https://img.shields.io/github/license/mehdimp4/DepanceAPP?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)
 ![GitHub stars](https://img.shields.io/github/stars/mehdimp4/DepanceAPP?style=for-the-badge)
 ![GitHub issues](https://img.shields.io/github/issues/mehdimp4/DepanceAPP?style=for-the-badge)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
