@@ -28,7 +28,7 @@ export function MoreMenuDrawer({ children }: MoreMenuDrawerProps) {
             <DrawerContent className="bg-card/95 backdrop-blur-xl border-t border-border/50">
                 <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
-                        <DrawerTitle className="text-center font-bold">{t('nav.more', 'More Options')}</DrawerTitle>
+                        <DrawerTitle className="text-center font-bold">{t('nav.more_options', 'More Options')}</DrawerTitle>
                     </DrawerHeader>
                     <div className="p-4 pb-12 space-y-3">
                         {menuItems.map(({ icon: Icon, label, path, color, bg }) => {
