@@ -2,7 +2,7 @@ import app from './index';
 import logger from './utils/logger';
 import { initScheduler } from './scheduler';
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 initScheduler();
 

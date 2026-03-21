@@ -14,6 +14,14 @@ export function MoreMenuDrawer({ children }: MoreMenuDrawerProps) {
     const location = useLocation();
     const [open, setOpen] = useState(false);
 
+    const handleOpenChange = (nextOpen: boolean) => {
+        // Ensure no element inside #root keeps focus while Vaul marks it aria-hidden.
+        if (nextOpen && document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+        setOpen(nextOpen);
+    };
+
     const menuItems = [
         { icon: Settings, label: t('nav.settings'), path: "/settings", color: "text-slate-500", bg: "bg-slate-500/10" },
         { icon: Target, label: t('nav.goals', 'Goals'), path: "/goals", color: "text-pink-500", bg: "bg-pink-500/10" },
@@ -21,7 +29,7 @@ export function MoreMenuDrawer({ children }: MoreMenuDrawerProps) {
     ];
 
     return (
-        <Drawer open={open} onOpenChange={setOpen}>
+        <Drawer open={open} onOpenChange={handleOpenChange}>
             <DrawerTrigger asChild>
                 {children}
             </DrawerTrigger>
