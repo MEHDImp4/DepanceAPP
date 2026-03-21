@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store/useAppStore';
 import { Lock } from 'lucide-react-native';
 import apiClient from '../api/client';
@@ -9,6 +10,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { t } = useTranslation();
   
   const setToken = useAppStore((state) => state.setToken);
   const serverUrl = useAppStore((state) => state.serverUrl);
@@ -16,7 +18,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      setError('Please fill everything');
+      setError(t('auth.fillEverything'));
       return;
     }
     
@@ -28,13 +30,13 @@ export default function LoginScreen() {
       const { token } = res.data;
       
       if (!token) {
-        throw new Error('Server did not return a token. Please update your backend image.');
+        throw new Error(t('auth.tokenError'));
       }
       
       await setToken(token);
     } catch (err: any) {
       console.error(err);
-      const msg = err?.response?.data?.error || err?.response?.data?.message || err.message || 'Login failed. Check server/credentials.';
+      const msg = err?.response?.data?.error || err?.response?.data?.message || err.message || t('auth.loginFailed');
       setError(msg);
       setLoading(false);
     }
@@ -50,14 +52,14 @@ export default function LoginScreen() {
           <View style={styles.iconContainer}>
             <Lock size={32} color="#2563EB" />
           </View>
-          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.title}>{t('common.welcome')}</Text>
           <Text style={styles.subtitle}>
-            Connected to: {serverUrl?.replace('https://', '').replace('http://', '')}
+            {t('common.connectedTo', { url: serverUrl?.replace('https://', '').replace('http://', '') })}
           </Text>
         </View>
 
         <View style={styles.form}>
-          <Text style={styles.label}>Email Address</Text>
+          <Text style={styles.label}>{t('common.email')}</Text>
           <TextInput
             style={styles.input}
             placeholder="hello@example.com"
@@ -69,7 +71,7 @@ export default function LoginScreen() {
             autoCorrect={false}
           />
 
-          <Text style={styles.label}>Password</Text>
+          <Text style={styles.label}>{t('common.password')}</Text>
           <TextInput
             style={styles.input}
             placeholder="••••••••"
@@ -89,7 +91,7 @@ export default function LoginScreen() {
             {loading ? (
               <ActivityIndicator color="white" />
             ) : (
-              <Text style={styles.buttonText}>Log In</Text>
+              <Text style={styles.buttonText}>{t('common.login')}</Text>
             )}
           </TouchableOpacity>
           
@@ -97,7 +99,7 @@ export default function LoginScreen() {
             style={styles.changeServer}
             onPress={() => setServerUrl('')}
           >
-            <Text style={styles.changeServerText}>Change Backend Server</Text>
+            <Text style={styles.changeServerText}>{t('common.changeServer')}</Text>
           </TouchableOpacity>
         </View>
       </View>

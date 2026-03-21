@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import i18n from '../i18n/config';
 
 interface AppState {
   serverUrl: string | null;
@@ -43,6 +44,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   setLanguage: async (language: string) => {
     await AsyncStorage.setItem('language', language);
+    await i18n.changeLanguage(language);
     set({ language });
   },
 
@@ -74,7 +76,10 @@ export const useAppStore = create<AppState>((set) => ({
       
       const updates: Partial<AppState> = { serverUrl: url, token, isHydrated: true };
       if (theme) updates.theme = theme;
-      if (language) updates.language = language;
+      if (language) {
+        updates.language = language;
+        await i18n.changeLanguage(language);
+      }
       if (notificationsStr) updates.notificationsEnabled = JSON.parse(notificationsStr);
       
       set(updates);

@@ -9,6 +9,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import RootNavigator from './src/navigation/RootNavigator';
 import { useAppStore } from './src/store/useAppStore';
 import { View, Text } from 'react-native';
+import './src/i18n/config';
 
 const queryClient = new QueryClient();
 

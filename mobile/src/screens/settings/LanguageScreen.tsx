@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -16,6 +17,7 @@ const languages = [
 
 export default function LanguageScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const { language, setLanguage } = useAppStore();
 
@@ -30,13 +32,13 @@ export default function LanguageScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <ChevronLeft size={24} color="#FAFAFA" />
         </TouchableOpacity>
-        <Text style={styles.title}>Language</Text>
+        <Text style={styles.title}>{t('settings.language')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.content}>
         <Text style={styles.description}>
-          Select your preferred application language. Note that this change might require an app restart for all text to update.
+          {t('settings.languageDescription')}
         </Text>
         
         <View style={styles.listContainer}>

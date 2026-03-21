@@ -6,6 +6,9 @@ import Backend from 'i18next-http-backend';
 const fallbackResources = {
     en: {
         translation: {
+            app: {
+                version: 'Version 1.0.0 (Build 2026.01)'
+            },
             nav: {
                 home: 'Home',
                 transact: 'Transact',
@@ -30,6 +33,19 @@ const fallbackResources = {
                 uncategorized: 'Uncategorized'
             },
             settings: {
+                title: 'Settings',
+                app_settings: 'App Settings',
+                dark_mode: 'Dark Mode',
+                language: 'Language',
+                currency: 'Currency',
+                notifications: 'Notifications',
+                on: 'On',
+                account: 'Account',
+                profile_info: 'Profile Information',
+                security_privacy: 'Security & Privacy',
+                member: 'Member',
+                logout: 'Log Out',
+                tools: 'Tools',
                 currency_helper: 'This will update how values are displayed across the app.',
                 change_password: 'Change Password',
                 update_password: 'Update Password',
@@ -37,6 +53,8 @@ const fallbackResources = {
                 security_notice: 'If you see suspicious activity, change your password immediately.'
             },
             auth: {
+                username: 'Username',
+                email: 'Email',
                 current_password: 'Current Password',
                 new_password: 'New Password'
             }
@@ -44,6 +62,9 @@ const fallbackResources = {
     },
     fr: {
         translation: {
+            app: {
+                version: 'Version 1.0.0 (Build 2026.01)'
+            },
             nav: {
                 home: 'Accueil',
                 transact: 'Transaction',
@@ -68,6 +89,19 @@ const fallbackResources = {
                 uncategorized: 'Aucune categorie'
             },
             settings: {
+                title: 'Parametres',
+                app_settings: "Parametres de l'application",
+                dark_mode: 'Mode Sombre',
+                language: 'Langue',
+                currency: 'Devise',
+                notifications: 'Notifications',
+                on: 'Active',
+                account: 'Compte',
+                profile_info: 'Informations Profil',
+                security_privacy: 'Securite & Confidentialite',
+                member: 'Membre',
+                logout: 'Se Deconnecter',
+                tools: 'Outils',
                 currency_helper: "Cela mettra à jour la façon dont les valeurs sont affichées dans toute l'application.",
                 change_password: 'Changer le mot de passe',
                 update_password: 'Mettre à jour le mot de passe',
@@ -75,6 +109,8 @@ const fallbackResources = {
                 security_notice: 'Si vous voyez une activité suspecte, changez immédiatement votre mot de passe.'
             },
             auth: {
+                username: "Nom d'utilisateur",
+                email: 'Email',
                 current_password: 'Mot de passe actuel',
                 new_password: 'Nouveau mot de passe'
             }

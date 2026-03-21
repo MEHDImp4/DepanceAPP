@@ -1,0 +1,27 @@
+{
+  "common": {
+    "welcome": "Bienvenue",
+    "login": "Se connecter",
+    "email": "Adresse Email",
+    "password": "Mot de passe",
+    "error": "Erreur",
+    "loading": "Chargement...",
+    "dashboard": "Tableau de bord",
+    "logout": "Déconnexion",
+    "changeServer": "Changer de serveur backend",
+    "connectedTo": "Connecté à : {{url}}"
+  },
+  "auth": {
+    "fillEverything": "Veuillez remplir tous les champs",
+    "tokenError": "Le serveur n'a pas renvoyé de jeton. Veuillez mettre à jour votre image backend.",
+    "loginFailed": "Échec de la connexion. Vérifiez le serveur/identifiants."
+  },
+  "settings": {
+    "language": "Langue",
+    "languageDescription": "Sélectionnez votre langue préférée pour l'application. Notez que ce changement peut nécessiter un redémarrage de l'app pour que tout le texte soit mis à jour.",
+    "profile": "Profil",
+    "security": "Sécurité",
+    "notifications": "Notifications",
+    "currency": "Devise"
+  }
+}

@@ -1,5 +1,6 @@
 import React, { useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CapitalCard } from '../components/dashboard/CapitalCard';
 import { RecentTransactions } from '../components/dashboard/RecentTransactions';
@@ -11,6 +12,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
+  const { t, i18n } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const logout = useAppStore((state) => state.logout);
   const { data: summary, isLoading: isLoadingSummary, refetch: refetchSummary } = useSummary();
@@ -44,7 +46,7 @@ export default function DashboardScreen() {
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
   const safeCategories = Array.isArray(categories) ? categories : [];
 
-  const todayDate = new Date().toLocaleDateString('en-US', {
+  const todayDate = new Date().toLocaleDateString(i18n.language || 'en-US', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -71,7 +73,7 @@ export default function DashboardScreen() {
           </View>
           <View style={styles.headerTextContainer}>
             <Text style={styles.headerDate}>{todayDate}</Text>
-            <Text style={styles.headerTitle}>Dashboard</Text>
+            <Text style={styles.headerTitle}>{t('common.dashboard')}</Text>
           </View>
         </View>
 
