@@ -1,23 +1,16 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { TrendingUp, TrendingDown } from 'lucide-react-native';
-
-interface Transaction {
-  id: string;
-  amount: number;
-  type: 'income' | 'expense';
-  description: string;
-  category_id?: string;
-  created_at: string;
-}
+import { Transaction, Category } from '../../types';
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
+  categories: Category[];
   onPressTransaction?: (id: string) => void;
   onPressSeeAll?: () => void;
 }
 
-export function RecentTransactions({ transactions, onPressTransaction, onPressSeeAll }: RecentTransactionsProps) {
+export function RecentTransactions({ transactions, categories, onPressTransaction, onPressSeeAll }: RecentTransactionsProps) {
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
@@ -35,14 +28,15 @@ export function RecentTransactions({ transactions, onPressTransaction, onPressSe
         {transactions.map((transaction, index) => {
           const isIncome = transaction.type === 'income';
           const isLast = index === transactions.length - 1;
+          const category = categories.find(c => c.id === transaction.category_id);
           const date = new Date(transaction.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-          const amountStr = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(transaction.amount);
+          const amountStr = `$${Number(transaction.amount).toFixed(2)}`;
 
           return (
             <TouchableOpacity
               key={transaction.id}
               activeOpacity={0.7}
-              onPress={() => onPressTransaction?.(transaction.id)}
+              onPress={() => onPressTransaction?.(String(transaction.id))}
               style={[styles.transactionItem, !isLast && styles.transactionItemBorder]}
             >
               <View style={styles.leftSection}>
@@ -54,7 +48,7 @@ export function RecentTransactions({ transactions, onPressTransaction, onPressSe
                     {transaction.description}
                   </Text>
                   <Text style={styles.categoryText}>
-                    {transaction.category_id || 'Uncategorized'}
+                    {category?.name || 'Uncategorized'}
                   </Text>
                 </View>
               </View>
@@ -74,7 +68,7 @@ export function RecentTransactions({ transactions, onPressTransaction, onPressSe
         {transactions.length === 0 && (
           <View style={styles.emptyContainer}>
             <Text style={styles.emptyText}>
-              No Transactions
+              No Transactions yet
             </Text>
           </View>
         )}
@@ -85,23 +79,23 @@ export function RecentTransactions({ transactions, onPressTransaction, onPressSe
 
 const styles = StyleSheet.create({
   container: { marginBottom: 24 },
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8, marginBottom: 16 },
-  headerTitle: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 2, fontWeight: 'bold', color: '#A1A1AA' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, marginBottom: 16 },
+  headerTitle: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 3, fontWeight: 'bold', color: '#A1A1AA' },
   seeAllText: { fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 2, color: '#2563EB' },
   listContainer: { backgroundColor: '#18181B', borderColor: '#27272A', borderWidth: 1, borderRadius: 32, overflow: 'hidden' },
   transactionItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20 },
   transactionItemBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255, 255, 255, 0.05)' },
   leftSection: { flexDirection: 'row', alignItems: 'center' },
-  iconContainer: { width: 40, height: 40, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 16, opacity: 0.9, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 },
+  iconContainer: { width: 40, height: 40, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginRight: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 4, elevation: 3 },
   iconIncome: { backgroundColor: '#10B981' },
   iconExpense: { backgroundColor: '#EF4444' },
-  descriptionText: { fontWeight: '600', fontSize: 14, color: '#FAFAFA', opacity: 0.9 },
-  categoryText: { fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, color: '#A1A1AA', marginTop: 4 },
+  descriptionText: { fontWeight: '600', fontSize: 14, color: '#FAFAFA', letterSpacing: -0.3 },
+  categoryText: { fontSize: 10, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, color: '#A1A1AA', marginTop: 2 },
   rightSection: { alignItems: 'flex-end' },
-  amountText: { fontWeight: 'bold', fontSize: 14 },
+  amountText: { fontWeight: 'bold', fontSize: 14, letterSpacing: -0.3 },
   amountIncome: { color: '#10B981' },
   amountExpense: { color: '#FAFAFA' },
-  dateText: { fontSize: 10, fontWeight: '500', color: '#A1A1AA', opacity: 0.5, textTransform: 'uppercase', letterSpacing: -0.5, marginTop: 4 },
-  emptyContainer: { alignItems: 'center', paddingVertical: 40, backgroundColor: 'rgba(39, 39, 42, 0.2)', borderWidth: 1, borderStyle: 'dashed', borderColor: '#27272A', margin: 16, borderRadius: 24 },
-  emptyText: { fontSize: 12, fontWeight: 'bold', color: '#A1A1AA', textTransform: 'uppercase', letterSpacing: 2 },
+  dateText: { fontSize: 10, fontWeight: '500', color: '#71717A', textTransform: 'uppercase', marginTop: 4, letterSpacing: -0.5 },
+  emptyContainer: { alignItems: 'center', paddingVertical: 40 },
+  emptyText: { fontSize: 12, fontWeight: 'bold', color: '#52525B', textTransform: 'uppercase', letterSpacing: 2 },
 });

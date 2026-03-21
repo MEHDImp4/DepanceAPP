@@ -1,15 +1,45 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, Modal, StyleSheet } from 'react-native';
-import { useAppStore } from '../store/useAppStore';
-import { LogOut, Wallet } from 'lucide-react-native';
+import React, { useCallback } from 'react';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CapitalCard } from '../components/dashboard/CapitalCard';
 import { RecentTransactions } from '../components/dashboard/RecentTransactions';
+import { useSummary, useAccounts, useTransactions, useCategories } from '../hooks/use-api';
+import { Wallet, LogOut } from 'lucide-react-native';
+import { useAppStore } from '../store/useAppStore';
 
 export default function DashboardScreen() {
+  const insets = useSafeAreaInsets();
   const logout = useAppStore((state) => state.logout);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const { data: summary, isLoading: isLoadingSummary, refetch: refetchSummary } = useSummary();
+  const { data: accounts = [], isLoading: isLoadingAccounts, refetch: refetchAccounts } = useAccounts();
+  const { data: transactions = [], isLoading: isLoadingTransactions, refetch: refetchTransactions } = useTransactions();
+  const { data: categories = [], isLoading: isLoadingCategories, refetch: refetchCategories } = useCategories();
 
-  const handleCloseModal = useCallback(() => setIsModalVisible(false), []);
+  const [refreshing, setRefreshing] = React.useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      refetchSummary(),
+      refetchAccounts(),
+      refetchTransactions(),
+      refetchCategories()
+    ]);
+    setRefreshing(false);
+  }, [refetchSummary, refetchAccounts, refetchTransactions, refetchCategories]);
+
+  if (isLoadingSummary || isLoadingAccounts || isLoadingTransactions || isLoadingCategories) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2563EB" />
+      </View>
+    );
+  }
+
+  const safeAccounts = Array.isArray(accounts) ? accounts : [];
+  const totalCapital = safeAccounts.reduce((acc, curr) => acc + (curr.balance || 0), 0);
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const safeCategories = Array.isArray(categories) ? categories : [];
 
   const todayDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -17,38 +47,15 @@ export default function DashboardScreen() {
     month: 'long',
   });
 
-  const mockTransactions = [
-    {
-      id: '1',
-      amount: 1250.0,
-      type: 'income' as const,
-      description: 'Monthly Salary',
-      category_id: 'Salary',
-      created_at: new Date().toISOString(),
-    },
-    {
-      id: '2',
-      amount: 84.2,
-      type: 'expense' as const,
-      description: 'Groceries',
-      category_id: 'Food',
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-    },
-    {
-      id: '3',
-      amount: 15.5,
-      type: 'expense' as const,
-      description: 'Netflix Subscription',
-      category_id: 'Entertainment',
-      created_at: new Date(Date.now() - 172800000).toISOString(),
-    },
-  ];
-
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        
-        {/* Header section matching Web UI */}
+    <View style={styles.container}>
+      <ScrollView 
+        contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + 16, paddingBottom: 120 }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2563EB" />
+        }
+      >
         <View style={styles.headerContainer}>
           <View style={styles.headerLogout}>
             <TouchableOpacity onPress={logout} style={styles.logoutButton}>
@@ -65,46 +72,26 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        <CapitalCard amount={42500.00} currency="USD" />
-        <RecentTransactions transactions={mockTransactions} />
-
+        <CapitalCard amount={totalCapital} currency="USD" />
+        
+        <RecentTransactions 
+          transactions={safeTransactions.slice(0, 5)} 
+          categories={safeCategories}
+        />
       </ScrollView>
-
-      {/* Transaction Modal Stub */}
-      <Modal
-        visible={isModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={handleCloseModal}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add Transaction</Text>
-            <Text style={styles.modalSubtitle}>Coming Soon via Context API mutation</Text>
-            <TouchableOpacity onPress={handleCloseModal} style={styles.modalCloseButton}>
-              <Text style={styles.modalCloseButtonText}>Close</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#09090B' },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 100 },
-  headerContainer: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 16, position: 'relative', width: '100%', marginBottom: 8 },
-  headerLogout: { position: 'absolute', top: 16, right: 0, zIndex: 10 },
+  container: { flex: 1, backgroundColor: '#09090B' },
+  loadingContainer: { flex: 1, backgroundColor: '#09090B', justifyContent: 'center', alignItems: 'center' },
+  scrollContent: { paddingHorizontal: 20 },
+  headerContainer: { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 16, position: 'relative', width: '100%', marginBottom: 12 },
+  headerLogout: { position: 'absolute', top: 0, right: 0, zIndex: 10 },
   logoutButton: { padding: 8, backgroundColor: 'rgba(39, 39, 42, 0.5)', borderRadius: 20, borderColor: '#27272A', borderWidth: 1 },
-  walletIconContainer: { width: 56, height: 56, backgroundColor: 'rgba(37, 99, 235, 0.1)', borderRadius: 24, alignItems: 'center', justifyContent: 'center', borderColor: 'rgba(37, 99, 235, 0.2)', borderWidth: 1 },
-  headerTextContainer: { alignItems: 'center', marginTop: 12 },
-  headerDate: { fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 2, color: '#A1A1AA' },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#FAFAFA', marginTop: 4 },
-  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0, 0, 0, 0.45)' },
-  modalContent: { backgroundColor: '#18181B', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 32, paddingBottom: 48 },
-  modalTitle: { color: '#FAFAFA', fontSize: 20, fontWeight: 'bold', marginBottom: 16 },
-  modalSubtitle: { color: '#A1A1AA', marginBottom: 32 },
-  modalCloseButton: { backgroundColor: '#2563EB', borderRadius: 16, paddingVertical: 16, alignItems: 'center' },
-  modalCloseButtonText: { color: '#FAFAFA', fontWeight: 'bold', fontSize: 16 },
+  walletIconContainer: { width: 56, height: 56, backgroundColor: 'rgba(37, 99, 235, 0.1)', borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
+  headerTextContainer: { alignItems: 'center', marginTop: 16 },
+  headerDate: { fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 3, color: '#A1A1AA' },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#FAFAFA', marginTop: 4, letterSpacing: -0.5 },
 });

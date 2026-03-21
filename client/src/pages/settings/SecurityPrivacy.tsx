@@ -22,13 +22,13 @@ export default function SecurityPrivacy() {
         setMessage(null);
 
         if (newPassword.length < 8) {
-            setMessage({ type: 'error', text: t('auth.password_min_length') || "Password must be at least 8 characters long" });
+            setMessage({ type: 'error', text: t('auth.password_min_length', 'Password must be at least 8 characters long') });
             return;
         }
 
         changePassword.mutate({ oldPassword, newPassword }, {
             onSuccess: () => {
-                setMessage({ type: 'success', text: t('settings.password_changed') || "Password updated successfully" });
+                setMessage({ type: 'success', text: t('settings.password_changed', 'Password updated successfully') });
                 setOldPassword("");
                 setNewPassword("");
             },
@@ -53,13 +53,13 @@ export default function SecurityPrivacy() {
             {/* Change Password Section */}
             <div className="space-y-4">
                 <h3 className="text-xs uppercase tracking-[0.2em] font-black text-muted-foreground/60 px-2">
-                    {t('settings.change_password') || "Change Password"}
+                    {t('settings.change_password', 'Change Password')}
                 </h3>
                 <div className="bg-card border border-border rounded-[2rem] p-6 shadow-xl shadow-primary/5">
                     <form onSubmit={handlePasswordChange} className="space-y-4">
                         <div className="space-y-2">
                             <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">
-                                {t('auth.current_password') || "Current Password"}
+                                {t('auth.current_password', 'Current Password')}
                             </label>
                             <div className="relative">
                                 <Lock className="absolute left-4 top-3.5 text-muted-foreground/50" size={18} />
@@ -76,7 +76,7 @@ export default function SecurityPrivacy() {
 
                         <div className="space-y-2">
                             <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">
-                                {t('auth.new_password') || "New Password"}
+                                {t('auth.new_password', 'New Password')}
                             </label>
                             <div className="relative">
                                 <KeyRound className="absolute left-4 top-3.5 text-muted-foreground/50" size={18} />
@@ -108,7 +108,7 @@ export default function SecurityPrivacy() {
                                 changePassword.isPending ? "bg-muted text-muted-foreground cursor-not-allowed" : "bg-gradient-to-r from-amber-500 to-orange-500 hover:shadow-orange-500/25"
                             )}
                         >
-                            {changePassword.isPending ? "Updating..." : (t('settings.update_password') || "Update Password")}
+                            {changePassword.isPending ? "Updating..." : t('settings.update_password', 'Update Password')}
                         </button>
                     </form>
                 </div>
@@ -117,7 +117,7 @@ export default function SecurityPrivacy() {
             {/* Login History Section */}
             <div className="space-y-4">
                 <h3 className="text-xs uppercase tracking-[0.2em] font-black text-muted-foreground/60 px-2 flex items-center justify-between">
-                    <span>{t('settings.login_history') || "Login History"}</span>
+                    <span>{t('settings.login_history', 'Login History')}</span>
                     <ShieldCheck size={14} className="text-muted-foreground" />
                 </h3>
                 <div className="bg-card border border-border rounded-[2rem] overflow-hidden shadow-xl shadow-primary/5">
@@ -176,7 +176,7 @@ export default function SecurityPrivacy() {
                     )}
                 </div>
                 <p className="text-[10px] text-muted-foreground text-center px-4">
-                    {t('settings.security_notice') || "If you see suspicious activity, change your password immediately."}
+                    {t('settings.security_notice', 'If you see suspicious activity, change your password immediately.')}
                 </p>
             </div>
         </div>

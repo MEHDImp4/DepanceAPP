@@ -3,11 +3,45 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import Backend from 'i18next-http-backend';
 
+const fallbackResources = {
+    en: {
+        translation: {
+            settings: {
+                currency_helper: 'This will update how values are displayed across the app.',
+                change_password: 'Change Password',
+                update_password: 'Update Password',
+                login_history: 'Login History',
+                security_notice: 'If you see suspicious activity, change your password immediately.'
+            },
+            auth: {
+                current_password: 'Current Password',
+                new_password: 'New Password'
+            }
+        }
+    },
+    fr: {
+        translation: {
+            settings: {
+                currency_helper: "Cela mettra à jour la façon dont les valeurs sont affichées dans toute l'application.",
+                change_password: 'Changer le mot de passe',
+                update_password: 'Mettre à jour le mot de passe',
+                login_history: 'Historique des connexions',
+                security_notice: 'Si vous voyez une activité suspecte, changez immédiatement votre mot de passe.'
+            },
+            auth: {
+                current_password: 'Mot de passe actuel',
+                new_password: 'Nouveau mot de passe'
+            }
+        }
+    }
+};
+
 i18n
     .use(Backend)
     .use(LanguageDetector)
     .use(initReactI18next)
     .init({
+        resources: fallbackResources,
         fallbackLng: 'en',
         supportedLngs: ['en', 'fr'], // We can dynamically load this if needed, but defining here for now
         debug: import.meta.env.DEV,

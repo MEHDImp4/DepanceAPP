@@ -14,7 +14,12 @@ apiClient.interceptors.request.use((config) => {
   
   // Set the dynamic server base URL dynamically per-request.
   if (serverUrl) {
-    config.baseURL = serverUrl.endsWith('/') ? serverUrl.slice(0, -1) : serverUrl;
+    let baseUrl = serverUrl.endsWith('/') ? serverUrl.slice(0, -1) : serverUrl;
+    // ensure it ends with /api as all routes in server/src/index.ts are prefixed with /api
+    if (!baseUrl.toLowerCase().endsWith('/api')) {
+      baseUrl = `${baseUrl}/api`;
+    }
+    config.baseURL = baseUrl;
   }
   
   if (token) {
