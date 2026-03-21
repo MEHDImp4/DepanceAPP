@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const index_1 = __importDefault(require("./index"));
 const logger_1 = __importDefault(require("./utils/logger"));
 const scheduler_1 = require("./scheduler");
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 (0, scheduler_1.initScheduler)();
 // Only start server if run directly (not if imported by tests)
 if (require.main === module) {

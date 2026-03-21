@@ -35,7 +35,7 @@ for (const envVar of requiredEnvVars) {
     }
 }
 const app = (0, express_1.default)();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 // Security middleware
 app.use((0, helmet_1.default)({
     contentSecurityPolicy: {
