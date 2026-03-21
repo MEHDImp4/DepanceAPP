@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Target, Repeat, Settings, ChevronRight } from "lucide-react";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { Drawer, DrawerContent, DrawerDescription, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,9 @@ export function MoreMenuDrawer({ children }: MoreMenuDrawerProps) {
                 <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
                         <DrawerTitle className="text-center font-bold">{t('nav.more_options', 'More Options')}</DrawerTitle>
+                        <DrawerDescription className="sr-only">
+                            {t('nav.more_options', 'More Options')}
+                        </DrawerDescription>
                     </DrawerHeader>
                     <div className="p-4 pb-12 space-y-3">
                         {menuItems.map(({ icon: Icon, label, path, color, bg }) => {

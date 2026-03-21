@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { useRecurring, useDeleteRecurring, useProcessRecurring } from "@/hooks/use-api";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
 import { AddRecurringModal } from "@/components/recurring/AddRecurringModal";
 
@@ -109,6 +109,14 @@ export default function Recurring() {
                                 </div>
 
                                 <div className="flex flex-col items-center gap-1.5 shrink-0">
+                                    {(() => {
+                                        const nextRunDate = item.next_run_date ? new Date(item.next_run_date) : null;
+                                        const nextRunLabel = nextRunDate && isValid(nextRunDate)
+                                            ? format(nextRunDate, "dd MMM", { locale: dateLocale })
+                                            : "-";
+
+                                        return (
+                                            <>
                                     <span className={cn(
                                         "font-black tracking-tighter text-[22px] leading-none flex items-center gap-1.5",
                                         item.type === 'income' ? "text-emerald-500" : "text-foreground"
@@ -120,8 +128,11 @@ export default function Recurring() {
                                         {item.type === 'income' ? ' +' : ' -'}
                                     </span>
                                     <span className="text-[11px] uppercase tracking-widest font-black text-muted-foreground/50">
-                                        Next: {format(new Date(item.next_run_date), "dd MMM", { locale: dateLocale })}
+                                        Next: {nextRunLabel}
                                     </span>
+                                            </>
+                                        );
+                                    })()}
                                 </div>
 
                                 <button

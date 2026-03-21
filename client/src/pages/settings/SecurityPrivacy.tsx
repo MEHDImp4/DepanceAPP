@@ -4,7 +4,7 @@ import { ArrowLeft, Lock, KeyRound, ShieldCheck, History, Laptop, Smartphone } f
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isValid } from "date-fns";
 
 export default function SecurityPrivacy() {
     const { t } = useTranslation();
@@ -148,6 +148,14 @@ export default function SecurityPrivacy() {
                                         </div>
                                     </div>
                                     <div className="text-right">
+                                        {(() => {
+                                            const loginDate = login.timestamp ? new Date(login.timestamp) : null;
+                                            const timeAgo = loginDate && isValid(loginDate)
+                                                ? formatDistanceToNow(loginDate, { addSuffix: true })
+                                                : "Unknown time";
+
+                                            return (
+                                                <>
                                         <div className={cn(
                                             "inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider mb-1",
                                             login.success ? "bg-green-500/10 text-green-600" : "bg-red-500/10 text-red-600"
@@ -156,8 +164,11 @@ export default function SecurityPrivacy() {
                                         </div>
                                         <p className="text-[10px] text-muted-foreground font-medium flex items-center justify-end gap-1">
                                             <History size={10} />
-                                            {formatDistanceToNow(new Date(login.timestamp), { addSuffix: true })}
+                                            {timeAgo}
                                         </p>
+                                                </>
+                                            );
+                                        })()}
                                     </div>
                                 </div>
                             ))}
