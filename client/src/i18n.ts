@@ -10,7 +10,7 @@ i18n
     .init({
         fallbackLng: 'en',
         supportedLngs: ['en', 'fr'], // We can dynamically load this if needed, but defining here for now
-        debug: true,
+        debug: import.meta.env.DEV,
         detection: {
             order: ['navigator', 'localStorage', 'htmlTag'],
             caches: ['localStorage'],
@@ -21,7 +21,10 @@ i18n
         },
 
         backend: {
-            loadPath: '/locales/{{lng}}/translation.json',
+            loadPath: '/locales/{{lng}}/translation.json?v=20260321',
+            requestOptions: {
+                cache: 'no-store',
+            },
         }
     });
 
