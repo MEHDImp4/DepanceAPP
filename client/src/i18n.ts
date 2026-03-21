@@ -44,7 +44,7 @@ i18n
         resources: fallbackResources,
         fallbackLng: 'en',
         supportedLngs: ['en', 'fr'], // We can dynamically load this if needed, but defining here for now
-        debug: import.meta.env.DEV,
+        debug: true,
         detection: {
             order: ['navigator', 'localStorage', 'htmlTag'],
             caches: ['localStorage'],
