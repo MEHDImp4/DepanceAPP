@@ -71,7 +71,9 @@ export const register = async (req: Request, res: Response, next: NextFunction):
         res.status(201).json({
             message: 'Account created successfully',
             userId: user.id,
-            user: { id: user.id, email: user.email, username: user.username }
+            user: { id: user.id, email: user.email, username: user.username },
+            token: accessToken,
+            refreshToken: refreshToken
         });
     } catch (error) {
         next(error);
@@ -161,7 +163,9 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
         res.json({
             user: { id: user.id, email: user.email, username: user.username, currency: user.currency },
-            newDevice: deviceCheck.isNew
+            newDevice: deviceCheck.isNew,
+            token: accessToken,
+            refreshToken: refreshToken
         });
     } catch (error) {
         next(error);
@@ -318,7 +322,11 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
             maxAge: ACCESS_TOKEN_MS
         });
 
-        res.json({ message: 'Token refreshed' });
+        res.json({ 
+            message: 'Token refreshed',
+            token: newAccessToken,
+            refreshToken: newRefreshToken
+        });
     } catch (error) {
         next(error);
     }

@@ -25,10 +25,17 @@ export default function LoginScreen() {
 
     try {
       const res = await apiClient.post('/auth/login', { identifier: email, password });
-      await setToken(res.data.token);
+      const { token } = res.data;
+      
+      if (!token) {
+        throw new Error('Server did not return a token. Please update your backend image.');
+      }
+      
+      await setToken(token);
     } catch (err: any) {
       console.error(err);
-      setError(err?.response?.data?.message || 'Login failed. Check server/credentials.');
+      const msg = err?.response?.data?.error || err?.response?.data?.message || err.message || 'Login failed. Check server/credentials.';
+      setError(msg);
       setLoading(false);
     }
   };
