@@ -4,9 +4,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTransactions, useCategories } from '../hooks/use-api';
 import { Search, Filter, Plus, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { Transaction } from '../types';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 export default function TransactionsScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const { data, isLoading } = useTransactions();
   const { data: catData } = useCategories();
   
@@ -98,6 +101,7 @@ export default function TransactionsScreen() {
                       key={t.id} 
                       style={[styles.transactionItem, idx !== items.length - 1 && styles.borderBottom]}
                       activeOpacity={0.6}
+                      onPress={() => navigation.navigate('TransactionDetails', { id: String(t.id) })}
                     >
                       <View style={styles.leftSide}>
                         <View style={[styles.iconBox, isIncome ? styles.iconIncome : styles.iconExpense]}>

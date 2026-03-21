@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Switch, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppStore } from '../store/useAppStore';
+import { useProfile } from '../hooks/use-api';
 import { User, Shield, Bell, LogOut, ChevronRight, Moon, Globe, Repeat, Target } from 'lucide-react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
@@ -9,8 +10,10 @@ import { useNavigation } from '@react-navigation/native';
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
-  const logout = useAppStore((state) => state.logout);
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const { logout, theme, setTheme, language, notificationsEnabled } = useAppStore();
+  const { data: profile } = useProfile();
+  
+  const isDarkMode = theme === 'dark';
 
   type SettingItem = {
     icon: any;
@@ -25,6 +28,10 @@ export default function SettingsScreen() {
     Alert.alert('Coming Soon', `${feature} will be available in the next major update.`);
   };
 
+  const languageMap: Record<string, string> = {
+    'en': 'English', 'fr': 'Français', 'es': 'Español', 'de': 'Deutsch', 'ar': 'العربية'
+  };
+
   const sections: { title: string, items: SettingItem[] }[] = [
     {
       title: 'Tools',
@@ -37,21 +44,21 @@ export default function SettingsScreen() {
       title: 'App Settings',
       items: [
         { icon: Moon, label: 'Dark Mode', color: '#6366F1', rightContent: <Switch trackColor={{ false: '#3F3F46', true: '#4F46E5' }} thumbColor="#FAFAFA" value={isDarkMode} onValueChange={(val) => {
-          setIsDarkMode(val);
+          setTheme(val ? 'dark' : 'light');
           if (!val) {
-            Alert.alert('Light Theme', 'Light mode is currently under development. Reverting to Dark theme.', [{text: 'OK', onPress: () => setIsDarkMode(true)}]);
+            Alert.alert('Light Theme', 'Light mode is currently under development. Reverting to Dark theme.', [{text: 'OK', onPress: () => setTheme('dark')}]);
           }
         }} /> },
-        { icon: Globe, label: 'Language', color: '#3B82F6', rightText: 'English', action: () => showComingSoon('Language localization') },
-        { icon: Globe, label: 'Currency', color: '#10B981', rightText: 'USD ($)', action: () => showComingSoon('Currency configuration') },
-        { icon: Bell, label: 'Notifications', color: '#F87171', rightText: 'On', action: () => showComingSoon('Push notifications') },
+        { icon: Globe, label: 'Language', color: '#3B82F6', rightText: languageMap[language] || 'English', action: () => navigation.navigate('LanguageSettings') },
+        { icon: Globe, label: 'Currency', color: '#10B981', rightText: profile?.currency || 'USD', action: () => navigation.navigate('CurrencySettings') },
+        { icon: Bell, label: 'Notifications', color: '#F87171', rightText: notificationsEnabled ? 'On' : 'Off', action: () => navigation.navigate('NotificationSettings') },
       ]
     },
     {
       title: 'Account',
       items: [
-        { icon: User, label: 'Profile Info', color: '#9CA3AF', action: () => showComingSoon('Profile management') },
-        { icon: Shield, label: 'Security & Privacy', color: '#F59E0B', action: () => showComingSoon('Security settings') },
+        { icon: User, label: 'Profile Info', color: '#9CA3AF', action: () => navigation.navigate('ProfileSettings') },
+        { icon: Shield, label: 'Security & Privacy', color: '#F59E0B', action: () => navigation.navigate('SecuritySettings') },
       ]
     }
   ];
@@ -70,13 +77,13 @@ export default function SettingsScreen() {
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
-              <Text style={styles.avatarText}>ME</Text>
+              <Text style={styles.avatarText}>{profile?.username?.substring(0, 2).toUpperCase() || 'ME'}</Text>
             </View>
             <View style={styles.activeBadge} />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.userName}>Mehdi</Text>
-            <Text style={styles.userEmail}>mehdidiouri17@gmail.com</Text>
+            <Text style={styles.userName}>{profile?.username || 'User'}</Text>
+            <Text style={styles.userEmail}>{profile?.email || 'Loading...'}</Text>
             <View style={styles.memberBadge}>
               <Text style={styles.memberBadgeText}>MEMBER</Text>
             </View>

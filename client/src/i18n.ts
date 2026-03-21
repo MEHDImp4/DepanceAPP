@@ -6,6 +6,29 @@ import Backend from 'i18next-http-backend';
 const fallbackResources = {
     en: {
         translation: {
+            nav: {
+                home: 'Home',
+                transact: 'Transact',
+                accounts: 'Accounts',
+                templates: 'Templates',
+                more: 'More',
+                settings: 'Settings',
+                goals: 'Goals',
+                recurring: 'Recurring',
+                more_options: 'More Options',
+                dashboard: 'Dashboard'
+            },
+            dashboard: {
+                total_capital: 'Total Capital',
+                live_balance: 'Live Balance',
+                recent_transactions: 'Recent Transactions'
+            },
+            common: {
+                see_all: 'See All'
+            },
+            transactions: {
+                uncategorized: 'Uncategorized'
+            },
             settings: {
                 currency_helper: 'This will update how values are displayed across the app.',
                 change_password: 'Change Password',
@@ -21,6 +44,29 @@ const fallbackResources = {
     },
     fr: {
         translation: {
+            nav: {
+                home: 'Accueil',
+                transact: 'Transaction',
+                accounts: 'Comptes',
+                templates: 'Modeles',
+                more: 'Plus',
+                settings: 'Parametres',
+                goals: 'Objectifs',
+                recurring: 'Recurrent',
+                more_options: "Plus d'options",
+                dashboard: 'Tableau de bord'
+            },
+            dashboard: {
+                total_capital: 'Capital Total',
+                live_balance: 'Solde en direct',
+                recent_transactions: 'Transactions Recentes'
+            },
+            common: {
+                see_all: 'Voir Tout'
+            },
+            transactions: {
+                uncategorized: 'Aucune categorie'
+            },
             settings: {
                 currency_helper: "Cela mettra à jour la façon dont les valeurs sont affichées dans toute l'application.",
                 change_password: 'Changer le mot de passe',

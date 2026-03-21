@@ -158,3 +158,21 @@ export function useDeleteGoal() {
     },
   });
 }
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { currency: string }) =>
+      apiClient.put('/auth/profile', data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+    },
+  });
+}
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: (data: any) =>
+      apiClient.post('/auth/change-password', data),
+  });
+}

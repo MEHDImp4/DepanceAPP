@@ -3,12 +3,15 @@ import { View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CapitalCard } from '../components/dashboard/CapitalCard';
 import { RecentTransactions } from '../components/dashboard/RecentTransactions';
-import { useSummary, useAccounts, useTransactions, useCategories } from '../hooks/use-api';
+import { useAccounts, useCategories, useSummary, useTransactions } from '../hooks/use-api';
 import { Wallet, LogOut } from 'lucide-react-native';
 import { useAppStore } from '../store/useAppStore';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 export default function DashboardScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const logout = useAppStore((state) => state.logout);
   const { data: summary, isLoading: isLoadingSummary, refetch: refetchSummary } = useSummary();
   const { data: accounts = [], isLoading: isLoadingAccounts, refetch: refetchAccounts } = useAccounts();
@@ -77,6 +80,8 @@ export default function DashboardScreen() {
         <RecentTransactions 
           transactions={safeTransactions.slice(0, 5)} 
           categories={safeCategories}
+          onPressTransaction={(id) => navigation.navigate('TransactionDetails', { id })}
+          onPressSeeAll={() => navigation.navigate('Transactions')}
         />
       </ScrollView>
     </View>
