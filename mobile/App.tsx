@@ -10,6 +10,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { useAppStore } from './src/store/useAppStore';
 import { View, Text } from 'react-native';
 import './src/i18n/config';
+import './global.css';
 
 const queryClient = new QueryClient();
 
