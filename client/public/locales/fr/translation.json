@@ -55,7 +55,8 @@
         "transfer_funds": "Transférer des Fonds",
         "from_account": "Compte Source",
         "to_account": "Compte Destination",
-        "confirm_transfer": "Confirmer le Transfert"
+        "confirm_transfer": "Confirmer le Transfert",
+        "select_account": "Choisir un compte"
     },
     "templates": {
         "title": "Modèles",
