@@ -12,7 +12,11 @@
         "home": "",
         "transact": "",
         "more": "",
-        "more_options": ""
+        "more_options": "",
+        "recurring": "",
+        "goals": "",
+        "analytics": "",
+        "analytics_desc": ""
     },
     "dashboard": {
         "total_capital": "",
@@ -25,6 +29,7 @@
         "title": "",
         "search_placeholder": "",
         "add_new": "",
+        "repeat_transaction": "",
         "income": "",
         "expense": "",
         "save": "",
@@ -32,24 +37,48 @@
         "description": "",
         "description_placeholder": "",
         "no_results": "",
-        "delete": "Delete",
-        "category": "Category",
-        "select_category": "Select Category"
+        "delete": "",
+        "category": "",
+        "select_category": "",
+        "uncategorized": "",
+        "type": "",
+        "date": "",
+        "account": ""
     },
     "accounts": {
         "title": "",
         "total_net_worth": "",
         "add_account": "",
-        "my_accounts": "My Accounts",
-        "active": "Active",
-        "edit_account": "Edit Account",
-        "select_account": "Select Account"
+        "my_accounts": "",
+        "active": "",
+        "edit_account": "",
+        "select_account": "",
+        "transfer_funds": "",
+        "from_account": "",
+        "to_account": "",
+        "confirm_transfer": ""
     },
     "templates": {
         "title": "",
         "subtitle": "",
         "create_new": "",
-        "add_template": ""
+        "add_template": "",
+        "create_template": "",
+        "edit_template": "",
+        "no_account_error": ""
+    },
+    "recurring": {
+        "title": "",
+        "subtitle": "",
+        "empty_title": "",
+        "empty_desc": "",
+        "add_title": "",
+        "interval": "",
+        "start_date": "",
+        "weekly": "",
+        "monthly": "",
+        "yearly": "",
+        "create_button": ""
     },
     "settings": {
         "title": "",
@@ -57,14 +86,20 @@
         "account": "",
         "dark_mode": "",
         "currency": "",
+        "currency_helper": "",
         "notifications": "",
         "profile_info": "",
         "security_privacy": "",
+        "change_password": "",
+        "update_password": "",
+        "login_history": "",
+        "security_notice": "",
         "logout": "",
         "language": "",
         "member": "",
         "on": "",
-        "usd": ""
+        "usd": "",
+        "tools": ""
     },
     "auth": {
         "login_title": "",
@@ -74,13 +109,18 @@
         "email": "",
         "email_placeholder": "",
         "password": "",
+        "current_password": "",
+        "new_password": "",
         "password_placeholder": "",
         "username": "",
         "username_placeholder": "",
         "login_button": "",
         "register_button": "",
         "no_account": "",
-        "have_account": ""
+        "have_account": "",
+        "confirm_password_placeholder": "",
+        "password_mismatch": "",
+        "email_or_username_placeholder": ""
     },
     "common": {
         "name": "",
@@ -88,6 +128,13 @@
         "see_all": "",
         "retry": "",
         "error_dashboard_title": "",
-        "error_dashboard_desc": ""
+        "error_dashboard_desc": "",
+        "save": "",
+        "add": "",
+        "details": "",
+        "delete": "",
+        "confirm_delete": "",
+        "select_account": "",
+        "description": ""
     }
 }
