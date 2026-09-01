@@ -1,6 +1,6 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
-import type { Transaction, Account, Template, User, Category, RecurringTransaction, Goal, MonthlyRecap } from '@/types';
+import type { Transaction, TransactionPage, Account, Template, User, Category, RecurringTransaction, Goal, MonthlyRecap } from '@/types';
 
 export function useTransaction(id: number) {
     return useQuery({
@@ -22,7 +22,7 @@ export function useUpdateProfile() {
 
 export function useChangePassword() {
     return useMutation({
-        mutationFn: (data: any) =>
+        mutationFn: (data: { oldPassword: string; newPassword: string }) =>
             api.post('/auth/change-password', data),
     });
 }
@@ -58,12 +58,16 @@ export function useCategories() {
 }
 
 export function useTransactions() {
-    return useQuery({
+    return useInfiniteQuery({
         queryKey: ['transactions'],
-        queryFn: async () => {
-            const { data } = await api.get<Transaction[]>('/transactions');
+        initialPageParam: null as string | null,
+        queryFn: async ({ pageParam }) => {
+            const { data } = await api.get<TransactionPage>('/transactions', {
+                params: { limit: 50, cursor: pageParam || undefined }
+            });
             return data;
         },
+        getNextPageParam: (lastPage) => lastPage.nextCursor || undefined,
     });
 }
 
@@ -87,13 +91,13 @@ export function useSummary() {
             // Need to create this endpoint or aggregate locally
             // For now, let's assume we can get simple stats
             const accounts = await api.get<Account[]>('/accounts');
-            const transactions = await api.get<Transaction[]>('/transactions');
+            const transactions = await api.get<TransactionPage>('/transactions', { params: { limit: 5 } });
 
             const totalCapital = accounts.data.reduce((acc, curr) => acc + curr.balance, 0);
 
             return {
                 totalCapital,
-                transactions: transactions.data,
+                transactions: transactions.data.items,
                 accounts: accounts.data
             };
         }
@@ -171,7 +175,15 @@ export function useRecurring() {
 export function useCreateRecurring() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (newRecurring: any) =>
+        mutationFn: (newRecurring: {
+            description: string;
+            amount: number;
+            type: 'income' | 'expense';
+            interval: 'weekly' | 'monthly' | 'yearly';
+            start_date?: string;
+            account_id: number;
+            category_id?: number | null;
+        }) =>
             api.post('/recurring', newRecurring),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['recurring'] });
@@ -219,7 +231,7 @@ export function useGoals() {
 export function useCreateGoal() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (newGoal: any) =>
+        mutationFn: (newGoal: Omit<Goal, 'id' | 'created_at' | 'percentage'>) =>
             api.post('/goals', newGoal),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['goals'] });

@@ -1,8 +1,8 @@
 // Mock for virtual:pwa-register/react
-export function useRegisterSW(options?: any) {
+export function useRegisterSW(_options?: unknown) {
     return {
-        needRefresh: [false, (value: boolean) => { }],
-        offlineReady: [false, (value: boolean) => { }],
-        updateServiceWorker: (reloadPage?: boolean) => { },
+        needRefresh: [false, (_value: boolean) => { }],
+        offlineReady: [false, (_value: boolean) => { }],
+        updateServiceWorker: (_reloadPage?: boolean) => { },
     };
 }

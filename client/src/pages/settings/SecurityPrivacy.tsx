@@ -5,6 +5,19 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow, isValid } from "date-fns";
+import { isAxiosError } from "axios";
+
+interface LoginHistoryEntry {
+    id: number;
+    deviceType?: string;
+    device?: string;
+    browser?: string;
+    os?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    success: boolean;
+    createdAt: string;
+}
 
 export default function SecurityPrivacy() {
     const { t } = useTranslation();
@@ -32,8 +45,9 @@ export default function SecurityPrivacy() {
                 setOldPassword("");
                 setNewPassword("");
             },
-            onError: (err: any) => {
-                setMessage({ type: 'error', text: err.response?.data?.error || "Failed to update password" });
+            onError: (err: unknown) => {
+                const text = isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined;
+                setMessage({ type: 'error', text: text || "Failed to update password" });
             }
         });
     };
@@ -127,14 +141,14 @@ export default function SecurityPrivacy() {
                         </div>
                     ) : (
                         <div className="divide-y divide-border/30">
-                            {loginHistory?.map((login: any) => (
+                            {(loginHistory as LoginHistoryEntry[] | undefined)?.map((login) => (
                                 <div key={login.id} className="p-4 hover:bg-muted/30 transition-colors flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
                                         <div className={cn(
                                             "p-2.5 rounded-xl",
-                                            login.deviceType === 'mobile' ? "bg-blue-500/10 text-blue-500" : "bg-slate-500/10 text-slate-500"
+                                            login.device?.toLowerCase() === 'mobile' ? "bg-blue-500/10 text-blue-500" : "bg-slate-500/10 text-slate-500"
                                         )}>
-                                            {login.deviceType === 'mobile' ? <Smartphone size={18} /> : <Laptop size={18} />}
+                                            {login.device?.toLowerCase() === 'mobile' ? <Smartphone size={18} /> : <Laptop size={18} />}
                                         </div>
                                         <div>
                                             <p className="font-bold text-sm tracking-tight">
@@ -149,7 +163,7 @@ export default function SecurityPrivacy() {
                                     </div>
                                     <div className="text-right">
                                         {(() => {
-                                            const loginDate = login.timestamp ? new Date(login.timestamp) : null;
+                                            const loginDate = login.createdAt ? new Date(login.createdAt) : null;
                                             const timeAgo = loginDate && isValid(loginDate)
                                                 ? formatDistanceToNow(loginDate, { addSuffix: true })
                                                 : "Unknown time";

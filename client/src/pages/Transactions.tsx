@@ -28,7 +28,8 @@ function groupTransactionsByDate(transactions: Transaction[], locale: string) {
 export default function Transactions() {
     const navigate = useNavigate();
     const { t, i18n } = useTranslation();
-    const { data: transactions = [], isLoading } = useTransactions();
+    const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useTransactions();
+    const transactions = data?.pages.flatMap(page => page.items) ?? [];
 
     const { data: categories = [] } = useCategories();
     const user = useAuthStore((state) => state.user);
@@ -186,6 +187,19 @@ export default function Transactions() {
                     ))
                 )}
             </div>
+
+            {hasNextPage && (
+                <div className="flex justify-center">
+                    <button
+                        type="button"
+                        onClick={() => fetchNextPage()}
+                        disabled={isFetchingNextPage}
+                        className="px-5 py-3 rounded-xl border border-border bg-card font-semibold disabled:opacity-50"
+                    >
+                        {isFetchingNextPage ? t('common.loading') : t('common.load_more', { defaultValue: 'Load more' })}
+                    </button>
+                </div>
+            )}
 
             {/* Floating Action Button */}
             <div className="fixed bottom-24 right-4 z-40">

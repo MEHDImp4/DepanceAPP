@@ -126,6 +126,7 @@ model Transaction {
   @@index([user_id])
   @@index([account_id])
   @@index([created_at])
+  @@index([user_id, created_at, id])
 }
 
 model Template {

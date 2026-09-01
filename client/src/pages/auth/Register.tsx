@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import api from "@/lib/axios";
 import { Lock, Mail, User, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { isAxiosError } from "axios";
 
 export default function Register() {
     const [error, setError] = useState("");
@@ -41,8 +42,8 @@ export default function Register() {
             const { data } = await api.post("/auth/register", { username, email, password });
             register(data.user);
             navigate("/");
-        } catch (err: any) {
-            setError(err.response?.data?.error || "Failed to register");
+        } catch (err: unknown) {
+            setError((isAxiosError<{ error?: string }>(err) && err.response?.data?.error) || "Failed to register");
         } finally {
             setIsLoading(false);
         }

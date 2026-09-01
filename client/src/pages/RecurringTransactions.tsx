@@ -2,8 +2,8 @@ import { useTranslation } from "react-i18next";
 import { Plus, Repeat, Trash2, ArrowLeft, Calendar, Wallet } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { useRecurring, useDeleteRecurring, useProcessRecurring } from "@/hooks/use-api";
-import { useState, useEffect } from "react";
+import { useRecurring, useDeleteRecurring } from "@/hooks/use-api";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, isValid } from "date-fns";
 import { fr, enUS } from "date-fns/locale";
@@ -14,13 +14,7 @@ export default function Recurring() {
     const navigate = useNavigate();
     const { data: recurring = [], isLoading } = useRecurring();
     const deleteRecurring = useDeleteRecurring();
-    const processRecurring = useProcessRecurring();
     const [isModalOpen, setIsModalOpen] = useState(false);
-
-    // Process on load to ensure everything is up to date
-    useEffect(() => {
-        processRecurring.mutate();
-    }, []);
 
     const handleDelete = (id: number) => {
         if (window.confirm(t('common.confirm_delete') || "Are you sure?")) {

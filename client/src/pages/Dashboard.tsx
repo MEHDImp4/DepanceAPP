@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { CapitalCard } from "@/components/dashboard/CapitalCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
-import { useSummary, useAccounts, useProcessRecurring } from "@/hooks/use-api";
-import { useEffect } from "react";
+import { useSummary, useAccounts } from "@/hooks/use-api";
 import { useAuthStore } from "@/store/auth-store";
 import { useCurrencyRates, convertCurrency } from "@/hooks/use-currency";
 
@@ -14,11 +13,6 @@ export default function Dashboard() {
     const { data: accounts = [] } = useAccounts();
     const { data: ratesData } = useCurrencyRates();
     const user = useAuthStore((state) => state.user);
-    const processRecurring = useProcessRecurring();
-
-    useEffect(() => {
-        processRecurring.mutate();
-    }, []);
 
     if (isSummaryLoading) {
         return (

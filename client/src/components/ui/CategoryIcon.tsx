@@ -1,4 +1,5 @@
 import * as LucideIcons from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface CategoryIconProps {
@@ -10,7 +11,7 @@ interface CategoryIconProps {
 
 export function CategoryIcon({ icon, size = 20, className = "", strokeWidth = 2 }: CategoryIconProps) {
     // Try to find a Lucide icon with the given name
-    const IconComponent = (LucideIcons as any)[icon];
+    const IconComponent = (LucideIcons as unknown as Record<string, LucideIcon>)[icon];
 
     if (IconComponent) {
         return <IconComponent size={size} className={className} strokeWidth={strokeWidth} />;
