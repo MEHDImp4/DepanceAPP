@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { toCents, fromCents } from '../utils/money';
+import { assertOwnedCategory } from '../utils/ownership';
 
 interface CreateBudgetBody {
     amount: number;
@@ -63,6 +64,7 @@ export const createBudget = async (req: Request, res: Response, next: NextFuncti
     try {
         const { amount, period, category_id } = req.body as CreateBudgetBody;
         const userId = req.user!.userId;
+        await assertOwnedCategory(category_id, userId);
 
         const existing = await prisma.budget.findFirst({
             where: {

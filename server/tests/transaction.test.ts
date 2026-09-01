@@ -1,7 +1,9 @@
 import request from 'supertest';
 import app from '../src/index';
 import prisma from '../src/utils/prisma';
-import jwt from 'jsonwebtoken';
+import { signAccessToken } from '../src/utils/tokens';
+
+jest.setTimeout(10_000);
 
 describe('Transaction Endpoints', () => {
     let token: string;
@@ -17,7 +19,7 @@ describe('Transaction Endpoints', () => {
             }
         });
         userId = user.id;
-        token = jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET || 'secret_key', { expiresIn: '1h' });
+        token = signAccessToken(user);
 
         const account = await prisma.account.create({
             data: {

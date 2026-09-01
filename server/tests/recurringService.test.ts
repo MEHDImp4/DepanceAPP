@@ -18,6 +18,7 @@ jest.mock('../src/utils/prisma', () => {
             $disconnect: jest.fn().mockResolvedValue(undefined),
             $transaction: jest.fn(),
             transaction: { ...mockDelegate },
+            recurringOccurrence: { ...mockDelegate },
             account: { ...mockDelegate },
             budget: { ...mockDelegate },
             recurringTransaction: { ...mockDelegate },
@@ -55,8 +56,11 @@ describe('Recurring Service', () => {
         const mockTx = { id: 101, amount: 1000 };
 
         (prisma.recurringTransaction.findMany as jest.Mock).mockResolvedValue([mockRecurring]);
-        // Mock $transaction to return array with the created transaction first
-        (prisma.$transaction as jest.Mock).mockResolvedValue([mockTx, {}]);
+        (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => callback({
+            recurringOccurrence: { create: jest.fn().mockResolvedValue({}) },
+            transaction: { create: jest.fn().mockResolvedValue(mockTx) },
+            account: { update: jest.fn().mockResolvedValue({}) }
+        }));
         (prisma.recurringTransaction.update as jest.Mock).mockResolvedValue({});
 
         const result = await processDueTransactions();

@@ -1,4 +1,5 @@
 import prisma from '../utils/prisma';
+import { Prisma } from '@prisma/client';
 import logger from '../utils/logger';
 
 const MAX_RECURRING_LOOPS = 12;
@@ -55,8 +56,11 @@ async function processRuleCycles(
         const balanceChange = rule.type === 'income' ? rule.amount : -rule.amount;
 
         try {
-            const results = await prisma.$transaction([
-                prisma.transaction.create({
+            const tx = await prisma.$transaction(async (database) => {
+                await database.recurringOccurrence.create({
+                    data: { recurring_rule_id: rule.id, scheduled_at: new Date(nextDate) }
+                });
+                const transaction = await database.transaction.create({
                     data: {
                         amount: rule.amount,
                         description: `${rule.description} (Auto)`,
@@ -66,21 +70,24 @@ async function processRuleCycles(
                         user_id: rule.user_id,
                         created_at: new Date(nextDate) // Use the theoretical date it should have run
                     }
-                }),
-                prisma.account.update({
+                });
+                await database.account.update({
                     where: { id: rule.account_id },
                     data: { balance: { increment: balanceChange } }
-                })
-            ]);
-            const tx = results[0];
+                });
+                return transaction;
+            });
 
             createdTransactions.push({ id: tx.id, amount: tx.amount });
             logger.info(`Processed recurring transaction ${rule.id} for date ${nextDate.toISOString()}`);
 
         } catch (error) {
+            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+                logger.info(`Recurring transaction ${rule.id} for ${nextDate.toISOString()} was already processed`);
+            } else {
             logger.error(`Failed to process recurring rule ${rule.id}:`, error);
-            // Break loop on error to prevent infinite retries of broken rules
-            break;
+                break;
+            }
         }
 
         // Advance date

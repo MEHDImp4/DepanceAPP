@@ -1,13 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { randomUUID } from 'crypto';
 import prisma from '../utils/prisma';
-import type { JwtPayload } from '../types';
+import { hashToken, signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/tokens';
 
 const BCRYPT_SALT_ROUNDS = 10;
-const ACCESS_TOKEN_EXPIRY = '15m';
-const REFRESH_TOKEN_EXPIRY = '30d';
 const REFRESH_TOKEN_MS = 30 * 24 * 60 * 60 * 1000;
 const ACCESS_TOKEN_MS = 15 * 60 * 1000;
 
@@ -35,20 +31,12 @@ export const register = async (req: Request, res: Response, next: NextFunction):
             data: { email, username, password_hash: hashedPassword }
         });
 
-        const accessToken = jwt.sign(
-            { userId: user.id, email: user.email } as JwtPayload,
-            process.env.JWT_SECRET!,
-            { expiresIn: ACCESS_TOKEN_EXPIRY }
-        );
-        const refreshToken = jwt.sign(
-            { userId: user.id, jti: randomUUID() } as Partial<JwtPayload>,
-            process.env.JWT_SECRET!,
-            { expiresIn: REFRESH_TOKEN_EXPIRY }
-        );
+        const accessToken = signAccessToken(user);
+        const refreshToken = signRefreshToken(user.id);
 
         await prisma.refreshToken.create({
             data: {
-                token: refreshToken,
+                token: hashToken(refreshToken),
                 userId: user.id,
                 expiresAt: new Date(Date.now() + REFRESH_TOKEN_MS)
             }
@@ -72,8 +60,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
             message: 'Account created successfully',
             userId: user.id,
             user: { id: user.id, email: user.email, username: user.username },
-            token: accessToken,
-            refreshToken: refreshToken
+            token: accessToken
         });
     } catch (error) {
         next(error);
@@ -128,20 +115,12 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
         // Check for new device
         const deviceCheck = await isNewDeviceOrLocation(user.id, req);
 
-        const accessToken = jwt.sign(
-            { userId: user.id, email: user.email } as JwtPayload,
-            process.env.JWT_SECRET!,
-            { expiresIn: ACCESS_TOKEN_EXPIRY }
-        );
-        const refreshToken = jwt.sign(
-            { userId: user.id, jti: randomUUID() } as Partial<JwtPayload>,
-            process.env.JWT_SECRET!,
-            { expiresIn: REFRESH_TOKEN_EXPIRY }
-        );
+        const accessToken = signAccessToken(user);
+        const refreshToken = signRefreshToken(user.id);
 
         await prisma.refreshToken.create({
             data: {
-                token: refreshToken,
+                token: hashToken(refreshToken),
                 userId: user.id,
                 expiresAt: new Date(Date.now() + REFRESH_TOKEN_MS)
             }
@@ -164,8 +143,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
         res.json({
             user: { id: user.id, email: user.email, username: user.username, currency: user.currency },
             newDevice: deviceCheck.isNew,
-            token: accessToken,
-            refreshToken: refreshToken
+            token: accessToken
         });
     } catch (error) {
         next(error);
@@ -239,8 +217,9 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
             data: { password_hash: hashedPassword }
         });
 
-        // Optional: Invalidate all refresh tokens/sessions on password change for security
-        // await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+        await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+        res.clearCookie('refreshToken');
+        res.clearCookie('token');
 
         res.json({ message: 'Password updated successfully' });
     } catch (error) {
@@ -257,14 +236,14 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
         }
 
         try {
-            jwt.verify(refreshTokenValue, process.env.JWT_SECRET!);
+            verifyRefreshToken(refreshTokenValue);
         } catch {
             res.status(401).json({ error: 'Invalid refresh token' });
             return;
         }
 
         const storedToken = await prisma.refreshToken.findUnique({
-            where: { token: refreshTokenValue },
+            where: { token: hashToken(refreshTokenValue) },
             include: { user: true }
         });
 
@@ -274,34 +253,26 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
         }
 
         if (new Date() > storedToken.expiresAt) {
-            await prisma.refreshToken.delete({ where: { token: refreshTokenValue } });
+            await prisma.refreshToken.delete({ where: { token: hashToken(refreshTokenValue) } });
             res.status(401).json({ error: 'Refresh token expired' });
             return;
         }
 
         // Rolling Refresh Token: Delete old one and issue a NEW one
-        await prisma.refreshToken.delete({ where: { token: refreshTokenValue } });
+        await prisma.refreshToken.delete({ where: { token: hashToken(refreshTokenValue) } });
 
         const user = storedToken.user;
 
         // precise rotation: create new refresh token
-        const newRefreshToken = jwt.sign(
-            { userId: user.id, jti: randomUUID() } as Partial<JwtPayload>,
-            process.env.JWT_SECRET!,
-            { expiresIn: REFRESH_TOKEN_EXPIRY }
-        );
+        const newRefreshToken = signRefreshToken(user.id);
 
         // Issue new Access Token
-        const newAccessToken = jwt.sign(
-            { userId: user.id, email: user.email } as JwtPayload,
-            process.env.JWT_SECRET!,
-            { expiresIn: ACCESS_TOKEN_EXPIRY }
-        );
+        const newAccessToken = signAccessToken(user);
 
         // Save new Refresh Token
         await prisma.refreshToken.create({
             data: {
-                token: newRefreshToken,
+                token: hashToken(newRefreshToken),
                 userId: user.id,
                 expiresAt: new Date(Date.now() + REFRESH_TOKEN_MS)
             }
@@ -324,8 +295,7 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
 
         res.json({ 
             message: 'Token refreshed',
-            token: newAccessToken,
-            refreshToken: newRefreshToken
+            token: newAccessToken
         });
     } catch (error) {
         next(error);
@@ -337,7 +307,7 @@ export const logout = async (req: Request, res: Response, next: NextFunction): P
         const refreshTokenValue = req.cookies?.refreshToken as string | undefined;
         if (refreshTokenValue) {
             await prisma.refreshToken.delete({
-                where: { token: refreshTokenValue }
+                where: { token: hashToken(refreshTokenValue) }
             }).catch(() => {
                 // Ignore if already deleted or not found
             });

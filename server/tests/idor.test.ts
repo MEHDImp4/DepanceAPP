@@ -1,7 +1,7 @@
 import request from 'supertest';
 import app from '../src/index';
 import prisma from '../src/utils/prisma';
-import jwt from 'jsonwebtoken';
+import { signAccessToken } from '../src/utils/tokens';
 
 describe('IDOR Vulnerability Check', () => {
     let user1: any, user2: any;
@@ -18,7 +18,7 @@ describe('IDOR Vulnerability Check', () => {
                 password_hash: 'hashed'
             }
         });
-        token1 = jwt.sign({ userId: user1.id, email: user1.email }, process.env.JWT_SECRET || 'secret_key');
+        token1 = signAccessToken(user1);
 
         // Create Category for User 1
         category1 = await prisma.category.create({
@@ -37,7 +37,7 @@ describe('IDOR Vulnerability Check', () => {
                 password_hash: 'hashed'
             }
         });
-        token2 = jwt.sign({ userId: user2.id, email: user2.email }, process.env.JWT_SECRET || 'secret_key');
+        token2 = signAccessToken(user2);
 
         // Create Account for User 2
         account2 = await prisma.account.create({

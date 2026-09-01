@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { toCents, fromCents } from '../utils/money';
+import { assertOwnedAccount, assertOwnedCategory } from '../utils/ownership';
 
 interface CreateTemplateBody {
     name: string;
@@ -19,6 +20,10 @@ export const createTemplate = async (req: Request, res: Response, next: NextFunc
     try {
         const { name, amount, description, default_account_id, category_id, color, icon_name, type } = req.body as CreateTemplateBody;
         const userId = req.user!.userId;
+        await Promise.all([
+            assertOwnedAccount(default_account_id, userId),
+            assertOwnedCategory(category_id, userId)
+        ]);
 
         const template = await prisma.template.create({
             data: {
@@ -42,6 +47,7 @@ export const createTemplate = async (req: Request, res: Response, next: NextFunc
 export const getTemplates = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const userId = req.user!.userId;
+
         const templates = await prisma.template.findMany({
             where: { user_id: userId },
             include: {
@@ -61,6 +67,10 @@ export const updateTemplate = async (req: Request, res: Response, next: NextFunc
         const { id } = req.params;
         const { name, amount, description, default_account_id, category_id, color, icon_name, type } = req.body as UpdateTemplateBody;
         const userId = req.user!.userId;
+        await Promise.all([
+            assertOwnedAccount(default_account_id, userId),
+            assertOwnedCategory(category_id, userId)
+        ]);
 
         const template = await prisma.template.update({
             where: { id: parseInt(id as string), user_id: userId },

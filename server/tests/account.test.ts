@@ -1,7 +1,7 @@
 import request from 'supertest';
 import app from '../src/index';
 import prisma from '../src/utils/prisma';
-import jwt from 'jsonwebtoken';
+import { signAccessToken } from '../src/utils/tokens';
 
 describe('Account Endpoints', () => {
     let token: string;
@@ -17,7 +17,7 @@ describe('Account Endpoints', () => {
             }
         });
         userId = user.id;
-        token = jwt.sign({ userId: user.id, email: user.email }, process.env.JWT_SECRET || 'secret_key', { expiresIn: '1h' });
+        token = signAccessToken(user);
     });
 
     it('should create a new account', async () => {
