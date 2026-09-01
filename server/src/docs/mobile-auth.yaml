@@ -1,0 +1,103 @@
+paths:
+  /auth/mobile/login:
+    post:
+      tags: [Mobile authentication]
+      summary: Start or replace a session for one mobile device
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MobileLoginRequest'
+      responses:
+        '200':
+          description: Mobile token pair
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileTokenPair'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/mobile/refresh:
+    post:
+      tags: [Mobile authentication]
+      summary: Rotate a mobile refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken, deviceId]
+              properties:
+                refreshToken: { type: string }
+                deviceId: { type: string, minLength: 8, maxLength: 128 }
+      responses:
+        '200':
+          description: Rotated token pair
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MobileTokenPair'
+        '401':
+          description: Invalid, expired or revoked session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /auth/mobile/logout:
+    post:
+      tags: [Mobile authentication]
+      summary: Revoke the supplied mobile session
+      security: []
+      responses:
+        '204': { description: Session revoked }
+  /auth/sessions:
+    get:
+      tags: [Sessions]
+      summary: List the authenticated user's sessions without exposing tokens
+      responses:
+        '200':
+          description: Active sessions
+    delete:
+      tags: [Sessions]
+      summary: Use DELETE /auth/sessions/{id} to revoke one session
+      responses:
+        '405': { description: Method not allowed }
+  /auth/sessions/{id}:
+    delete:
+      tags: [Sessions]
+      summary: Revoke one owned session
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Session revoked }
+        '404':
+          description: Session does not exist or belongs to another user
+components:
+  schemas:
+    MobileLoginRequest:
+      type: object
+      required: [identifier, password, deviceId, deviceName]
+      properties:
+        identifier: { type: string }
+        password: { type: string, format: password }
+        deviceId: { type: string, minLength: 8, maxLength: 128 }
+        deviceName: { type: string, minLength: 1, maxLength: 128 }
+    MobileTokenPair:
+      type: object
+      required: [tokenType, accessToken, refreshToken, expiresIn]
+      properties:
+        tokenType: { type: string, const: Bearer }
+        accessToken: { type: string }
+        refreshToken: { type: string, description: Store only in Android Keystore or iOS Keychain }
+        expiresIn: { type: integer, example: 900 }
