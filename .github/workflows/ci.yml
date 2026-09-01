@@ -57,6 +57,14 @@ jobs:
         DATABASE_URL: mysql://root:root@localhost:3306/depance_db
       run: npx prisma generate
 
+    - name: Typecheck Server
+      working-directory: ./server
+      run: npm run build:check
+
+    - name: Audit Server Dependencies
+      working-directory: ./server
+      run: npm audit --audit-level=high
+
     - name: Setup Test Database
       working-directory: ./server
       env:
@@ -77,3 +85,11 @@ jobs:
     - name: Run Client Tests
       working-directory: ./client
       run: npm run test:run
+
+    - name: Lint Client
+      working-directory: ./client
+      run: npm run lint
+
+    - name: Build Client
+      working-directory: ./client
+      run: npm run build

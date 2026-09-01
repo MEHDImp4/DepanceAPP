@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
+import { fromCents } from '../utils/money';
 
 export const getMonthlyRecap = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -53,7 +54,7 @@ export const getMonthlyRecap = async (req: Request, res: Response, next: NextFun
                 where: { id: categoryStats[0].category_id }
             });
             if (cat) {
-                topCategory = { name: cat.name, amount: categoryStats[0]._sum.amount, color: cat.color, icon: cat.icon };
+                topCategory = { name: cat.name, amount: fromCents(categoryStats[0]._sum.amount || 0), color: cat.color, icon: cat.icon };
             }
         }
 
@@ -91,13 +92,13 @@ export const getMonthlyRecap = async (req: Request, res: Response, next: NextFun
         res.json({
             month: now.toLocaleString('default', { month: 'long' }),
             year: now.getFullYear(),
-            totalSpent: currentExpense,
-            totalIncome: typeTotals.find(t => t.type === 'income')?._sum.amount || 0,
+            totalSpent: fromCents(currentExpense),
+            totalIncome: fromCents(typeTotals.find(t => t.type === 'income')?._sum.amount || 0),
             transactionCount: currentTotals._count,
             topCategory,
-            biggestPurchase,
+            biggestPurchase: biggestPurchase ? { ...biggestPurchase, amount: fromCents(biggestPurchase.amount) } : null,
             comparison: {
-                lastMonthSpent: lastExpense,
+                lastMonthSpent: fromCents(lastExpense),
                 percentageChange: comparisonPercentage
             }
         });
@@ -178,8 +179,8 @@ export const getSpendingTrends = async (req: Request, res: Response, next: NextF
             .sort()
             .map(dateKey => ({
                 date: dateKey,
-                income: groupedData[dateKey].income,
-                expense: groupedData[dateKey].expense
+                income: fromCents(groupedData[dateKey].income),
+                expense: fromCents(groupedData[dateKey].expense)
             }));
 
         res.json(sortedChartData);

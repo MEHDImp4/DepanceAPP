@@ -14,6 +14,20 @@ interface UpdateBudgetBody {
     period?: 'weekly' | 'monthly' | 'yearly';
 }
 
+const getPeriodStart = (period: string, now = new Date()): Date => {
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    if (period === 'weekly') {
+        const day = start.getDay();
+        start.setDate(start.getDate() - (day === 0 ? 6 : day - 1));
+    } else if (period === 'yearly') {
+        start.setMonth(0, 1);
+    } else {
+        start.setDate(1);
+    }
+    return start;
+};
+
 export const getBudgets = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const userId = req.user!.userId;
@@ -21,10 +35,6 @@ export const getBudgets = async (req: Request, res: Response, next: NextFunction
             where: { user_id: userId },
             include: { category: true }
         });
-
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
 
         const budgetsWithSpent = await Promise.all(budgets.map(async (budget) => {
             const whereClause: {
@@ -34,7 +44,7 @@ export const getBudgets = async (req: Request, res: Response, next: NextFunction
                 category_id?: number;
             } = {
                 user_id: userId,
-                created_at: { gte: startOfMonth },
+                created_at: { gte: getPeriodStart(budget.period) },
                 type: 'expense'
             };
 

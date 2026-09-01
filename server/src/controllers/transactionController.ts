@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { toCents, fromCents } from '../utils/money';
 import { getRates, calculateExchange } from '../utils/currencyService';
+import { runIdempotent } from '../utils/idempotency';
 
 interface CreateTransactionBody {
     amount: number;
@@ -37,8 +38,8 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
         const transactionAmount = toCents(amount);
         const balanceChange = type === 'income' ? transactionAmount : -transactionAmount;
 
-        const [transaction, updatedAccount] = await prisma.$transaction([
-            prisma.transaction.create({
+        const result = await runIdempotent(userId, 'transaction.create', req.get('Idempotency-Key'), async database => {
+            const transaction = await database.transaction.create({
                 data: {
                     amount: transactionAmount,
                     description,
@@ -47,17 +48,23 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
                     user_id: userId,
                     category_id: category_id || null
                 }
-            }),
-            prisma.account.update({
+            });
+            const updatedAccount = await database.account.update({
                 where: { id: account_id },
                 data: { balance: { increment: balanceChange } }
-            })
-        ]);
+            });
 
-        res.status(201).json({
-            transaction: { ...transaction, amount: fromCents(transaction.amount) },
-            newBalance: fromCents(updatedAccount.balance)
+            return {
+                statusCode: 201,
+                body: {
+                    transaction: { ...transaction, amount: fromCents(transaction.amount) },
+                    newBalance: fromCents(updatedAccount.balance)
+                }
+            };
         });
+
+        if (result.replayed) res.set('Idempotency-Replayed', 'true');
+        res.status(result.statusCode).json(result.body);
     } catch (error) {
         next(error);
     }
