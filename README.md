@@ -147,6 +147,10 @@ We welcome contributions! Here is how to run the project locally for development
     # Install client dependencies
     cd ../client
     npm install
+
+    # Install the Expo mobile app
+    cd ../mobile
+    npm install
     ```
 
 3.  **Configure Environment**
@@ -161,6 +165,10 @@ We welcome contributions! Here is how to run the project locally for development
     # Terminal 2: Start Frontend
     cd client
     npm run dev
+
+    # Terminal 3: Start the mobile app
+    cd mobile
+    npm start
     ```
 
 ---
