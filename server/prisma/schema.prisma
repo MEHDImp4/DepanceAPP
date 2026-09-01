@@ -102,7 +102,7 @@ model Category {
   user         User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
   created_at   DateTime               @default(now())
   transactions Transaction[]
-  budget       Budget?
+  budgets      Budget[]
   recurring    RecurringTransaction[]
   templates    Template[]
 
@@ -149,13 +149,15 @@ model Budget {
   id          Int      @id @default(autoincrement())
   amount      Int
   period      String   @default("monthly")
-  category_id Int?     @unique
+  category_id Int?
   user_id     Int
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
   category Category? @relation(fields: [category_id], references: [id])
   user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, category_id])
 }
 
 model RecurringTransaction {
@@ -171,10 +173,21 @@ model RecurringTransaction {
   user_id       Int
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+  occurrences   RecurringOccurrence[]
 
   category Category? @relation(fields: [category_id], references: [id])
   account  Account   @relation(fields: [account_id], references: [id], onDelete: Cascade)
   user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
+
+model RecurringOccurrence {
+  id                Int      @id @default(autoincrement())
+  recurring_rule_id Int
+  scheduled_at      DateTime
+  created_at        DateTime @default(now())
+  recurring_rule    RecurringTransaction @relation(fields: [recurring_rule_id], references: [id], onDelete: Cascade)
+
+  @@unique([recurring_rule_id, scheduled_at])
 }
 
 model ExchangeRate {

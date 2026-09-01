@@ -21,6 +21,7 @@ afterEach(async () => {
     const deleteAccounts = prisma.account.deleteMany();
     const deleteBudgets = prisma.budget.deleteMany();
     const deleteRecurring = prisma.recurringTransaction.deleteMany();
+    const deleteRecurringOccurrences = prisma.recurringOccurrence.deleteMany();
     const deleteCategories = prisma.category.deleteMany();
     const deleteRefreshTokens = prisma.refreshToken.deleteMany();
     const deleteLoginHistory = prisma.loginHistory.deleteMany();
@@ -32,6 +33,7 @@ afterEach(async () => {
     try {
         await prisma.$transaction([
             deleteTransactions,
+            deleteRecurringOccurrences,
             deleteRecurring,
             deleteBudgets,
             deleteAccounts,

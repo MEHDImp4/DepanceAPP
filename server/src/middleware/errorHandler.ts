@@ -3,6 +3,7 @@ import logger from '../utils/logger';
 
 interface ErrorWithStack extends Error {
     stack?: string;
+    statusCode?: number;
 }
 
 const errorHandler = (
@@ -11,7 +12,7 @@ const errorHandler = (
     res: Response,
     _next: NextFunction
 ): void => {
-    const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+    const statusCode = err.statusCode || (res.statusCode === 200 ? 500 : res.statusCode);
 
     // Log error using Winston
     logger.error(`${req.method} ${req.url} - ${err.message}`, { stack: err.stack });

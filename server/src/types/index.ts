@@ -2,6 +2,7 @@
 export interface JwtPayload {
     userId: number;
     email: string;
+    typ: 'access';
     iat?: number;
     exp?: number;
 }
