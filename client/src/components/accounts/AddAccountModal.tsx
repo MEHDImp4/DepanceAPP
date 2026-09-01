@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { X, Check, Building, Wallet, CreditCard, PiggyBank, Trash2, AlertTriangle } from "lucide-react";
 import type { Account } from "@/types";
 import { useDeleteAccount } from "@/hooks/use-api";
+import { isAxiosError } from "axios";
 
 interface AddAccountModalProps {
     isOpen: boolean;
@@ -102,9 +103,9 @@ export function AddAccountModal({ isOpen, onClose, onAdd, account }: AddAccountM
             onSuccess: () => {
                 onClose();
             },
-            onError: (error: any) => {
+            onError: (error: unknown) => {
                 console.error("Failed to delete account", error);
-                setDeleteError(error.response?.data?.error || "Failed to delete account");
+                setDeleteError((isAxiosError<{ error?: string }>(error) && error.response?.data?.error) || "Failed to delete account");
             }
         });
     };

@@ -156,7 +156,7 @@ export function AddRecurringModal({ isOpen, onClose }: AddRecurringModalProps) {
                                         <label className="block text-xs font-medium text-muted-foreground mb-1">{t('recurring.interval')}</label>
                                         <PremiumSelect
                                             value={interval}
-                                            onChange={(val) => setInterval(val as any)}
+                                            onChange={setInterval}
                                             options={[
                                                 { value: 'weekly', label: t('recurring.weekly') },
                                                 { value: 'monthly', label: t('recurring.monthly') },

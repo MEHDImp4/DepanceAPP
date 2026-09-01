@@ -211,7 +211,7 @@ export default function TransactionDetails() {
                                 try {
                                     await api.delete(`/transactions/${transaction.id}`);
                                     navigate(-1);
-                                } catch (e) {
+                                } catch {
                                     alert("Error deleting transaction");
                                 }
                             }

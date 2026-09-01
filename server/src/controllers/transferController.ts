@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { convertCurrency } from '../utils/currencyService';
 import { toCents, fromCents } from '../utils/money';
+import { runIdempotent } from '../utils/idempotency';
 
 interface CreateTransferBody {
     from_account_id: number;
@@ -54,9 +55,9 @@ export const createTransfer = async (req: Request, res: Response, next: NextFunc
 
         const transferId = 'sf-' + Date.now() + '-' + Math.random().toString(RADIX_36).substr(2, 9);
 
-        await prisma.$transaction([
+        const result = await runIdempotent(userId, 'transfer.create', req.get('Idempotency-Key'), async database => {
             // Debit from source
-            prisma.transaction.create({
+            await database.transaction.create({
                 data: {
                     amount: originalAmount,
                     description: description || `Transfer to ${toAccount.name} (${toAccount.currency})`,
@@ -65,13 +66,13 @@ export const createTransfer = async (req: Request, res: Response, next: NextFunc
                     user_id: userId,
                     transfer_id: transferId
                 }
-            }),
-            prisma.account.update({
+            });
+            await database.account.update({
                 where: { id: fromAccount.id },
                 data: { balance: { decrement: originalAmount } }
-            }),
+            });
             // Credit to destination
-            prisma.transaction.create({
+            await database.transaction.create({
                 data: {
                     amount: creditedAmount,
                     description: description || `Transfer from ${fromAccount.name} (${fromAccount.currency})` + (isConversion ? ` @ ${conversionRate.toFixed(4)}` : ''),
@@ -80,19 +81,25 @@ export const createTransfer = async (req: Request, res: Response, next: NextFunc
                     user_id: userId,
                     transfer_id: transferId
                 }
-            }),
-            prisma.account.update({
+            });
+            await database.account.update({
                 where: { id: toAccount.id },
                 data: { balance: { increment: creditedAmount } }
-            })
-        ]);
+            });
 
-        res.status(201).json({
-            message: 'Transfer successful',
-            transferId,
-            creditedAmount: fromCents(creditedAmount),
-            rate: conversionRate
+            return {
+                statusCode: 201,
+                body: {
+                    message: 'Transfer successful',
+                    transferId,
+                    creditedAmount: fromCents(creditedAmount),
+                    rate: conversionRate
+                }
+            };
         });
+
+        if (result.replayed) res.set('Idempotency-Replayed', 'true');
+        res.status(result.statusCode).json(result.body);
     } catch (error) {
         next(error);
     }

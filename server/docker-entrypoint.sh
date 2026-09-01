@@ -16,8 +16,8 @@ fi
 
 # Run migrations for MySQL/MariaDB
 if [ "$NODE_ENV" = "production" ]; then
-    echo "Pushing database schema..."
-    npx prisma db push
+    echo "Applying database migrations..."
+    npx prisma migrate deploy
 fi
 
 # Start application

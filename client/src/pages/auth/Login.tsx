@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import api from "@/lib/axios";
 import { Lock, User, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { isAxiosError } from "axios";
 
 export default function Login() {
     const [error, setError] = useState("");
@@ -32,8 +33,9 @@ export default function Login() {
             const { data } = await api.post("/auth/login", { identifier, password });
             login(data.user);
             navigate("/");
-        } catch (err: any) {
-            setError(err.response?.data?.error || "Failed to login");
+        } catch (err: unknown) {
+            const message = isAxiosError<{ error?: string }>(err) ? err.response?.data?.error : undefined;
+            setError(message || "Failed to login");
         } finally {
             setIsLoading(false);
         }
@@ -55,6 +57,8 @@ export default function Login() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {error && (
                         <div
+                            role="alert"
+                            aria-live="assertive"
                             className="bg-destructive/10 text-destructive text-xs p-3 rounded-2xl text-center font-bold border border-destructive/20"
                         >
                             {error}
@@ -63,8 +67,12 @@ export default function Login() {
 
                     <div className="space-y-4">
                         <div className="relative group">
+                            <label htmlFor="login-identifier" className="sr-only">{t("auth.email_or_username_placeholder")}</label>
                             <User className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
                             <input
+                                id="login-identifier"
+                                name="identifier"
+                                autoComplete="username"
                                 type="text"
                                 placeholder={t("auth.email_or_username_placeholder")}
                                 value={identifier}
@@ -75,8 +83,12 @@ export default function Login() {
                         </div>
 
                         <div className="relative group">
+                            <label htmlFor="login-password" className="sr-only">{t("auth.password_placeholder")}</label>
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" size={20} />
                             <input
+                                id="login-password"
+                                name="password"
+                                autoComplete="current-password"
                                 type={showPassword ? "text" : "password"}
                                 placeholder={t("auth.password_placeholder")}
                                 value={password}
@@ -87,7 +99,9 @@ export default function Login() {
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus:outline-none"
+                                aria-label={showPassword ? "Hide password" : "Show password"}
+                                aria-pressed={showPassword}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md"
                             >
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
@@ -100,7 +114,7 @@ export default function Login() {
                         className="w-full bg-primary text-primary-foreground font-bold py-3.5 rounded-2xl hover:opacity-90 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center space-x-2 shadow-lg shadow-primary/25"
                     >
                         {isLoading ? (
-                            <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                            <span role="status" aria-label="Signing in" className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                         ) : (
                             <>
                                 <span>{t("auth.login_button")}</span>

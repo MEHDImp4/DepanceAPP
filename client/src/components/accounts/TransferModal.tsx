@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { X, Check, ArrowRightLeft } from "lucide-react";
 import type { Account } from "@/types";
 import { useCreateTransfer } from "@/hooks/use-api";
+import { isAxiosError } from "axios";
 
 interface TransferModalProps {
     isOpen: boolean;
@@ -66,8 +67,8 @@ export function TransferModal({ isOpen, onClose, accounts }: TransferModalProps)
             onSuccess: () => {
                 onClose();
             },
-            onError: (err: any) => {
-                setError(err.response?.data?.error || "Transfer failed");
+            onError: (err: unknown) => {
+                setError((isAxiosError<{ error?: string }>(err) && err.response?.data?.error) || "Transfer failed");
             }
         });
     };

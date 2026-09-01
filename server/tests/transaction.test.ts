@@ -69,7 +69,30 @@ describe('Transaction Endpoints', () => {
             .set('Authorization', `Bearer ${token}`);
 
         expect(response.statusCode).toEqual(200);
-        expect(response.body.length).toBe(1);
-        expect(response.body[0].description).toBe('Coffee');
+        expect(response.body.items).toHaveLength(1);
+        expect(response.body.items[0].description).toBe('Coffee');
+        expect(response.body.nextCursor).toBeNull();
+    });
+
+    it('should paginate transactions with an opaque cursor contract', async () => {
+        await prisma.transaction.createMany({
+            data: [1, 2, 3].map(index => ({
+                amount: index * 100,
+                description: `Transaction ${index}`,
+                type: 'expense',
+                account_id: accountId,
+                user_id: userId,
+                created_at: new Date(Date.now() + index * 1000)
+            }))
+        });
+
+        const first = await request(app).get('/api/transactions?limit=2').set('Authorization', `Bearer ${token}`);
+        const second = await request(app).get(`/api/transactions?limit=2&cursor=${first.body.nextCursor}`).set('Authorization', `Bearer ${token}`);
+
+        expect(first.body.items).toHaveLength(2);
+        expect(first.body.nextCursor).not.toBeNull();
+        expect(second.body.items).toHaveLength(1);
+        expect(second.body.nextCursor).toBeNull();
+        expect(new Set([...first.body.items, ...second.body.items].map(item => item.id)).size).toBe(3);
     });
 });

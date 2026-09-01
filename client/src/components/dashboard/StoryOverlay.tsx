@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRecap } from "@/hooks/use-api";
 import { formatCurrency } from "@/hooks/use-currency";
 
@@ -12,29 +12,45 @@ interface StoryOverlayProps {
 export function StoryOverlay({ isOpen, onClose }: StoryOverlayProps) {
     const { data: recap } = useRecap();
     const [step, setStep] = useState(0);
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
+    const totalSteps = 5;
+
+    const nextStep = useCallback(() => {
+        setStep(current => {
+            if (current < totalSteps - 1) return current + 1;
+            onClose();
+            return current;
+        });
+    }, [onClose]);
 
     useEffect(() => {
         if (isOpen) {
             setStep(0);
+            window.setTimeout(() => closeButtonRef.current?.focus(), 0);
         }
     }, [isOpen]);
 
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onClose();
+            if (event.key === 'ArrowRight') nextStep();
+            if (event.key === 'ArrowLeft') setStep(current => Math.max(0, current - 1));
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, nextStep, onClose]);
+
     if (!isOpen || !recap) return null;
 
-    const totalSteps = 5;
-
-    const nextStep = () => {
-        if (step < totalSteps - 1) {
-            setStep(step + 1);
-        } else {
-            onClose();
-        }
-    };
-
-
-
     return (
-        <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center overflow-hidden">
+        <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="monthly-recap-title"
+            className="fixed inset-0 z-[100] bg-black flex items-center justify-center overflow-hidden"
+        >
+            <h2 id="monthly-recap-title" className="sr-only">Monthly spending recap</h2>
             {/* Progress Bar */}
             <div className="absolute top-4 left-4 right-4 flex gap-1 z-20">
                 {Array.from({ length: totalSteps }).map((_, i) => (
@@ -46,13 +62,15 @@ export function StoryOverlay({ isOpen, onClose }: StoryOverlayProps) {
                 ))}
             </div>
 
-            <button onClick={onClose} className="absolute top-8 right-6 z-20 text-white/50 hover:text-white">
+            <button ref={closeButtonRef} type="button" aria-label="Close monthly recap" onClick={onClose} className="absolute top-8 right-6 z-20 text-white/50 hover:text-white focus-visible:ring-2 focus-visible:ring-white rounded-md">
                 <X size={24} />
             </button>
 
-            <div
+            <button
+                type="button"
+                aria-label={`Monthly recap step ${step + 1} of ${totalSteps}. Continue.`}
                 key={step}
-                className="w-full max-w-md h-full flex flex-col items-center justify-center p-8 text-center"
+                className="w-full max-w-md h-full flex flex-col items-center justify-center p-8 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 onClick={nextStep}
             >
                 {/* Step 0: Intro */}
@@ -148,8 +166,7 @@ export function StoryOverlay({ isOpen, onClose }: StoryOverlayProps) {
 
                     </div>
                 )}
-            </div>
+            </button>
         </div>
     );
 }
-

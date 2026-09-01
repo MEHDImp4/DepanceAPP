@@ -16,28 +16,32 @@ COPY server/tsconfig*.json ./
 COPY server/src ./src
 RUN npx prisma generate
 RUN npm run build
+RUN npm prune --omit=dev
 
 # Stage 3: Final Production Image
 FROM node:20-alpine
 
 # Install system dependencies (openssl for Prisma, curl for healthcheck)
 RUN apk --no-cache add openssl curl
+RUN addgroup -S depance && adduser -S depance -G depance
 
 WORKDIR /app
 
 # Copy Client Build
-COPY --from=client-builder /app/client/dist ./public
+COPY --chown=depance:depance --from=client-builder /app/client/dist ./public
 
 # Copy Server Dependencies and Prisma Client
-COPY --from=server-builder /app/server/node_modules ./node_modules
-COPY --from=server-builder /app/server/prisma ./prisma
-COPY --from=server-builder /app/server/dist ./dist
+COPY --chown=depance:depance --from=server-builder /app/server/node_modules ./node_modules
+COPY --chown=depance:depance --from=server-builder /app/server/prisma ./prisma
+COPY --chown=depance:depance --from=server-builder /app/server/dist ./dist
 # Copy package.json for potentially npm scripts if needed, though running node directly
-COPY server/package*.json ./
+COPY --chown=depance:depance server/package*.json ./
 
 # Copy Entrypoint
 COPY server/docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
+
+USER depance
 
 # Environment Setup
 ENV NODE_ENV=production

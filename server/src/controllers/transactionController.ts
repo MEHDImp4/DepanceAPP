@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { toCents, fromCents } from '../utils/money';
 import { getRates, calculateExchange } from '../utils/currencyService';
+import { runIdempotent } from '../utils/idempotency';
 
 interface CreateTransactionBody {
     amount: number;
@@ -37,8 +38,8 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
         const transactionAmount = toCents(amount);
         const balanceChange = type === 'income' ? transactionAmount : -transactionAmount;
 
-        const [transaction, updatedAccount] = await prisma.$transaction([
-            prisma.transaction.create({
+        const result = await runIdempotent(userId, 'transaction.create', req.get('Idempotency-Key'), async database => {
+            const transaction = await database.transaction.create({
                 data: {
                     amount: transactionAmount,
                     description,
@@ -47,17 +48,23 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
                     user_id: userId,
                     category_id: category_id || null
                 }
-            }),
-            prisma.account.update({
+            });
+            const updatedAccount = await database.account.update({
                 where: { id: account_id },
                 data: { balance: { increment: balanceChange } }
-            })
-        ]);
+            });
 
-        res.status(201).json({
-            transaction: { ...transaction, amount: fromCents(transaction.amount) },
-            newBalance: fromCents(updatedAccount.balance)
+            return {
+                statusCode: 201,
+                body: {
+                    transaction: { ...transaction, amount: fromCents(transaction.amount) },
+                    newBalance: fromCents(updatedAccount.balance)
+                }
+            };
         });
+
+        if (result.replayed) res.set('Idempotency-Replayed', 'true');
+        res.status(result.statusCode).json(result.body);
     } catch (error) {
         next(error);
     }
@@ -66,7 +73,9 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
 export const getTransactions = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const userId = req.user!.userId;
-        const { accountId } = req.query as { accountId?: string };
+        const { accountId, cursor, limit: rawLimit } = req.query as { accountId?: string; cursor?: string; limit?: string };
+        const limit = Math.min(Math.max(Number.parseInt(rawLimit || '50', 10) || 50, 1), 100);
+        const cursorId = cursor ? Number.parseInt(cursor, 10) : undefined;
 
         const [user, transactions, rates] = await Promise.all([
             prisma.user.findUnique({ where: { id: userId }, select: { currency: true } }),
@@ -75,7 +84,9 @@ export const getTransactions = async (req: Request, res: Response, next: NextFun
                     user_id: userId,
                     ...(accountId ? { account_id: parseInt(accountId) } : {})
                 },
-                orderBy: { created_at: 'desc' },
+                orderBy: [{ created_at: 'desc' }, { id: 'desc' }],
+                take: limit + 1,
+                ...(cursorId ? { cursor: { id: cursorId }, skip: 1 } : {}),
                 include: {
                     account: { select: { name: true, currency: true } },
                     category: true
@@ -86,7 +97,9 @@ export const getTransactions = async (req: Request, res: Response, next: NextFun
 
         const targetCurrency = user?.currency || 'USD';
 
-        const txsWithConversion = transactions.map((tx) => {
+        const hasMore = transactions.length > limit;
+        const page = hasMore ? transactions.slice(0, limit) : transactions;
+        const txsWithConversion = page.map((tx) => {
             try {
                 const sourceCurrency = tx.account?.currency || 'USD';
                 const convertedAmountCents = calculateExchange(tx.amount, sourceCurrency, targetCurrency, rates);
@@ -108,7 +121,10 @@ export const getTransactions = async (req: Request, res: Response, next: NextFun
             }
         });
 
-        res.json(txsWithConversion);
+        res.json({
+            items: txsWithConversion,
+            nextCursor: hasMore ? String(page[page.length - 1].id) : null
+        });
     } catch (error) {
         next(error);
     }

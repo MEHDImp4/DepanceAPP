@@ -29,6 +29,11 @@ export interface Transaction {
     };
 }
 
+export interface TransactionPage {
+    items: Transaction[];
+    nextCursor: string | null;
+}
+
 export interface Template {
     id: number;
     name: string;

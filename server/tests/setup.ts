@@ -28,6 +28,7 @@ afterEach(async () => {
     const deleteUsers = prisma.user.deleteMany();
     const deleteGoals = prisma.goal.deleteMany();
     const deleteTemplates = prisma.template.deleteMany();
+    const deleteIdempotencyKeys = prisma.idempotencyKey.deleteMany();
 
     // Use transaction to ensure order or just await all
     try {
@@ -35,14 +36,15 @@ afterEach(async () => {
             deleteTransactions,
             deleteRecurringOccurrences,
             deleteRecurring,
+            deleteGoals,
+            deleteTemplates,
             deleteBudgets,
             deleteAccounts,
             deleteCategories,
             deleteRefreshTokens,
+            deleteIdempotencyKeys,
             deleteLoginHistory,
-            deleteUsers,
-            deleteGoals,
-            deleteTemplates
+            deleteUsers
         ]);
     } catch (error) {
         console.error('Error cleaning up database:', error);

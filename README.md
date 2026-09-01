@@ -43,6 +43,12 @@ You can run DepanceAPP in minutes using Docker.
 
 ### Quick Start (Production)
 
+> Existing installations created with `prisma db push` must be baselined once before deploying this version:
+>
+> `npx prisma migrate resolve --applied 20260901193000_baseline`
+>
+> The container then runs `prisma migrate deploy` and applies the P0/P1 integrity migration safely. New installations apply both migrations automatically.
+
 1.  **Create a `docker-compose.yml` file:**
 
     ```yaml
