@@ -11,18 +11,8 @@ import swaggerUi from 'swagger-ui-express';
 import logger from './utils/logger';
 import errorHandler from './middleware/errorHandler';
 import swaggerSpecs from './swagger';
-
-// Import routes
-import authRoutes from './routes/authRoutes';
-import accountRoutes from './routes/accountRoutes';
-import transactionRoutes from './routes/transactionRoutes';
-import transferRoutes from './routes/transferRoutes';
-import templateRoutes from './routes/templateRoutes';
-import categoryRoutes from './routes/categoryRoutes';
-import budgetRoutes from './routes/budgetRoutes';
-import recurringRoutes from './routes/recurringRoutes';
-import goalRoutes from './routes/goalRoutes';
-import analyticsRoutes from './routes/analyticsRoutes';
+import apiRouter from './routes/apiRouter';
+import { apiContract, legacyApiDeprecation } from './middleware/apiContract';
 
 // Environment validation
 const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
@@ -72,14 +62,6 @@ const globalLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests, please try again later.' }
-});
-
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 20,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: 'Too many login attempts, please try again later.' }
 });
 
 app.use(globalLimiter);
@@ -153,18 +135,16 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
     customCss: '.swagger-ui .topbar { display: none }',
     customSiteTitle: 'DepanceAPP API Documentation'
 }));
+app.get('/api-docs.json', (_req: Request, res: Response) => {
+    res.json(swaggerSpecs);
+});
 
 // API Routes
-app.use('/api/auth', authLimiter, authRoutes);
-app.use('/api/accounts', accountRoutes);
-app.use('/api/transactions', transactionRoutes);
-app.use('/api/transfers', transferRoutes);
-app.use('/api/templates', templateRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/budgets', budgetRoutes);
-app.use('/api/recurring', recurringRoutes);
-app.use('/api/goals', goalRoutes);
-app.use('/api/analytics', analyticsRoutes);
+app.use('/api/v1', apiContract, apiRouter);
+app.use('/api', legacyApiDeprecation, apiContract, apiRouter);
+app.use('/api/v1', (req: Request, res: Response) => {
+    res.status(404).json({ error: `Route ${req.method} ${req.path} not found` });
+});
 
 // Error handler (for API errors)
 app.use(errorHandler);

@@ -21,6 +21,8 @@ const errorHandler = (
         error: process.env.NODE_ENV === 'production'
             ? 'An unexpected error occurred'
             : err.message,
+        code: statusCode >= 500 ? 'INTERNAL_ERROR' : 'REQUEST_FAILED',
+        requestId: res.locals.requestId,
         stack: process.env.NODE_ENV === 'production'
             ? undefined
             : err.stack
