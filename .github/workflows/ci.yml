@@ -4,7 +4,6 @@ on:
   push:
     branches: [ "master", "main" ]
   pull_request:
-    branches: [ "master", "main" ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -93,3 +92,26 @@ jobs:
     - name: Build Client
       working-directory: ./client
       run: npm run build
+
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+    - uses: actions/checkout@v4
+    - name: Use Node.js 22
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22.x
+        cache: npm
+        cache-dependency-path: mobile/package-lock.json
+    - name: Install Mobile Dependencies
+      working-directory: ./mobile
+      run: npm ci
+    - name: Validate Expo Project
+      working-directory: ./mobile
+      env:
+        EXPO_NO_DOCTOR_TELEMETRY: 1
+      run: npm run doctor
+    - name: Typecheck Mobile
+      working-directory: ./mobile
+      run: npm run typecheck
