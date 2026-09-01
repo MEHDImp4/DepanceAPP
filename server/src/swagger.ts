@@ -2,7 +2,7 @@ import swaggerJsdoc from 'swagger-jsdoc';
 
 const options: swaggerJsdoc.Options = {
     definition: {
-        openapi: '3.0.0',
+        openapi: '3.1.0',
         info: {
             title: 'DepanceAPP API',
             version: '1.0.0',
@@ -17,11 +17,11 @@ const options: swaggerJsdoc.Options = {
         },
         servers: [
             {
-                url: '/api',
-                description: 'API Server',
+                url: '/api/v1',
+                description: 'Stable API v1',
             },
             {
-                url: 'http://localhost:3001/api',
+                url: 'http://localhost:3001/api/v1',
                 description: 'Development Server',
             },
         ],
@@ -74,9 +74,20 @@ const options: swaggerJsdoc.Options = {
                     },
                 },
                 Error: {
+                    required: ['error', 'code', 'requestId'],
                     type: 'object',
                     properties: {
                         error: { type: 'string', example: 'Error message' },
+                        code: { type: 'string', example: 'BAD_REQUEST' },
+                        requestId: { type: 'string', format: 'uuid' },
+                    },
+                },
+                TransactionPage: {
+                    required: ['items', 'nextCursor'],
+                    type: 'object',
+                    properties: {
+                        items: { type: 'array', items: { $ref: '#/components/schemas/Transaction' } },
+                        nextCursor: { type: ['integer', 'null'], example: 42 },
                     },
                 },
             },
