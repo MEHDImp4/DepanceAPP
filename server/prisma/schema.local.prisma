@@ -34,6 +34,12 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+  clientType String   @default("web")
+  deviceId   String?
+  deviceName String?
+  lastUsedAt DateTime @default(now())
+
+  @@index([userId, deviceId])
 }
 
 model LoginHistory {

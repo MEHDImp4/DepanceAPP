@@ -21,6 +21,34 @@ export const loginSchema = z.object({
     })
 });
 
+const mobileDeviceFields = {
+    deviceId: z.string().min(8).max(128),
+    deviceName: z.string().min(1).max(128)
+};
+
+export const mobileLoginSchema = z.object({
+    body: z.object({
+        identifier: z.string().min(1),
+        password: z.string().min(1),
+        ...mobileDeviceFields
+    })
+});
+
+export const mobileRefreshSchema = z.object({
+    body: z.object({
+        refreshToken: z.string().min(1),
+        deviceId: mobileDeviceFields.deviceId
+    })
+});
+
+export const mobileLogoutSchema = mobileRefreshSchema;
+
+export const sessionParamSchema = z.object({
+    params: z.object({
+        id: z.string().uuid({ message: 'Invalid session ID' })
+    })
+});
+
 export const updateProfileSchema = z.object({
     body: z.object({
         currency: z.string().length(3, { message: "Currency must be a 3-letter code" })
@@ -198,4 +226,3 @@ export const idParamSchema = z.object({
         id: z.string().regex(/^\d+$/, { message: "Invalid ID format" })
     })
 });
-
