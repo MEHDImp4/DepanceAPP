@@ -15,5 +15,6 @@ router.put('/profile', authMiddleware, validate(updateProfileSchema), authContro
 router.post('/change-password', authMiddleware, validate(changePasswordSchema), authController.changePassword);
 router.get('/login-history', authMiddleware, authController.getLoginHistory);
 router.get('/security-alerts', authMiddleware, authController.getSecurityAlerts);
+router.get('/audit-log', authMiddleware, authController.getAuditLog);
 
 export default router;
