@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import bcrypt from 'bcryptjs';
 import { Prisma } from '@prisma/client';
@@ -40,6 +41,14 @@ const clearAuthCookies = (res: Response) => {
     res.clearCookie('token', cookieBaseOptions());
 };
 
+const serializeUser = (user: { id: number; email: string; username: string; currency: string; timezone: string }) => ({
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    currency: user.currency,
+    timezone: user.timezone
+});
+
 export const register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const body = req.body as { email: string; username: string; password: string };
@@ -65,12 +74,14 @@ export const register = async (req: Request, res: Response, next: NextFunction):
             data: { email, username, password_hash: hashedPassword }
         });
 
+        const sessionId = randomUUID();
         const accessToken = signAccessToken(user);
-        const refreshToken = signRefreshToken(user.id);
+        const refreshToken = signRefreshToken(user.id, sessionId);
 
         await prisma.refreshToken.create({
             data: {
                 token: hashToken(refreshToken),
+                sessionId,
                 userId: user.id,
                 expiresAt: new Date(Date.now() + REFRESH_TOKEN_MS)
             }
@@ -80,7 +91,7 @@ export const register = async (req: Request, res: Response, next: NextFunction):
         res.status(201).json({
             message: 'Account created successfully',
             userId: user.id,
-            user: { id: user.id, email: user.email, username: user.username, currency: user.currency }
+            user: serializeUser(user)
         });
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -111,11 +122,11 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
             return;
         }
 
-        const lockoutStatus = await checkAccountLockout(user.id);
+        const lockoutStatus = await checkAccountLockout(user.id, req);
         if (lockoutStatus.isLocked) {
             res.status(429).json({
-                error: 'Account temporarily locked due to repeated failed attempts',
-                code: 'ACCOUNT_TEMPORARILY_LOCKED',
+                error: 'Too many failed attempts from this network. Try again later.',
+                code: 'LOGIN_ATTEMPTS_RATE_LIMITED',
                 remainingTime: lockoutStatus.remainingTime
             });
             return;
@@ -131,12 +142,14 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
         const deviceCheck = await isNewDeviceOrLocation(user.id, req);
         await logLogin(user.id, req, true);
 
+        const sessionId = randomUUID();
         const accessToken = signAccessToken(user);
-        const refreshToken = signRefreshToken(user.id);
+        const refreshToken = signRefreshToken(user.id, sessionId);
 
         await prisma.refreshToken.create({
             data: {
                 token: hashToken(refreshToken),
+                sessionId,
                 userId: user.id,
                 expiresAt: new Date(Date.now() + REFRESH_TOKEN_MS)
             }
@@ -144,7 +157,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
         setAuthCookies(res, accessToken, refreshToken);
         res.json({
-            user: { id: user.id, email: user.email, username: user.username, currency: user.currency },
+            user: serializeUser(user),
             newDevice: deviceCheck.isNew
         });
     } catch (error) {
@@ -190,7 +203,7 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
             res.status(404).json({ error: 'User not found' });
             return;
         }
-        res.json({ id: user.id, email: user.email, username: user.username, currency: user.currency });
+        res.json(serializeUser(user));
     } catch (error) {
         next(error);
     }
@@ -198,7 +211,7 @@ export const getProfile = async (req: Request, res: Response, next: NextFunction
 
 export const updateProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { currency } = req.body as { currency: string };
+        const { currency, timezone } = req.body as { currency?: string; timezone?: string };
         const userId = req.user!.userId;
         const previous = await prisma.user.findUnique({ where: { id: userId } });
         if (!previous) {
@@ -208,7 +221,10 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
 
         const updated = await prisma.user.update({
             where: { id: userId },
-            data: { currency: currency.toUpperCase() }
+            data: {
+                ...(currency !== undefined && { currency: currency.toUpperCase() }),
+                ...(timezone !== undefined && { timezone })
+            }
         });
 
         await logAudit({
@@ -216,12 +232,12 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
             action: AuditAction.SETTINGS_UPDATE,
             entityType: 'user-settings',
             entityId: userId,
-            oldValue: { currency: previous.currency },
-            newValue: { currency: updated.currency },
+            oldValue: { currency: previous.currency, timezone: previous.timezone },
+            newValue: { currency: updated.currency, timezone: updated.timezone },
             req
         });
 
-        res.json({ id: updated.id, email: updated.email, username: updated.username, currency: updated.currency });
+        res.json(serializeUser(updated));
     } catch (error) {
         next(error);
     }
@@ -275,8 +291,9 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
             return;
         }
 
+        let decoded: ReturnType<typeof verifyRefreshToken>;
         try {
-            verifyRefreshToken(refreshTokenValue);
+            decoded = verifyRefreshToken(refreshTokenValue);
         } catch {
             clearAuthCookies(res);
             res.status(401).json({ error: 'Invalid refresh token', code: 'REFRESH_TOKEN_INVALID' });
@@ -290,35 +307,65 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
         });
 
         if (!storedToken) {
+            if (decoded.sid) {
+                await prisma.refreshToken.deleteMany({
+                    where: { userId: decoded.userId, sessionId: decoded.sid }
+                });
+                clearAuthCookies(res);
+                res.status(401).json({
+                    error: 'Refresh token reuse detected. Session revoked.',
+                    code: 'REFRESH_TOKEN_REUSE_DETECTED'
+                });
+                return;
+            }
+
             clearAuthCookies(res);
             res.status(401).json({ error: 'Invalid or revoked refresh token', code: 'REFRESH_TOKEN_REVOKED' });
             return;
         }
 
         if (new Date() > storedToken.expiresAt) {
-            await prisma.refreshToken.delete({ where: { token: tokenHash } }).catch(() => undefined);
+            await prisma.refreshToken.deleteMany({
+                where: { userId: storedToken.userId, sessionId: storedToken.sessionId }
+            });
             clearAuthCookies(res);
             res.status(401).json({ error: 'Refresh token expired', code: 'REFRESH_TOKEN_EXPIRED' });
             return;
         }
 
         const user = storedToken.user;
-        const newRefreshToken = signRefreshToken(user.id);
+        const sessionId = storedToken.sessionId;
+        const newRefreshToken = signRefreshToken(user.id, sessionId);
         const newAccessToken = signAccessToken(user);
 
-        await prisma.$transaction(async database => {
-            const deleted = await database.refreshToken.deleteMany({ where: { token: tokenHash } });
-            if (deleted.count !== 1) {
-                throw new Error('Refresh token was already rotated');
-            }
-            await database.refreshToken.create({
-                data: {
-                    token: hashToken(newRefreshToken),
-                    userId: user.id,
-                    expiresAt: new Date(Date.now() + REFRESH_TOKEN_MS)
+        try {
+            await prisma.$transaction(async database => {
+                const deleted = await database.refreshToken.deleteMany({ where: { token: tokenHash } });
+                if (deleted.count !== 1) {
+                    const rotationError = new Error('Refresh token was already rotated');
+                    Object.assign(rotationError, { code: 'REFRESH_TOKEN_RACE' });
+                    throw rotationError;
                 }
+                await database.refreshToken.create({
+                    data: {
+                        token: hashToken(newRefreshToken),
+                        sessionId,
+                        userId: user.id,
+                        expiresAt: new Date(Date.now() + REFRESH_TOKEN_MS)
+                    }
+                });
             });
-        });
+        } catch (error: any) {
+            if (error?.code === 'REFRESH_TOKEN_RACE') {
+                clearAuthCookies(res);
+                res.status(409).json({
+                    error: 'Refresh token was rotated by another request. Sign in again if the session does not recover.',
+                    code: 'REFRESH_TOKEN_RACE'
+                });
+                return;
+            }
+            throw error;
+        }
 
         setAuthCookies(res, newAccessToken, newRefreshToken);
         res.json({ message: 'Token refreshed' });
@@ -331,9 +378,12 @@ export const logout = async (req: Request, res: Response, next: NextFunction): P
     try {
         const refreshTokenValue = req.cookies?.refreshToken as string | undefined;
         if (refreshTokenValue) {
-            await prisma.refreshToken.deleteMany({
-                where: { token: hashToken(refreshTokenValue) }
-            });
+            const stored = await prisma.refreshToken.findUnique({ where: { token: hashToken(refreshTokenValue) } });
+            if (stored) {
+                await prisma.refreshToken.deleteMany({
+                    where: { userId: stored.userId, sessionId: stored.sessionId }
+                });
+            }
         }
 
         clearAuthCookies(res);
