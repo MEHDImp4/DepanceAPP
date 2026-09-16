@@ -4,7 +4,7 @@ import prisma from '../utils/prisma';
 import { convertCurrency } from '../utils/currencyService';
 import { toCents, fromCents } from '../utils/money';
 import { runIdempotent } from '../utils/idempotency';
-import { AuditAction, logAudit, logTransferCreate } from '../utils/auditService';
+import { AuditAction, createAuditEntry } from '../utils/auditService';
 
 interface CreateTransferBody {
     from_account_id: number;
@@ -70,7 +70,7 @@ export const createTransfer = async (req: Request, res: Response, next: NextFunc
             req.get('Idempotency-Key'),
             requestPayload,
             async database => {
-                await database.transaction.create({
+                const sourceEntry = await database.transaction.create({
                     data: {
                         amount: originalAmount,
                         description: description || `Transfer to ${toAccount.name} (${toAccount.currency})`,
@@ -85,7 +85,7 @@ export const createTransfer = async (req: Request, res: Response, next: NextFunc
                     data: { balance: { decrement: originalAmount } }
                 });
 
-                await database.transaction.create({
+                const destinationEntry = await database.transaction.create({
                     data: {
                         amount: creditedAmount,
                         description: description || `Transfer from ${fromAccount.name} (${fromAccount.currency})${isConversion ? ` @ ${conversionRate.toFixed(6)}` : ''}`,
@@ -98,6 +98,27 @@ export const createTransfer = async (req: Request, res: Response, next: NextFunc
                 await database.account.update({
                     where: { id: toAccount.id },
                     data: { balance: { increment: creditedAmount } }
+                });
+
+                await createAuditEntry(database, {
+                    userId,
+                    action: AuditAction.TRANSFER_CREATE,
+                    entityType: 'transfer',
+                    entityId: null,
+                    newValue: {
+                        transferId,
+                        sourceTransactionId: sourceEntry.id,
+                        destinationTransactionId: destinationEntry.id,
+                        fromAccountId: fromAccount.id,
+                        toAccountId: toAccount.id,
+                        sourceAmount: originalAmount,
+                        creditedAmount,
+                        sourceCurrency: fromAccount.currency,
+                        destinationCurrency: toAccount.currency,
+                        conversionRate
+                    },
+                    req,
+                    metadata: { transferId }
                 });
 
                 return {
@@ -115,12 +136,7 @@ export const createTransfer = async (req: Request, res: Response, next: NextFunc
             }
         );
 
-        if (result.replayed) {
-            res.set('Idempotency-Replayed', 'true');
-        } else {
-            await logTransferCreate(userId, transferId, fromAccount.id, toAccount.id, originalAmount, req);
-        }
-
+        if (result.replayed) res.set('Idempotency-Replayed', 'true');
         res.status(result.statusCode).json(result.body);
     } catch (error) {
         next(error);
@@ -167,21 +183,21 @@ export const cancelTransfer = async (req: Request, res: Response, next: NextFunc
             await database.transaction.deleteMany({
                 where: { transfer_id: transferId, user_id: userId }
             });
-        });
 
-        await logAudit({
-            userId,
-            action: AuditAction.TRANSFER_CANCEL,
-            entityType: 'transfer',
-            entityId: null,
-            oldValue: entries.map(entry => ({
-                id: entry.id,
-                amount: entry.amount,
-                type: entry.type,
-                accountId: entry.account_id
-            })),
-            req,
-            metadata: { transferId }
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.TRANSFER_CANCEL,
+                entityType: 'transfer',
+                entityId: null,
+                oldValue: entries.map(entry => ({
+                    id: entry.id,
+                    amount: entry.amount,
+                    type: entry.type,
+                    accountId: entry.account_id
+                })),
+                req,
+                metadata: { transferId }
+            });
         });
 
         res.json({ message: 'Transfer cancelled', transferId });
