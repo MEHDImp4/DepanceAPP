@@ -1,6 +1,7 @@
+import type { Prisma } from '@prisma/client';
+import { Request } from 'express';
 import prisma from './prisma';
 import logger from './logger';
-import { Request } from 'express';
 
 export const AuditAction = {
     TRANSACTION_CREATE: 'transaction.create',
@@ -89,7 +90,7 @@ export async function getUserAuditLogs(userId: number, options: UserAuditLogOpti
     const safeLimit = Math.min(Math.max(limit, 1), 100);
     const safeOffset = Math.max(offset, 0);
 
-    const where: Record<string, unknown> = { userId };
+    const where: Prisma.AuditLogWhereInput = { userId };
     if (action) where.action = action;
     if (entityType) where.entityType = entityType;
 
