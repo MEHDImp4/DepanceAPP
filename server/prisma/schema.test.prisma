@@ -13,6 +13,7 @@ model User {
   username        String                 @unique
   password_hash   String
   currency        String                 @default("USD")
+  timezone        String                 @default("UTC")
   created_at      DateTime               @default(now())
   accounts        Account[]
   transactions    Transaction[]
@@ -30,10 +31,13 @@ model User {
 model RefreshToken {
   id        String   @id @default(uuid())
   token     String   @unique
+  sessionId String   @default(uuid())
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  @@index([userId, sessionId])
 }
 
 model LoginHistory {
@@ -153,6 +157,7 @@ model Budget {
   amount      Int
   period      String   @default("monthly")
   category_id Int?
+  scope_key   String   @default("global")
   user_id     Int
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
@@ -160,7 +165,8 @@ model Budget {
   category Category? @relation(fields: [category_id], references: [id], onDelete: SetNull)
   user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([user_id, category_id])
+  @@unique([user_id, scope_key])
+  @@index([category_id])
 }
 
 model RecurringTransaction {
@@ -205,6 +211,7 @@ model IdempotencyKey {
   user_id       Int
   key           String
   operation     String
+  request_hash  String?
   response_body String?
   status_code   Int?
   created_at    DateTime @default(now())
