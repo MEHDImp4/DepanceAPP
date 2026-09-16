@@ -12,7 +12,6 @@ import logger from './utils/logger';
 import errorHandler from './middleware/errorHandler';
 import swaggerSpecs from './swagger';
 
-// Import routes
 import authRoutes from './routes/authRoutes';
 import accountRoutes from './routes/accountRoutes';
 import transactionRoutes from './routes/transactionRoutes';
@@ -24,54 +23,73 @@ import recurringRoutes from './routes/recurringRoutes';
 import goalRoutes from './routes/goalRoutes';
 import analyticsRoutes from './routes/analyticsRoutes';
 
-// Environment validation
-const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
-for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-        logger.error(`FATAL ERROR: ${envVar} environment variable is not set.`);
-        process.exit(1);
-    }
+const hasDatabaseConfig = Boolean(
+    process.env.DATABASE_URL ||
+    (process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD && process.env.DB_NAME)
+);
+
+const hasSplitJwtSecrets = Boolean(process.env.JWT_ACCESS_SECRET && process.env.JWT_REFRESH_SECRET);
+const hasLegacyJwtSecret = Boolean(process.env.JWT_SECRET);
+
+if (!hasDatabaseConfig) {
+    logger.error('FATAL ERROR: Configure DATABASE_URL or DB_HOST/DB_USER/DB_PASSWORD/DB_NAME.');
+    process.exit(1);
+}
+
+if (process.env.NODE_ENV === 'production' && !hasSplitJwtSecrets) {
+    logger.error('FATAL ERROR: JWT_ACCESS_SECRET and JWT_REFRESH_SECRET are required in production.');
+    process.exit(1);
+}
+
+if (!hasSplitJwtSecrets && !hasLegacyJwtSecret) {
+    logger.error('FATAL ERROR: JWT secrets are not configured.');
+    process.exit(1);
+}
+
+if (!hasSplitJwtSecrets && hasLegacyJwtSecret) {
+    logger.warn('JWT_SECRET legacy fallback is enabled. Use separate JWT_ACCESS_SECRET and JWT_REFRESH_SECRET.');
 }
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Security middleware
+const hsts = process.env.NODE_ENV === 'production'
+    ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+    : false;
+
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // Added unsafe-eval for Vite dynamic imports
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            imgSrc: ["'self'", "data:", "https:"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-            connectSrc: ["'self'", "*"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+            imgSrc: ["'self'", 'data:', 'https:'],
+            fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+            connectSrc: ["'self'"],
             frameSrc: ["'none'"],
             objectSrc: ["'none'"],
             baseUri: ["'self'"],
-            formAction: ["'self'"],
-            upgradeInsecureRequests: null
+            formAction: ["'self'"]
         }
     },
-    crossOriginOpenerPolicy: { policy: "unsafe-none" }, // Allow usage without HTTPS
-    strictTransportSecurity: {
-        maxAge: 31536000,
-        includeSubDomains: true,
-        preload: true
-    },
-    originAgentCluster: false // Disable Origin-Agent-Cluster to prevent isolation conflicts
+    strictTransportSecurity: hsts
 }));
+
 app.use(compression());
 app.use(cookieParser());
-app.set('trust proxy', 1);
 
-// Rate limiting
+const configuredTrustProxy = process.env.TRUST_PROXY;
+if (configuredTrustProxy) {
+    app.set('trust proxy', /^\d+$/.test(configuredTrustProxy) ? Number(configuredTrustProxy) : configuredTrustProxy);
+} else {
+    app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : false);
+}
+
 const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
+    windowMs: 15 * 60 * 1000,
     max: 300,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: 'Too many requests, please try again later.' }
+    message: { error: 'Too many requests, please try again later.', code: 'RATE_LIMITED' }
 });
 
 const authLimiter = rateLimit({
@@ -79,12 +97,11 @@ const authLimiter = rateLimit({
     max: 20,
     standardHeaders: true,
     legacyHeaders: false,
-    message: { error: 'Too many login attempts, please try again later.' }
+    message: { error: 'Too many authentication attempts, please try again later.', code: 'AUTH_RATE_LIMITED' }
 });
 
 app.use(globalLimiter);
 
-// Static files for production (must be served BEFORE CORS to avoid same-origin issues)
 if (process.env.NODE_ENV === 'production') {
     const publicPath = path.join(__dirname, '../public');
     logger.info(`Serving static files from: ${publicPath}`);
@@ -94,12 +111,10 @@ if (process.env.NODE_ENV === 'production') {
         etag: true,
         lastModified: true,
         setHeaders: (res, filePath) => {
-            // Disable cache for critical PWA and SPA entry files
             if (filePath.endsWith('sw.js') || filePath.endsWith('index.html') || filePath.endsWith('manifest.webmanifest')) {
                 res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
             }
 
-            // Ensure correct MIME types for all assets
             if (filePath.endsWith('.js')) {
                 res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
             } else if (filePath.endsWith('.css')) {
@@ -113,12 +128,12 @@ if (process.env.NODE_ENV === 'production') {
     }));
 }
 
-// CORS configuration
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:80')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://localhost:3000')
     .split(',')
-    .map(o => o.trim());
+    .map(origin => origin.trim())
+    .filter(Boolean);
 
-if (process.env.APP_URL) {
+if (process.env.APP_URL && !allowedOrigins.includes(process.env.APP_URL)) {
     allowedOrigins.push(process.env.APP_URL);
 }
 
@@ -129,7 +144,6 @@ const corsOptions: cors.CorsOptions = {
         if (!origin) return callback(null, true);
 
         const allowNgrok = process.env.NODE_ENV !== 'production';
-
         if (allowedOrigins.includes(origin) || (allowNgrok && origin.endsWith('.ngrok-free.app'))) {
             callback(null, true);
         } else {
@@ -141,21 +155,24 @@ const corsOptions: cors.CorsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
 
-// Health Check
 app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
-// API Documentation
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'DepanceAPP API Documentation'
-}));
+const apiDocsEnabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_API_DOCS === 'true';
+if (apiDocsEnabled) {
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
+        customCss: '.swagger-ui .topbar { display: none }',
+        customSiteTitle: 'DepanceAPP API Documentation'
+    }));
+}
 
-// API Routes
-app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+app.use('/api/auth/refresh', authLimiter);
+app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/transfers', transferRoutes);
@@ -166,30 +183,21 @@ app.use('/api/recurring', recurringRoutes);
 app.use('/api/goals', goalRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
-// Error handler (for API errors)
 app.use(errorHandler);
 
-// SPA fallback (must be LAST - catch all non-API routes and serve index.html)
 if (process.env.NODE_ENV === 'production') {
     app.use((req: Request, res: Response) => {
         const ext = path.extname(req.path);
 
-        // Only serve index.html for routes without file extensions (avoid intercepting static assets)
-        // Also skip API routes and special routes
         if (!ext && !req.path.startsWith('/api') && !req.path.startsWith('/health')) {
             const indexPath = path.join(__dirname, '../public', 'index.html');
-            logger.debug(`SPA fallback serving index.html for: ${req.path}`);
             res.sendFile(indexPath);
         } else if (ext) {
-            // If we reached here with a file extension, the static middleware didn't find it
-            logger.warn(`Static asset not found: ${req.path}`);
             res.status(404).send('File not found');
         } else {
             res.status(404).json({ error: 'Route not found' });
         }
     });
 }
-
-// Server startup moved to server.ts
 
 export default app;

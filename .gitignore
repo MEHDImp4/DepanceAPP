@@ -1,16 +1,13 @@
-node_modules
+node_modules/
 dist/
 coverage/
 *.db
 *.db-journal
 *.log
-# Keep environment variables out of version control
 .env
-
-/generated/prisma
-
-/generated/prisma
-
-/generated/prisma
+.env.*
+!.env.example
+/generated/prisma/
+backups/
 .agent/
 .gitlog.txt

@@ -1,14 +1,9 @@
 import prisma from './prisma';
 import { Request } from 'express';
 
-// Rate limiting configuration
-const MAX_FAILED_ATTEMPTS = 5;  // Max failed attempts before lockout
-const LOCKOUT_DURATION_MS = 15 * 60 * 1000;  // 15 minutes lockout
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
-/**
- * Check if account is locked due to too many failed attempts
- * Returns { isLocked, remainingTime, failedAttempts }
- */
 export async function checkAccountLockout(userId: number) {
     const lockoutWindow = new Date(Date.now() - LOCKOUT_DURATION_MS);
 
@@ -21,7 +16,6 @@ export async function checkAccountLockout(userId: number) {
     });
 
     if (recentFailures >= MAX_FAILED_ATTEMPTS) {
-        // Get the most recent failure to calculate remaining lockout time
         const lastFailure = await prisma.loginHistory.findFirst({
             where: {
                 userId,
@@ -38,7 +32,7 @@ export async function checkAccountLockout(userId: number) {
             if (remainingMs > 0) {
                 return {
                     isLocked: true,
-                    remainingTime: Math.ceil(remainingMs / 1000 / 60), // minutes
+                    remainingTime: Math.ceil(remainingMs / 1000 / 60),
                     failedAttempts: recentFailures
                 };
             }
@@ -52,10 +46,6 @@ export async function checkAccountLockout(userId: number) {
     };
 }
 
-/**
- * Parse user agent string to extract device info
- * Basic parsing - for production, consider using 'ua-parser-js' package
- */
 export function parseUserAgent(userAgent: string) {
     if (!userAgent) return { device: 'Unknown', browser: 'Unknown', os: 'Unknown' };
 
@@ -63,43 +53,29 @@ export function parseUserAgent(userAgent: string) {
     let browser = 'Unknown';
     let os = 'Unknown';
 
-    // Detect device type
     if (/Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent)) {
         device = /iPad|Tablet/i.test(userAgent) ? 'Tablet' : 'Mobile';
     }
 
-    // Detect browser
     if (/Firefox\//i.test(userAgent)) browser = 'Firefox';
     else if (/Edg\//i.test(userAgent)) browser = 'Edge';
     else if (/Chrome\//i.test(userAgent)) browser = 'Chrome';
     else if (/Safari\//i.test(userAgent) && !/Chrome/i.test(userAgent)) browser = 'Safari';
     else if (/MSIE|Trident/i.test(userAgent)) browser = 'Internet Explorer';
 
-    // Detect OS
     if (/Windows/i.test(userAgent)) os = 'Windows';
     else if (/Mac OS X/i.test(userAgent)) os = 'macOS';
-    else if (/Linux/i.test(userAgent)) os = 'Linux';
     else if (/Android/i.test(userAgent)) os = 'Android';
     else if (/iPhone|iPad|iPod/i.test(userAgent)) os = 'iOS';
+    else if (/Linux/i.test(userAgent)) os = 'Linux';
 
     return { device, browser, os };
 }
 
-/**
- * Get client IP address from request
- */
 export function getClientIp(req: Request): string {
-    // Check for forwarded IP (when behind proxy/load balancer)
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) {
-        return (forwarded as string).split(',')[0].trim();
-    }
     return req.ip || req.socket.remoteAddress || 'Unknown';
 }
 
-/**
- * Log a login attempt
- */
 export async function logLogin(userId: number, req: Request, success = true) {
     try {
         const userAgent = req.headers['user-agent'] || '';
@@ -110,7 +86,7 @@ export async function logLogin(userId: number, req: Request, success = true) {
             data: {
                 userId,
                 ipAddress,
-                userAgent: userAgent.substring(0, 500), // Limit length
+                userAgent: userAgent.substring(0, 500),
                 device,
                 browser,
                 os,
@@ -118,26 +94,19 @@ export async function logLogin(userId: number, req: Request, success = true) {
             }
         });
     } catch (error: any) {
-        // Log but don't fail the login
         console.error('Failed to log login history:', error.message);
     }
 }
 
-/**
- * Log a failed login attempt (when user exists but password is wrong)
- */
 export async function logFailedLogin(userId: number, req: Request) {
     return logLogin(userId, req, false);
 }
 
-/**
- * Get login history for a user
- */
 export async function getLoginHistory(userId: number, limit = 20) {
     return prisma.loginHistory.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
-        take: limit,
+        take: Math.min(Math.max(limit, 1), 100),
         select: {
             id: true,
             ipAddress: true,
@@ -150,15 +119,11 @@ export async function getLoginHistory(userId: number, limit = 20) {
     });
 }
 
-/**
- * Detect suspicious activity patterns
- */
 export async function detectSuspiciousActivity(userId: number) {
     const now = new Date();
     const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-    // Check for multiple failed login attempts in the last hour
     const recentFailures = await prisma.loginHistory.count({
         where: {
             userId,
@@ -167,7 +132,6 @@ export async function detectSuspiciousActivity(userId: number) {
         }
     });
 
-    // Check for logins from many different IPs in the last 24 hours
     const recentLogins = await prisma.loginHistory.findMany({
         where: {
             userId,
@@ -199,33 +163,19 @@ export async function detectSuspiciousActivity(userId: number) {
     return alerts;
 }
 
-/**
- * Check if this is a new device/location for the user
- */
 export async function isNewDeviceOrLocation(userId: number, req: Request) {
     const ipAddress = getClientIp(req);
     const userAgent = req.headers['user-agent'] || '';
     const { device, browser, os } = parseUserAgent(userAgent);
 
-    // Check if we've seen this IP before
-    const existingFromIp = await prisma.loginHistory.findFirst({
-        where: {
-            userId,
-            ipAddress,
-            success: true
-        }
-    });
-
-    // Check if we've seen this device/browser/os combo before
-    const existingDevice = await prisma.loginHistory.findFirst({
-        where: {
-            userId,
-            device,
-            browser,
-            os,
-            success: true
-        }
-    });
+    const [existingFromIp, existingDevice] = await Promise.all([
+        prisma.loginHistory.findFirst({
+            where: { userId, ipAddress, success: true }
+        }),
+        prisma.loginHistory.findFirst({
+            where: { userId, device, browser, os, success: true }
+        })
+    ]);
 
     return {
         isNewIp: !existingFromIp,

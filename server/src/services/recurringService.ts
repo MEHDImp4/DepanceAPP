@@ -10,56 +10,85 @@ interface RecurringRule {
     description: string;
     type: string;
     interval: string;
+    anchor_day: number | null;
     next_run_date: Date;
     account_id: number;
     category_id: number | null;
     user_id: number;
 }
 
+const daysInMonth = (year: number, month: number): number =>
+    new Date(year, month + 1, 0).getDate();
+
+export const advanceRecurringDate = (
+    currentDate: Date,
+    interval: string,
+    anchorDay = currentDate.getDate()
+): Date => {
+    const next = new Date(currentDate);
+
+    if (interval === 'weekly') {
+        next.setDate(next.getDate() + 7);
+        return next;
+    }
+
+    if (interval === 'monthly') {
+        next.setDate(1);
+        next.setMonth(next.getMonth() + 1);
+        next.setDate(Math.min(anchorDay, daysInMonth(next.getFullYear(), next.getMonth())));
+        return next;
+    }
+
+    if (interval === 'yearly') {
+        const month = next.getMonth();
+        next.setDate(1);
+        next.setFullYear(next.getFullYear() + 1);
+        next.setMonth(month);
+        next.setDate(Math.min(anchorDay, daysInMonth(next.getFullYear(), month)));
+        return next;
+    }
+
+    throw new Error(`Unsupported recurring interval: ${interval}`);
+};
+
 export const processDueTransactions = async (userId?: number) => {
     const now = new Date();
-
-    // Build query conditions
     const whereCondition: any = {
         active: true,
         next_run_date: { lte: now }
     };
 
-    if (userId) {
-        whereCondition.user_id = userId;
-    }
+    if (userId) whereCondition.user_id = userId;
 
-    const dueRules = await prisma.recurringTransaction.findMany({
-        where: whereCondition
-    });
-
+    const dueRules = await prisma.recurringTransaction.findMany({ where: whereCondition });
     logger.info(`Found ${dueRules.length} due recurring transactions to process${userId ? ` for user ${userId}` : ''}`);
 
     const results = await Promise.all(
         dueRules.map(rule => processRuleCycles(rule as unknown as RecurringRule, now))
     );
 
-    const createdTransactions = results.flat();
-    return createdTransactions;
+    return results.flat();
 };
 
 async function processRuleCycles(
     rule: RecurringRule,
     now: Date
 ): Promise<{ id: number; amount: number }[]> {
-    const nextDate = new Date(rule.next_run_date);
+    let nextDate = new Date(rule.next_run_date);
+    const anchorDay = rule.anchor_day ?? rule.next_run_date.getDate();
     const createdTransactions: { id: number; amount: number }[] = [];
     let safetyCounter = 0;
 
-    // While the next date is in the past, keep processing cycles
     while (nextDate <= now && safetyCounter < MAX_RECURRING_LOOPS) {
+        const scheduledAt = new Date(nextDate);
         const balanceChange = rule.type === 'income' ? rule.amount : -rule.amount;
 
         try {
-            const tx = await prisma.$transaction(async (database) => {
+            const tx = await prisma.$transaction(async database => {
                 await database.recurringOccurrence.create({
-                    data: { recurring_rule_id: rule.id, scheduled_at: new Date(nextDate) }
+                    data: { recurring_rule_id: rule.id, scheduled_at: scheduledAt }
                 });
+
                 const transaction = await database.transaction.create({
                     data: {
                         amount: rule.amount,
@@ -68,41 +97,40 @@ async function processRuleCycles(
                         account_id: rule.account_id,
                         category_id: rule.category_id,
                         user_id: rule.user_id,
-                        created_at: new Date(nextDate) // Use the theoretical date it should have run
+                        created_at: scheduledAt
                     }
                 });
+
                 await database.account.update({
                     where: { id: rule.account_id },
                     data: { balance: { increment: balanceChange } }
                 });
+
                 return transaction;
             });
 
             createdTransactions.push({ id: tx.id, amount: tx.amount });
-            logger.info(`Processed recurring transaction ${rule.id} for date ${nextDate.toISOString()}`);
-
+            logger.info(`Processed recurring transaction ${rule.id} for date ${scheduledAt.toISOString()}`);
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-                logger.info(`Recurring transaction ${rule.id} for ${nextDate.toISOString()} was already processed`);
+                logger.info(`Recurring transaction ${rule.id} for ${scheduledAt.toISOString()} was already processed`);
             } else {
-            logger.error(`Failed to process recurring rule ${rule.id}:`, error);
+                logger.error(`Failed to process recurring rule ${rule.id}:`, error);
                 break;
             }
         }
 
-        // Advance date
-        if (rule.interval === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
-        else if (rule.interval === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
-        else if (rule.interval === 'yearly') nextDate.setFullYear(nextDate.getFullYear() + 1);
-
+        nextDate = advanceRecurringDate(nextDate, rule.interval, anchorDay);
         safetyCounter++;
     }
 
-    // Update the rule with the new next_run_date
     if (createdTransactions.length > 0 || safetyCounter > 0) {
         await prisma.recurringTransaction.update({
             where: { id: rule.id },
-            data: { next_run_date: nextDate }
+            data: {
+                next_run_date: nextDate,
+                anchor_day: anchorDay
+            }
         });
     }
 

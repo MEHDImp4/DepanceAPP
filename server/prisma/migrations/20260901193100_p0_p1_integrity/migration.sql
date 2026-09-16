@@ -1,4 +1,7 @@
--- DropIndex
+-- Replace the old one-budget-per-category-global index with a user-scoped constraint.
+-- MariaDB/MySQL cannot drop the category index while the foreign key depends on it,
+-- so remove and restore the FK around the index change.
+ALTER TABLE `Budget` DROP FOREIGN KEY `Budget_category_id_fkey`;
 DROP INDEX `Budget_category_id_key` ON `Budget`;
 
 -- CreateTable
@@ -30,6 +33,10 @@ CREATE TABLE `IdempotencyKey` (
 
 -- CreateIndex
 CREATE UNIQUE INDEX `Budget_user_id_category_id_key` ON `Budget`(`user_id`, `category_id`);
+
+-- Restore foreign key after replacing the index. The database creates/uses an
+-- appropriate supporting index for category_id as required.
+ALTER TABLE `Budget` ADD CONSTRAINT `Budget_category_id_fkey` FOREIGN KEY (`category_id`) REFERENCES `Category`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `RecurringOccurrence` ADD CONSTRAINT `RecurringOccurrence_recurring_rule_id_fkey` FOREIGN KEY (`recurring_rule_id`) REFERENCES `RecurringTransaction`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

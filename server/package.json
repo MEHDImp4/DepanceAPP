@@ -11,7 +11,8 @@
     "build": "tsc -p tsconfig.build.json",
     "build:check": "tsc --noEmit",
     "pretest": "cross-env DATABASE_URL=\"file:./test.db\" prisma db push --schema prisma/schema.test.prisma --accept-data-loss",
-    "test": "cross-env NODE_ENV=test DATABASE_URL=\"file:./test.db\" JWT_SECRET=test_secret_key PORT=3001 jest --runInBand"
+    "test": "cross-env NODE_ENV=test DATABASE_URL=\"file:./test.db\" JWT_SECRET=test_secret_key PORT=3001 jest --runInBand",
+    "test:mysql": "cross-env NODE_ENV=test jest --runInBand"
   },
   "keywords": [
     "finance",

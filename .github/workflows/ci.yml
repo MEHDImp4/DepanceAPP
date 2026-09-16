@@ -2,9 +2,9 @@ name: Node.js CI
 
 on:
   push:
-    branches: [ "master", "main" ]
+    branches: ["master", "main"]
   pull_request:
-    branches: [ "master", "main" ]
+    branches: ["master", "main"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,84 +12,85 @@ concurrency:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [20.x]
-    
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     services:
-      mysql:
-        image: mysql:8.0
+      mariadb:
+        image: mariadb:11.4
         ports:
           - 3306:3306
         env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_DATABASE: depance_db
-        # Set health checks to wait until mysql has started
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: depance_db
         options: >-
-          --health-cmd="mysqladmin ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -uroot -proot --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DATABASE_URL: mysql://root:root@127.0.0.1:3306/depance_db
+      JWT_ACCESS_SECRET: ci_access_secret_at_least_32_characters_long
+      JWT_REFRESH_SECRET: ci_refresh_secret_at_least_32_characters_long
+      NODE_ENV: test
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: |
-          server/package-lock.json
-          client/package-lock.json
-    
-    - name: Install Dependencies
-      working-directory: ./server
-      run: npm ci
+      - uses: actions/checkout@v4
 
-    - name: Generate Prisma Client
-      working-directory: ./server
-      env:
-        DATABASE_URL: mysql://root:root@localhost:3306/depance_db
-      run: npx prisma generate
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
 
-    - name: Typecheck Server
-      working-directory: ./server
-      run: npm run build:check
+      - name: Install server dependencies
+        working-directory: ./server
+        run: npm ci
 
-    - name: Audit Server Dependencies
-      working-directory: ./server
-      run: npm audit --audit-level=high
+      - name: Generate Prisma client
+        working-directory: ./server
+        run: npx prisma generate
 
-    - name: Setup Test Database
-      working-directory: ./server
-      env:
-        DATABASE_URL: mysql://root:root@localhost:3306/depance_db
-      run: npx prisma db push --skip-generate
+      - name: Apply production migrations to MariaDB
+        working-directory: ./server
+        run: npx prisma migrate deploy
 
-    - name: Run Tests
-      working-directory: ./server
-      env:
-        DATABASE_URL: mysql://root:root@localhost:3306/depance_db
-        JWT_SECRET: test_secret_key_for_ci
-      run: npm test
+      - name: Typecheck server
+        working-directory: ./server
+        run: npm run build:check
 
-    - name: Install Client Dependencies
-      working-directory: ./client
-      run: npm ci
+      - name: Audit server dependencies
+        working-directory: ./server
+        run: npm audit --audit-level=high
 
-    - name: Run Client Tests
-      working-directory: ./client
-      run: npm run test:run
+      - name: Run backend integration tests on MariaDB
+        working-directory: ./server
+        run: npm run test:mysql
 
-    - name: Lint Client
-      working-directory: ./client
-      run: npm run lint
+      - name: Install client dependencies
+        working-directory: ./client
+        run: npm ci
 
-    - name: Build Client
-      working-directory: ./client
-      run: npm run build
+      - name: Audit client dependencies
+        working-directory: ./client
+        run: npm audit --audit-level=high
+
+      - name: Run client tests
+        working-directory: ./client
+        run: npm run test:run
+
+      - name: Lint client
+        working-directory: ./client
+        run: npm run lint
+
+      - name: Build client
+        working-directory: ./client
+        run: npm run build
+
+      - name: Build server
+        working-directory: ./server
+        run: npm run build

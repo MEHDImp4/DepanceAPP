@@ -1,13 +1,29 @@
 import { render } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
-import { describe, it, expect } from 'vitest';
+import { useAuthStore } from './store/auth-store';
+
+vi.mock('./lib/axios', () => ({
+    default: {
+        get: vi.fn(),
+        post: vi.fn(),
+        put: vi.fn(),
+        patch: vi.fn(),
+        delete: vi.fn(),
+    },
+}));
 
 describe('App', () => {
-    it('renders without crashing', () => {
-        render(<App />);
-        // Adjust this expectation based on actual content, or just check if it renders
-        // For now just ensuring render doesn't throw is a good start, 
-        // but let's check for something generic if possible or just pass.
-        expect(true).toBeTruthy();
+    beforeEach(() => {
+        useAuthStore.setState({
+            user: null,
+            isAuthenticated: false,
+            isInitialized: true,
+        });
+        window.history.replaceState({}, '', '/login');
+    });
+
+    it('renders without making session network requests', () => {
+        expect(() => render(<App />)).not.toThrow();
     });
 });

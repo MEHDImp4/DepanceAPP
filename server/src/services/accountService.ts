@@ -26,9 +26,9 @@ export const getAccountSummary = async (userId: number) => {
         prisma.account.findMany({ where: { user_id: userId } })
     ]);
 
-    const targetCurrency = user?.currency || 'USD';
-    const amounts = await Promise.all(accounts.map(acc =>
-        convertCurrency(acc.balance, acc.currency, targetCurrency)
+    const targetCurrency = (user?.currency || 'USD').toUpperCase();
+    const amounts = await Promise.all(accounts.map(async account =>
+        Math.round(await convertCurrency(account.balance, account.currency, targetCurrency))
     ));
 
     const totalBalanceCents = amounts.reduce((sum, amount) => sum + amount, 0);
@@ -42,14 +42,19 @@ export const getAccountSummary = async (userId: number) => {
 
 export const createAccount = async (data: CreateAccountData) => {
     const { name, type, balance, currency, color, userId } = data;
+    const balanceInCents = toCents(balance ?? 0);
+
+    if (!Number.isSafeInteger(balanceInCents)) {
+        throw new Error('Invalid balance');
+    }
 
     const account = await prisma.account.create({
         data: {
             name,
             type: type || 'normal',
             color: color || 'bg-primary',
-            currency: currency || 'USD',
-            balance: toCents(balance || 0),
+            currency: (currency || 'USD').toUpperCase(),
+            balance: balanceInCents,
             user_id: userId
         }
     });
@@ -62,9 +67,9 @@ export const getUserAccounts = async (userId: number) => {
         where: { user_id: userId },
         orderBy: { created_at: 'asc' }
     });
-    return accounts.map(acc => ({
-        ...acc,
-        balance: fromCents(acc.balance)
+    return accounts.map(account => ({
+        ...account,
+        balance: fromCents(account.balance)
     }));
 };
 
@@ -79,9 +84,21 @@ export const updateAccount = async (data: UpdateAccountData) => {
         throw new Error('Account not found');
     }
 
+    const normalizedCurrency = currency?.toUpperCase();
+    if (normalizedCurrency && normalizedCurrency !== account.currency.toUpperCase()) {
+        const transactionCount = await prisma.transaction.count({ where: { account_id: id } });
+        if (account.balance !== 0 || transactionCount > 0) {
+            throw new Error('Account currency cannot be changed after financial activity');
+        }
+    }
+
     const updated = await prisma.account.update({
         where: { id },
-        data: { name, type, currency }
+        data: {
+            name,
+            type,
+            ...(normalizedCurrency !== undefined && { currency: normalizedCurrency })
+        }
     });
 
     return { ...updated, balance: fromCents(updated.balance) };
@@ -111,5 +128,5 @@ export const deleteAccount = async (id: number, userId: number, password?: strin
     }
 
     await prisma.account.delete({ where: { id } });
-    return true;
+    return account;
 };

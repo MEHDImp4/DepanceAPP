@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
+import { toCents, fromCents } from '../utils/money';
 
 interface CreateGoalBody {
     name: string;
@@ -19,13 +20,19 @@ interface UpdateGoalBody {
     icon?: string;
 }
 
+const serializeGoal = <T extends { targetAmount: number; currentAmount: number }>(goal: T) => ({
+    ...goal,
+    targetAmount: fromCents(goal.targetAmount),
+    currentAmount: fromCents(goal.currentAmount)
+});
+
 export const getGoals = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const goals = await prisma.goal.findMany({
             where: { user_id: req.user!.userId },
-            orderBy: { created_at: 'desc' },
+            orderBy: { created_at: 'desc' }
         });
-        res.json(goals);
+        res.json(goals.map(serializeGoal));
     } catch (error) {
         next(error);
     }
@@ -38,15 +45,15 @@ export const createGoal = async (req: Request, res: Response, next: NextFunction
         const goal = await prisma.goal.create({
             data: {
                 name,
-                targetAmount: Math.round(targetAmount),
-                currentAmount: currentAmount ? Math.round(currentAmount) : 0,
+                targetAmount: toCents(targetAmount),
+                currentAmount: toCents(currentAmount ?? 0),
                 deadline: deadline ? new Date(deadline) : null,
                 color,
                 icon,
-                user_id: req.user!.userId,
-            },
+                user_id: req.user!.userId
+            }
         });
-        res.status(201).json(goal);
+        res.status(201).json(serializeGoal(goal));
     } catch (error) {
         next(error);
     }
@@ -56,25 +63,29 @@ export const updateGoal = async (req: Request, res: Response, next: NextFunction
     try {
         const { id } = req.params;
         const { name, targetAmount, currentAmount, deadline, color, icon } = req.body as UpdateGoalBody;
+        const goalId = parseInt(id as string, 10);
 
-        const dataToUpdate: any = { name, color, icon };
-        if (targetAmount !== undefined) dataToUpdate.targetAmount = Math.round(targetAmount);
-        if (currentAmount !== undefined) dataToUpdate.currentAmount = Math.round(currentAmount);
-
-        if (deadline !== undefined) {
-            dataToUpdate.deadline = deadline ? new Date(deadline) : null;
-        }
-
-        const result = await prisma.goal.updateMany({
-            where: { id: parseInt(id as string), user_id: req.user!.userId },
-            data: dataToUpdate,
+        const existing = await prisma.goal.findFirst({
+            where: { id: goalId, user_id: req.user!.userId }
         });
-
-        if (result.count === 0) {
+        if (!existing) {
             res.status(404).json({ error: 'Goal not found' });
             return;
         }
-        res.json({ message: 'Goal updated successfully' });
+
+        const updated = await prisma.goal.update({
+            where: { id: goalId },
+            data: {
+                name,
+                color,
+                icon,
+                ...(targetAmount !== undefined && { targetAmount: toCents(targetAmount) }),
+                ...(currentAmount !== undefined && { currentAmount: toCents(currentAmount) }),
+                ...(deadline !== undefined && { deadline: deadline ? new Date(deadline) : null })
+            }
+        });
+
+        res.json(serializeGoal(updated));
     } catch (error) {
         next(error);
     }
@@ -83,20 +94,18 @@ export const updateGoal = async (req: Request, res: Response, next: NextFunction
 export const deleteGoal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { id } = req.params;
+        const goalId = parseInt(id as string, 10);
 
-        const goal = await prisma.goal.findUnique({
-            where: { id: parseInt(id as string) }
+        const goal = await prisma.goal.findFirst({
+            where: { id: goalId, user_id: req.user!.userId }
         });
 
-        if (!goal || goal.user_id !== req.user!.userId) {
+        if (!goal) {
             res.status(404).json({ error: 'Goal not found' });
             return;
         }
 
-        await prisma.goal.delete({
-            where: { id: parseInt(id as string) }
-        });
-
+        await prisma.goal.delete({ where: { id: goalId } });
         res.json({ message: 'Goal deleted' });
     } catch (error) {
         next(error);

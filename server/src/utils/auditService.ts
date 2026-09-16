@@ -1,51 +1,30 @@
+import type { Prisma } from '@prisma/client';
+import { Request } from 'express';
 import prisma from './prisma';
 import logger from './logger';
-import { Request } from 'express';
 
-/**
- * Action types for audit logging
- */
 export const AuditAction = {
-    // Transactions
     TRANSACTION_CREATE: 'transaction.create',
     TRANSACTION_DELETE: 'transaction.delete',
-
-    // Accounts
     ACCOUNT_CREATE: 'account.create',
     ACCOUNT_UPDATE: 'account.update',
     ACCOUNT_DELETE: 'account.delete',
-
-    // Transfers
     TRANSFER_CREATE: 'transfer.create',
-
-    // Budgets
+    TRANSFER_CANCEL: 'transfer.cancel',
     BUDGET_CREATE: 'budget.create',
     BUDGET_UPDATE: 'budget.update',
     BUDGET_DELETE: 'budget.delete',
-
-    // Categories
     CATEGORY_CREATE: 'category.create',
     CATEGORY_UPDATE: 'category.update',
     CATEGORY_DELETE: 'category.delete',
-
-    // Recurring
     RECURRING_CREATE: 'recurring.create',
     RECURRING_DELETE: 'recurring.delete',
     RECURRING_PROCESS: 'recurring.process',
-
-    // Auth
     PASSWORD_CHANGE: 'auth.password_change',
     SETTINGS_UPDATE: 'auth.settings_update'
-};
+} as const;
 
-/**
- * Get client IP from request
- */
 function getClientIp(req: Request): string {
-    const forwarded = req.headers['x-forwarded-for'];
-    if (forwarded) {
-        return (forwarded as string).split(',')[0].trim();
-    }
     return req.ip || req.socket.remoteAddress || 'Unknown';
 }
 
@@ -54,15 +33,12 @@ interface AuditLogOptions {
     action: string;
     entityType: string;
     entityId?: number | null;
-    oldValue?: any;
-    newValue?: any;
+    oldValue?: unknown;
+    newValue?: unknown;
     req?: Request;
-    metadata?: any;
+    metadata?: unknown;
 }
 
-/**
- * Create an audit log entry
- */
 export async function logAudit({
     userId,
     action,
@@ -88,7 +64,6 @@ export async function logAudit({
             }
         });
 
-        // Also log to Winston for immediate visibility
         logger.info(`AUDIT: ${action} by user ${userId}`, {
             action,
             entityType,
@@ -98,7 +73,6 @@ export async function logAudit({
 
         return auditEntry;
     } catch (error: any) {
-        // Don't fail the main operation if audit logging fails
         logger.error('Failed to create audit log:', error.message);
         return null;
     }
@@ -107,46 +81,45 @@ export async function logAudit({
 interface UserAuditLogOptions {
     limit?: number;
     offset?: number;
-    action?: string;
-    entityType?: string;
+    action?: string | null;
+    entityType?: string | null;
 }
 
-/**
- * Get audit logs for a user (for admin/user security review)
- */
 export async function getUserAuditLogs(userId: number, options: UserAuditLogOptions = {}) {
     const { limit = 50, offset = 0, action = null, entityType = null } = options;
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const safeOffset = Math.max(offset, 0);
 
-    const where: any = { userId };
+    const where: Prisma.AuditLogWhereInput = { userId };
     if (action) where.action = action;
     if (entityType) where.entityType = entityType;
 
     return prisma.auditLog.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        take: limit,
-        skip: offset,
+        take: safeLimit,
+        skip: safeOffset,
         select: {
             id: true,
             action: true,
             entityType: true,
             entityId: true,
+            oldValue: true,
+            newValue: true,
             ipAddress: true,
+            userAgent: true,
             createdAt: true,
             metadata: true
         }
     });
 }
 
-/**
- * Get recent critical actions (for security monitoring)
- */
 export async function getRecentCriticalActions(minutes = 60) {
     const since = new Date(Date.now() - minutes * 60 * 1000);
-
     const criticalActions = [
         AuditAction.ACCOUNT_DELETE,
         AuditAction.TRANSFER_CREATE,
+        AuditAction.TRANSFER_CANCEL,
         AuditAction.PASSWORD_CHANGE
     ];
 
@@ -164,9 +137,6 @@ export async function getRecentCriticalActions(minutes = 60) {
     });
 }
 
-/**
- * Convenience function for transaction audit
- */
 export async function logTransactionCreate(userId: number, transaction: any, req?: Request) {
     return logAudit({
         userId,
@@ -177,16 +147,21 @@ export async function logTransactionCreate(userId: number, transaction: any, req
             amount: transaction.amount,
             type: transaction.type,
             description: transaction.description,
-            accountId: transaction.account_id
+            accountId: transaction.account_id,
+            categoryId: transaction.category_id ?? null
         },
         req
     });
 }
 
-/**
- * Convenience function for transfer audit
- */
-export async function logTransferCreate(userId: number, transferId: string, fromAccountId: number, toAccountId: number, amount: number, req?: Request) {
+export async function logTransferCreate(
+    userId: number,
+    transferId: string,
+    fromAccountId: number,
+    toAccountId: number,
+    amount: number,
+    req?: Request
+) {
     return logAudit({
         userId,
         action: AuditAction.TRANSFER_CREATE,
@@ -203,9 +178,6 @@ export async function logTransferCreate(userId: number, transferId: string, from
     });
 }
 
-/**
- * Convenience function for account deletion audit
- */
 export async function logAccountDelete(userId: number, account: any, req?: Request) {
     return logAudit({
         userId,
