@@ -39,16 +39,13 @@ export const verifyRefreshToken = (token: string) => {
     audience: TOKEN_AUDIENCE,
     algorithms: ['HS256']
   });
-  if (
-    typeof payload === 'string' ||
-    payload.typ !== 'refresh' ||
-    typeof payload.userId !== 'number' ||
-    typeof payload.sid !== 'string' ||
-    payload.sid.length < 1
-  ) {
+  if (typeof payload === 'string' || payload.typ !== 'refresh' || typeof payload.userId !== 'number') {
     throw new jwt.JsonWebTokenError('Invalid refresh token type');
   }
-  return payload as jwt.JwtPayload & { userId: number; sid: string; typ: 'refresh' };
+  if (payload.sid !== undefined && typeof payload.sid !== 'string') {
+    throw new jwt.JsonWebTokenError('Invalid refresh session identifier');
+  }
+  return payload as jwt.JwtPayload & { userId: number; sid?: string; typ: 'refresh' };
 };
 
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');
