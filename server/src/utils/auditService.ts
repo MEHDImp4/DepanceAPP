@@ -1,4 +1,4 @@
-import type { Prisma } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 import { Request } from 'express';
 import prisma from './prisma';
 import logger from './logger';
@@ -28,7 +28,7 @@ function getClientIp(req: Request): string {
     return req.ip || req.socket.remoteAddress || 'Unknown';
 }
 
-interface AuditLogOptions {
+export interface AuditLogOptions {
     userId: number;
     action: string;
     entityType: string;
@@ -39,7 +39,9 @@ interface AuditLogOptions {
     metadata?: unknown;
 }
 
-export async function logAudit({
+type AuditDatabase = Prisma.TransactionClient | PrismaClient;
+
+const auditData = ({
     userId,
     action,
     entityType,
@@ -48,29 +50,38 @@ export async function logAudit({
     newValue = null,
     req,
     metadata = null
-}: AuditLogOptions) {
+}: AuditLogOptions) => ({
+    userId,
+    action,
+    entityType,
+    entityId: entityId ?? null,
+    oldValue: oldValue ? JSON.stringify(oldValue) : null,
+    newValue: newValue ? JSON.stringify(newValue) : null,
+    ipAddress: req ? getClientIp(req) : null,
+    userAgent: req?.headers?.['user-agent']?.substring(0, 500) || null,
+    metadata: metadata ? JSON.stringify(metadata) : null
+});
+
+/**
+ * Strict audit write for financial/security mutations that must commit or roll
+ * back together with the domain operation.
+ */
+export async function createAuditEntry(database: AuditDatabase, options: AuditLogOptions) {
+    return database.auditLog.create({ data: auditData(options) });
+}
+
+/**
+ * Best-effort audit helper for non-transactional informational/settings events.
+ */
+export async function logAudit(options: AuditLogOptions) {
     try {
-        const auditEntry = await prisma.auditLog.create({
-            data: {
-                userId,
-                action,
-                entityType,
-                entityId,
-                oldValue: oldValue ? JSON.stringify(oldValue) : null,
-                newValue: newValue ? JSON.stringify(newValue) : null,
-                ipAddress: req ? getClientIp(req) : null,
-                userAgent: req?.headers?.['user-agent']?.substring(0, 500) || null,
-                metadata: metadata ? JSON.stringify(metadata) : null
-            }
+        const auditEntry = await createAuditEntry(prisma, options);
+        logger.info(`AUDIT: ${options.action} by user ${options.userId}`, {
+            action: options.action,
+            entityType: options.entityType,
+            entityId: options.entityId,
+            userId: options.userId
         });
-
-        logger.info(`AUDIT: ${action} by user ${userId}`, {
-            action,
-            entityType,
-            entityId,
-            userId
-        });
-
         return auditEntry;
     } catch (error: any) {
         logger.error('Failed to create audit log:', error.message);
