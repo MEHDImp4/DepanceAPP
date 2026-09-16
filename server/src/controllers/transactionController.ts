@@ -3,7 +3,7 @@ import prisma from '../utils/prisma';
 import { toCents, fromCents } from '../utils/money';
 import { getRates, calculateExchange } from '../utils/currencyService';
 import { runIdempotent } from '../utils/idempotency';
-import { AuditAction, logAudit, logTransactionCreate } from '../utils/auditService';
+import { AuditAction, createAuditEntry } from '../utils/auditService';
 
 interface CreateTransactionBody {
     amount: number;
@@ -73,6 +73,21 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
                     data: { balance: { increment: balanceChange } }
                 });
 
+                await createAuditEntry(database, {
+                    userId,
+                    action: AuditAction.TRANSACTION_CREATE,
+                    entityType: 'transaction',
+                    entityId: transaction.id,
+                    newValue: {
+                        amount: transaction.amount,
+                        type: transaction.type,
+                        description: transaction.description,
+                        accountId: transaction.account_id,
+                        categoryId: transaction.category_id
+                    },
+                    req
+                });
+
                 return {
                     statusCode: 201,
                     body: {
@@ -83,22 +98,7 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
             }
         );
 
-        if (result.replayed) {
-            res.set('Idempotency-Replayed', 'true');
-        } else {
-            const responseBody = result.body as { transaction?: Record<string, unknown> };
-            if (responseBody.transaction) {
-                await logTransactionCreate(userId, {
-                    ...responseBody.transaction,
-                    amount: transactionAmount,
-                    account_id,
-                    category_id: category_id || null,
-                    type,
-                    description
-                }, req);
-            }
-        }
-
+        if (result.replayed) res.set('Idempotency-Replayed', 'true');
         res.status(result.statusCode).json(result.body);
     } catch (error) {
         next(error);
@@ -222,27 +222,26 @@ export const deleteTransaction = async (req: Request, res: Response, next: NextF
 
         const balanceChange = tx.type === 'income' ? -tx.amount : tx.amount;
 
-        await prisma.$transaction([
-            prisma.transaction.delete({ where: { id: transactionId } }),
-            prisma.account.update({
+        await prisma.$transaction(async database => {
+            await database.transaction.delete({ where: { id: transactionId } });
+            await database.account.update({
                 where: { id: tx.account_id },
                 data: { balance: { increment: balanceChange } }
-            })
-        ]);
-
-        await logAudit({
-            userId,
-            action: AuditAction.TRANSACTION_DELETE,
-            entityType: 'transaction',
-            entityId: tx.id,
-            oldValue: {
-                amount: tx.amount,
-                type: tx.type,
-                description: tx.description,
-                accountId: tx.account_id,
-                categoryId: tx.category_id
-            },
-            req
+            });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.TRANSACTION_DELETE,
+                entityType: 'transaction',
+                entityId: tx.id,
+                oldValue: {
+                    amount: tx.amount,
+                    type: tx.type,
+                    description: tx.description,
+                    accountId: tx.account_id,
+                    categoryId: tx.category_id
+                },
+                req
+            });
         });
 
         res.json({ message: 'Transaction deleted' });
