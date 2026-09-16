@@ -1,18 +1,37 @@
-import { Navigate, useLocation } from "react-router-dom";
-import { useAuthStore } from "@/store/auth-store";
+import { useEffect } from 'react';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuthStore } from '@/store/auth-store';
+import api from '@/lib/axios';
+import type { User } from '@/types';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-    // Since Zustand persistence is synchronous for localStorage, we don't strictly need a loading state, 
-    // but if we were checking a cookie via an API, we would.
-    // For now, let's assume immediate availability or handle hydration if needed.
-    const isLoading = false; // Zustand persist is synchronous-ish with localStorage, but for cookies we might need a verify check.
+    const isInitialized = useAuthStore((state) => state.isInitialized);
+    const setAuth = useAuthStore((state) => state.setAuth);
+    const logout = useAuthStore((state) => state.logout);
     const location = useLocation();
 
-    if (isLoading) {
+    useEffect(() => {
+        if (isInitialized) return;
+
+        let cancelled = false;
+        api.get<User>('/auth/profile')
+            .then(({ data }) => {
+                if (!cancelled) setAuth(data);
+            })
+            .catch(() => {
+                if (!cancelled) logout();
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isInitialized, logout, setAuth]);
+
+    if (!isInitialized) {
         return (
-            <div className="flex items-center justify-center h-screen">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="flex items-center justify-center h-screen" role="status" aria-label="Checking session">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
         );
     }
