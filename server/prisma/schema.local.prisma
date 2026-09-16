@@ -51,7 +51,8 @@ model LoginHistory {
   createdAt DateTime @default(now())
 
   @@index([userId])
-  @@index([createdAt])n  @@index([ipAddress])
+  @@index([createdAt])
+  @@index([ipAddress])
 }
 
 model AuditLog {
