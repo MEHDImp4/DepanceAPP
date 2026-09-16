@@ -156,6 +156,7 @@ model Template {
 model Budget {
   id          Int      @id @default(autoincrement())
   amount      Int
+  currency    String   @default("USD") @db.VarChar(3)
   period      String   @default("monthly")
   category_id Int?
   scope_key   String   @default("global") @db.VarChar(191)
@@ -229,6 +230,7 @@ model Goal {
   name          String
   targetAmount  Int
   currentAmount Int       @default(0)
+  currency      String    @default("USD") @db.VarChar(3)
   deadline      DateTime?
   color         String?
   icon          String?
