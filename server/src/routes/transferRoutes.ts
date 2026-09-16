@@ -9,5 +9,6 @@ const router = Router();
 router.use(authMiddleware);
 
 router.post('/', validate(createTransferSchema), transferController.createTransfer);
+router.delete('/:transferId', transferController.cancelTransfer);
 
 export default router;
