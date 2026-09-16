@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
+import { AuditAction, logAudit } from '../utils/auditService';
 
 interface CreateCategoryBody {
     name: string;
@@ -19,7 +21,7 @@ export const getCategories = async (req: Request, res: Response, next: NextFunct
     try {
         const categories = await prisma.category.findMany({
             where: { user_id: req.user!.userId },
-            orderBy: { name: 'asc' },
+            orderBy: { name: 'asc' }
         });
         res.json(categories);
     } catch (error) {
@@ -30,31 +32,27 @@ export const getCategories = async (req: Request, res: Response, next: NextFunct
 export const createCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { name, type, color, icon } = req.body as CreateCategoryBody;
-
-        const existing = await prisma.category.findFirst({
-            where: {
-                name,
-                type,
-                user_id: req.user!.userId
-            }
-        });
-
-        if (existing) {
-            res.status(400).json({ error: 'Category already exists' });
-            return;
-        }
+        const userId = req.user!.userId;
 
         const category = await prisma.category.create({
-            data: {
-                name,
-                type,
-                color,
-                icon,
-                user_id: req.user!.userId,
-            },
+            data: { name, type, color, icon, user_id: userId }
         });
+
+        await logAudit({
+            userId,
+            action: AuditAction.CATEGORY_CREATE,
+            entityType: 'category',
+            entityId: category.id,
+            newValue: category,
+            req
+        });
+
         res.status(201).json(category);
     } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            res.status(409).json({ error: 'Category already exists' });
+            return;
+        }
         next(error);
     }
 };
@@ -63,18 +61,36 @@ export const updateCategory = async (req: Request, res: Response, next: NextFunc
     try {
         const { id } = req.params;
         const { name, type, color, icon } = req.body as UpdateCategoryBody;
+        const userId = req.user!.userId;
+        const categoryId = parseInt(id as string, 10);
 
-        const result = await prisma.category.updateMany({
-            where: { id: parseInt(id as string), user_id: req.user!.userId },
-            data: { name, type, color, icon },
-        });
-
-        if (result.count === 0) {
+        const existing = await prisma.category.findFirst({ where: { id: categoryId, user_id: userId } });
+        if (!existing) {
             res.status(404).json({ error: 'Category not found' });
             return;
         }
-        res.json({ message: 'Category updated successfully' });
+
+        const updated = await prisma.category.update({
+            where: { id: categoryId },
+            data: { name, type, color, icon }
+        });
+
+        await logAudit({
+            userId,
+            action: AuditAction.CATEGORY_UPDATE,
+            entityType: 'category',
+            entityId: categoryId,
+            oldValue: existing,
+            newValue: updated,
+            req
+        });
+
+        res.json(updated);
     } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+            res.status(409).json({ error: 'Category already exists' });
+            return;
+        }
         next(error);
     }
 };
@@ -82,23 +98,45 @@ export const updateCategory = async (req: Request, res: Response, next: NextFunc
 export const deleteCategory = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { id } = req.params;
-        const category = await prisma.category.findUnique({
-            where: { id: parseInt(id as string) }
+        const userId = req.user!.userId;
+        const categoryId = parseInt(id as string, 10);
+
+        const category = await prisma.category.findFirst({
+            where: { id: categoryId, user_id: userId }
         });
 
-        if (!category || category.user_id !== req.user!.userId) {
+        if (!category) {
             res.status(404).json({ error: 'Category not found' });
             return;
         }
 
-        // Set category_id to null for related transactions
-        await prisma.transaction.updateMany({
-            where: { category_id: parseInt(id as string) },
-            data: { category_id: null }
-        });
+        await prisma.$transaction([
+            prisma.transaction.updateMany({
+                where: { category_id: categoryId, user_id: userId },
+                data: { category_id: null }
+            }),
+            prisma.budget.updateMany({
+                where: { category_id: categoryId, user_id: userId },
+                data: { category_id: null }
+            }),
+            prisma.recurringTransaction.updateMany({
+                where: { category_id: categoryId, user_id: userId },
+                data: { category_id: null }
+            }),
+            prisma.template.updateMany({
+                where: { category_id: categoryId, user_id: userId },
+                data: { category_id: null }
+            }),
+            prisma.category.delete({ where: { id: categoryId } })
+        ]);
 
-        await prisma.category.delete({
-            where: { id: parseInt(id as string) }
+        await logAudit({
+            userId,
+            action: AuditAction.CATEGORY_DELETE,
+            entityType: 'category',
+            entityId: categoryId,
+            oldValue: category,
+            req
         });
 
         res.json({ message: 'Category deleted' });
