@@ -16,10 +16,6 @@ interface UpdateAccountBody {
     currency?: string;
 }
 
-interface IdParams {
-    id: string;
-}
-
 export const getSummary = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const userId = Number(req.user!.userId);
@@ -60,9 +56,9 @@ export const getAccounts = async (req: Request, res: Response, next: NextFunctio
     }
 };
 
-export const updateAccount = async (req: Request<IdParams, unknown, UpdateAccountBody>, res: Response, next: NextFunction): Promise<void> => {
+export const updateAccount = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { id } = req.params;
+        const id = String(req.params.id);
         const body = req.body as UpdateAccountBody;
         const userId = Number(req.user!.userId);
 
@@ -98,10 +94,10 @@ export const updateAccount = async (req: Request<IdParams, unknown, UpdateAccoun
     }
 };
 
-export const deleteAccount = async (req: Request<IdParams>, res: Response, next: NextFunction): Promise<void> => {
+export const deleteAccount = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { id } = req.params;
-        const { password } = req.body;
+        const id = String(req.params.id);
+        const { password } = req.body as { password?: string };
         const userId = Number(req.user!.userId);
 
         try {
