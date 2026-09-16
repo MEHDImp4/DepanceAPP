@@ -33,18 +33,27 @@ export const createRecurring = async (req: Request, res: Response, next: NextFun
         const { amount, description, type, interval, start_date, account_id, category_id } = req.body as CreateRecurringBody;
         const userId = req.user!.userId;
 
-        const account = await prisma.account.findFirst({ where: { id: account_id, user_id: userId } });
+        const [account, category] = await Promise.all([
+            prisma.account.findFirst({ where: { id: account_id, user_id: userId } }),
+            category_id
+                ? prisma.category.findFirst({ where: { id: category_id, user_id: userId } })
+                : Promise.resolve(null)
+        ]);
+
         if (!account) {
             res.status(404).json({ error: 'Account not found' });
             return;
         }
-
-        if (category_id) {
-            const category = await prisma.category.findFirst({ where: { id: category_id, user_id: userId } });
-            if (!category) {
-                res.status(403).json({ error: 'Invalid category or access denied' });
-                return;
-            }
+        if (category_id && !category) {
+            res.status(403).json({ error: 'Invalid category or access denied' });
+            return;
+        }
+        if (category && category.type !== type) {
+            res.status(409).json({
+                error: `A ${type} recurring transaction requires a ${type} category`,
+                code: 'CATEGORY_TYPE_MISMATCH'
+            });
+            return;
         }
 
         const nextRunDate = start_date ? new Date(start_date) : new Date();
