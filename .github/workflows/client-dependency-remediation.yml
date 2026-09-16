@@ -30,8 +30,8 @@ jobs:
         working-directory: ./client
         run: |
           npm ci
-          npm audit fix
-          npm audit --audit-level=high
+          npm audit fix || true
+          npm audit fix || true
 
       - name: Commit updated dependency lock
         run: |
@@ -44,3 +44,7 @@ jobs:
             git commit -m "fix(deps): apply frontend security updates"
             git push origin HEAD:fix/full-audit-2026-09
           fi
+
+      - name: Verify high severity audit
+        working-directory: ./client
+        run: npm audit --audit-level=high
