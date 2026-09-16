@@ -22,8 +22,7 @@ export const getRecurring = async (req: Request, res: Response, next: NextFuncti
             include: { category: true, account: true },
             orderBy: { created_at: 'desc' }
         });
-        const recurringWithFloat = recurring.map(rule => ({ ...rule, amount: fromCents(rule.amount) }));
-        res.json(recurringWithFloat);
+        res.json(recurring.map(rule => ({ ...rule, amount: fromCents(rule.amount) })));
     } catch (error) {
         next(error);
     }
@@ -34,31 +33,29 @@ export const createRecurring = async (req: Request, res: Response, next: NextFun
         const { amount, description, type, interval, start_date, account_id, category_id } = req.body as CreateRecurringBody;
         const userId = req.user!.userId;
 
-        const account = await prisma.account.findFirst({
-            where: { id: account_id, user_id: userId }
-        });
+        const account = await prisma.account.findFirst({ where: { id: account_id, user_id: userId } });
         if (!account) {
             res.status(404).json({ error: 'Account not found' });
             return;
         }
 
         if (category_id) {
-            const category = await prisma.category.findFirst({
-                where: { id: category_id, user_id: userId }
-            });
+            const category = await prisma.category.findFirst({ where: { id: category_id, user_id: userId } });
             if (!category) {
                 res.status(403).json({ error: 'Invalid category or access denied' });
                 return;
             }
         }
 
+        const nextRunDate = start_date ? new Date(start_date) : new Date();
         const recurring = await prisma.recurringTransaction.create({
             data: {
                 amount: toCents(amount),
                 description,
                 type,
                 interval,
-                next_run_date: start_date ? new Date(start_date) : new Date(),
+                anchor_day: nextRunDate.getDate(),
+                next_run_date: nextRunDate,
                 account_id,
                 category_id: category_id || null,
                 user_id: userId
@@ -82,13 +79,10 @@ export const createRecurring = async (req: Request, res: Response, next: NextFun
 
 export const deleteRecurring = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { id } = req.params;
+        const recurringId = parseInt(req.params.id as string, 10);
         const userId = req.user!.userId;
-        const recurringId = parseInt(id as string, 10);
+        const existing = await prisma.recurringTransaction.findFirst({ where: { id: recurringId, user_id: userId } });
 
-        const existing = await prisma.recurringTransaction.findFirst({
-            where: { id: recurringId, user_id: userId }
-        });
         if (!existing) {
             res.status(404).json({ error: 'Recurring transaction not found' });
             return;
@@ -125,8 +119,10 @@ export const processRecurring = async (req: Request, res: Response, next: NextFu
             });
         }
 
-        const txsWithFloat = createdTransactions.map(tx => ({ ...tx, amount: fromCents(tx.amount) }));
-        res.json({ processed: txsWithFloat.length, transactions: txsWithFloat });
+        res.json({
+            processed: createdTransactions.length,
+            transactions: createdTransactions.map(tx => ({ ...tx, amount: fromCents(tx.amount) }))
+        });
     } catch (error) {
         next(error);
     }
