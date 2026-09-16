@@ -127,6 +127,20 @@ export const deleteAccount = async (id: number, userId: number, password?: strin
         throw new Error('Account not found');
     }
 
+    const transferCount = await prisma.transaction.count({
+        where: {
+            account_id: id,
+            user_id: userId,
+            transfer_id: { not: null }
+        }
+    });
+
+    if (transferCount > 0) {
+        const error = new Error('Account has transfer history that must be cancelled before deletion');
+        Object.assign(error, { code: 'ACCOUNT_HAS_TRANSFERS' });
+        throw error;
+    }
+
     await prisma.account.delete({ where: { id } });
     return account;
 };
