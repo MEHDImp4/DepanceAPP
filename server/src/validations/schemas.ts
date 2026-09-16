@@ -1,7 +1,12 @@
 import { z } from 'zod';
 import { SUPPORTED_CURRENCIES } from '../constants/currencies';
+import { isValidTimeZone } from '../utils/reportingTime';
 
 const currencySchema = z.enum(SUPPORTED_CURRENCIES);
+const timezoneSchema = z.string()
+    .min(1)
+    .max(100)
+    .refine(isValidTimeZone, { message: 'Invalid IANA timezone' });
 const passwordSchema = z.string()
     .min(8, { message: 'Password must be at least 8 characters long' })
     .max(72, { message: 'Password must be at most 72 characters long' })
@@ -26,7 +31,12 @@ export const loginSchema = z.object({
 });
 
 export const updateProfileSchema = z.object({
-    body: z.object({ currency: currencySchema })
+    body: z.object({
+        currency: currencySchema.optional(),
+        timezone: timezoneSchema.optional()
+    }).refine(body => body.currency !== undefined || body.timezone !== undefined, {
+        message: 'At least one profile setting is required'
+    })
 });
 
 export const changePasswordSchema = z.object({
