@@ -3,6 +3,7 @@ export const SUPPORTED_CURRENCIES = [
     'EUR',
     'GBP',
     'MAD',
+    'JPY',
     'CAD',
     'AUD',
     'CHF',
