@@ -11,6 +11,7 @@ import swaggerUi from 'swagger-ui-express';
 import logger from './utils/logger';
 import errorHandler from './middleware/errorHandler';
 import swaggerSpecs from './swagger';
+import prisma from './utils/prisma';
 
 import authRoutes from './routes/authRoutes';
 import accountRoutes from './routes/accountRoutes';
@@ -77,11 +78,15 @@ app.use(helmet({
 app.use(compression());
 app.use(cookieParser());
 
-const configuredTrustProxy = process.env.TRUST_PROXY;
-if (configuredTrustProxy) {
-    app.set('trust proxy', /^\d+$/.test(configuredTrustProxy) ? Number(configuredTrustProxy) : configuredTrustProxy);
+const configuredTrustProxy = process.env.TRUST_PROXY?.trim();
+if (!configuredTrustProxy || configuredTrustProxy.toLowerCase() === 'false') {
+    app.set('trust proxy', false);
+} else if (configuredTrustProxy.toLowerCase() === 'true') {
+    app.set('trust proxy', true);
+} else if (/^\d+$/.test(configuredTrustProxy)) {
+    app.set('trust proxy', Number(configuredTrustProxy));
 } else {
-    app.set('trust proxy', process.env.NODE_ENV === 'production' ? 1 : false);
+    app.set('trust proxy', configuredTrustProxy);
 }
 
 const globalLimiter = rateLimit({
@@ -161,6 +166,16 @@ app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({ status: 'ok', uptime: process.uptime() });
 });
 
+app.get('/ready', async (_req: Request, res: Response) => {
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        res.status(200).json({ status: 'ready' });
+    } catch (error) {
+        logger.error('Readiness check failed', error);
+        res.status(503).json({ status: 'not_ready' });
+    }
+});
+
 const apiDocsEnabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_API_DOCS === 'true';
 if (apiDocsEnabled) {
     app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
@@ -189,7 +204,7 @@ if (process.env.NODE_ENV === 'production') {
     app.use((req: Request, res: Response) => {
         const ext = path.extname(req.path);
 
-        if (!ext && !req.path.startsWith('/api') && !req.path.startsWith('/health')) {
+        if (!ext && !req.path.startsWith('/api') && !req.path.startsWith('/health') && !req.path.startsWith('/ready')) {
             const indexPath = path.join(__dirname, '../public', 'index.html');
             res.sendFile(indexPath);
         } else if (ext) {
