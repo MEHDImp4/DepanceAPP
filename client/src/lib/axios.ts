@@ -5,49 +5,61 @@ const api = axios.create({
     baseURL: '/api',
     withCredentials: true,
     headers: {
-        'Content-Type': 'application/json',
-    },
+        'Content-Type': 'application/json'
+    }
 });
 
-// Request interceptor removed as cookies are handled automatically
-
-
 let isRefreshing = false;
-interface RetryableRequest extends InternalAxiosRequestConfig { _retry?: boolean }
-interface QueueEntry { resolve: () => void; reject: (error: unknown) => void }
+
+interface RetryableRequest extends InternalAxiosRequestConfig {
+    _retry?: boolean;
+}
+
+interface QueueEntry {
+    resolve: () => void;
+    reject: (error: unknown) => void;
+}
+
+interface ApiErrorBody {
+    code?: string;
+    error?: string;
+}
+
 let failedQueue: QueueEntry[] = [];
 
 const processQueue = (error?: unknown) => {
-    failedQueue.forEach(prom => {
-        if (error) {
-            prom.reject(error);
-        } else {
-            prom.resolve();
-        }
+    failedQueue.forEach(promise => {
+        if (error) promise.reject(error);
+        else promise.resolve();
     });
-
     failedQueue = [];
 };
 
+const refreshableCodes = new Set([
+    'AUTH_TOKEN_MISSING',
+    'ACCESS_TOKEN_EXPIRED',
+    'ACCESS_TOKEN_INVALID'
+]);
+
 api.interceptors.response.use(
     (response) => response,
-    async (error: AxiosError) => {
-        const originalRequest = error.config as RetryableRequest;
+    async (error: AxiosError<ApiErrorBody>) => {
+        const originalRequest = error.config as RetryableRequest | undefined;
+        if (!originalRequest) return Promise.reject(error);
 
-        // Prevent infinite loops / deadlocks if the refresh token endpoint itself returns 401
         if (originalRequest.url?.includes('/auth/refresh')) {
+            useAuthStore.getState().logout();
             return Promise.reject(error);
         }
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        const code = error.response?.data?.code;
+        const shouldRefresh = error.response?.status === 401 && Boolean(code && refreshableCodes.has(code));
+
+        if (shouldRefresh && !originalRequest._retry) {
             if (isRefreshing) {
-                return new Promise<void>(function (resolve, reject) {
+                return new Promise<void>((resolve, reject) => {
                     failedQueue.push({ resolve, reject });
-                }).then(() => {
-                    return api(originalRequest);
-                }).catch(err => {
-                    return Promise.reject(err);
-                });
+                }).then(() => api(originalRequest));
             }
 
             originalRequest._retry = true;
