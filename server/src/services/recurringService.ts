@@ -1,6 +1,7 @@
 import prisma from '../utils/prisma';
 import { Prisma } from '@prisma/client';
 import logger from '../utils/logger';
+import { AuditAction, createAuditEntry } from '../utils/auditService';
 
 const MAX_RECURRING_LOOPS = 12;
 
@@ -104,6 +105,22 @@ async function processRuleCycles(
                 await database.account.update({
                     where: { id: rule.account_id },
                     data: { balance: { increment: balanceChange } }
+                });
+
+                await createAuditEntry(database, {
+                    userId: rule.user_id,
+                    action: AuditAction.RECURRING_PROCESS,
+                    entityType: 'recurring',
+                    entityId: rule.id,
+                    newValue: {
+                        transactionId: transaction.id,
+                        amount: transaction.amount,
+                        type: transaction.type,
+                        accountId: transaction.account_id,
+                        categoryId: transaction.category_id,
+                        scheduledAt: scheduledAt.toISOString()
+                    },
+                    metadata: { source: 'scheduler' }
                 });
 
                 return transaction;
