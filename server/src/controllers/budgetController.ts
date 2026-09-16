@@ -1,7 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
+import type { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
 import { toCents, fromCents } from '../utils/money';
 import { assertOwnedCategory } from '../utils/ownership';
+import { AuditAction, logAudit } from '../utils/auditService';
 
 interface CreateBudgetBody {
     amount: number;
@@ -36,21 +38,14 @@ export const getBudgets = async (req: Request, res: Response, next: NextFunction
             include: { category: true }
         });
 
-        const budgetsWithSpent = await Promise.all(budgets.map(async (budget) => {
-            const whereClause: {
-                user_id: number;
-                created_at: { gte: Date };
-                type: string;
-                category_id?: number;
-            } = {
+        const budgetsWithSpent = await Promise.all(budgets.map(async budget => {
+            const whereClause: Prisma.TransactionWhereInput = {
                 user_id: userId,
                 created_at: { gte: getPeriodStart(budget.period) },
-                type: 'expense'
+                type: 'expense',
+                transfer_id: null,
+                ...(budget.category_id ? { category_id: budget.category_id } : {})
             };
-
-            if (budget.category_id) {
-                whereClause.category_id = budget.category_id;
-            }
 
             const aggregations = await prisma.transaction.aggregate({
                 _sum: { amount: true },
@@ -84,7 +79,7 @@ export const createBudget = async (req: Request, res: Response, next: NextFuncti
         });
 
         if (existing) {
-            res.status(400).json({ error: 'Budget already exists for this category' });
+            res.status(409).json({ error: 'Budget already exists for this category' });
             return;
         }
 
@@ -95,6 +90,15 @@ export const createBudget = async (req: Request, res: Response, next: NextFuncti
                 category_id: category_id || null,
                 user_id: userId
             }
+        });
+
+        await logAudit({
+            userId,
+            action: AuditAction.BUDGET_CREATE,
+            entityType: 'budget',
+            entityId: budget.id,
+            newValue: budget,
+            req
         });
 
         res.status(201).json({ ...budget, amount: fromCents(budget.amount) });
@@ -108,20 +112,33 @@ export const updateBudget = async (req: Request, res: Response, next: NextFuncti
         const { id } = req.params;
         const { amount, period } = req.body as UpdateBudgetBody;
         const userId = req.user!.userId;
+        const budgetId = parseInt(id as string, 10);
 
-        const result = await prisma.budget.updateMany({
-            where: { id: parseInt(id as string), user_id: userId },
+        const existing = await prisma.budget.findFirst({ where: { id: budgetId, user_id: userId } });
+        if (!existing) {
+            res.status(404).json({ error: 'Budget not found' });
+            return;
+        }
+
+        const updated = await prisma.budget.update({
+            where: { id: budgetId },
             data: {
                 ...(amount !== undefined && { amount: toCents(amount) }),
                 ...(period && { period })
             }
         });
 
-        if (result.count === 0) {
-            res.status(404).json({ error: 'Budget not found' });
-            return;
-        }
-        res.json({ message: 'Budget updated' });
+        await logAudit({
+            userId,
+            action: AuditAction.BUDGET_UPDATE,
+            entityType: 'budget',
+            entityId: budgetId,
+            oldValue: existing,
+            newValue: updated,
+            req
+        });
+
+        res.json({ ...updated, amount: fromCents(updated.amount) });
     } catch (error) {
         next(error);
     }
@@ -131,15 +148,24 @@ export const deleteBudget = async (req: Request, res: Response, next: NextFuncti
     try {
         const { id } = req.params;
         const userId = req.user!.userId;
+        const budgetId = parseInt(id as string, 10);
 
-        const result = await prisma.budget.deleteMany({
-            where: { id: parseInt(id as string), user_id: userId }
-        });
-
-        if (result.count === 0) {
+        const existing = await prisma.budget.findFirst({ where: { id: budgetId, user_id: userId } });
+        if (!existing) {
             res.status(404).json({ error: 'Budget not found' });
             return;
         }
+
+        await prisma.budget.delete({ where: { id: budgetId } });
+        await logAudit({
+            userId,
+            action: AuditAction.BUDGET_DELETE,
+            entityType: 'budget',
+            entityId: budgetId,
+            oldValue: existing,
+            req
+        });
+
         res.json({ message: 'Budget deleted' });
     } catch (error) {
         next(error);
