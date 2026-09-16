@@ -1,8 +1,25 @@
-version: '3.8'
-
 services:
+  db:
+    image: mariadb:11.4
+    container_name: depance-db
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change_me_root_password}
+      MARIADB_DATABASE: ${DB_NAME:-depance_db}
+      MARIADB_USER: ${DB_USER:-depance}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-change_me_db_password}
+    volumes:
+      - depance_db_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -p$$MARIADB_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
   app:
     image: ghcr.io/mehdimp4/depanceapp:latest
+    # To build locally instead of pulling the published image:
     # build:
     #   context: .
     #   dockerfile: Dockerfile
@@ -10,23 +27,30 @@ services:
     ports:
       - "${APP_PORT:-3000}:3000"
     environment:
-      - PORT=3000
-      - NODE_ENV=production
-      # Database Configuration (Required)
-      - DATABASE_URL=${DATABASE_URL:-}
-      - DB_HOST=${DB_HOST:-db}
-      - DB_PORT=${DB_PORT:-3306}
-      - DB_USER=${DB_USER:-root}
-      - DB_PASSWORD=${DB_PASSWORD:-root}
-      - DB_NAME=${DB_NAME:-depance_db}
-      # DB_SCHEMA is not used for MySQL
-      # Security
-      - JWT_SECRET=${JWT_SECRET}
-      # App URL (for CORS usually, but monolith serves same origin)
-      - APP_URL=${APP_URL}
-    restart: always
+      PORT: 3000
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-depance}
+      DB_PASSWORD: ${DB_PASSWORD:-change_me_db_password}
+      DB_NAME: ${DB_NAME:-depance_db}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      APP_URL: ${APP_URL:-http://localhost:3000}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
+      TRUST_PROXY: ${TRUST_PROXY:-1}
+      ENABLE_API_DOCS: ${ENABLE_API_DOCS:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3000/health" ]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 20s
+
+volumes:
+  depance_db_data:
