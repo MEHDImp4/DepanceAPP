@@ -169,6 +169,7 @@ model RecurringTransaction {
   description   String
   type          String
   interval      String
+  anchor_day    Int?
   next_run_date DateTime
   active        Boolean               @default(true)
   category_id   Int?
