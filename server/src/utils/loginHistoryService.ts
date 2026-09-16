@@ -4,38 +4,58 @@ import { Request } from 'express';
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000;
 
-export async function checkAccountLockout(userId: number) {
+export function getClientIp(req: Request): string {
+    return req.ip || req.socket.remoteAddress || 'Unknown';
+}
+
+export async function checkAccountLockout(userId: number, req: Request) {
+    const ipAddress = getClientIp(req);
     const lockoutWindow = new Date(Date.now() - LOCKOUT_DURATION_MS);
 
-    const recentFailures = await prisma.loginHistory.count({
+    const latestSuccess = await prisma.loginHistory.findFirst({
         where: {
             userId,
-            success: false,
+            ipAddress,
+            success: true,
             createdAt: { gte: lockoutWindow }
-        }
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true }
     });
 
-    if (recentFailures >= MAX_FAILED_ATTEMPTS) {
-        const lastFailure = await prisma.loginHistory.findFirst({
+    const failureStart = latestSuccess && latestSuccess.createdAt > lockoutWindow
+        ? latestSuccess.createdAt
+        : lockoutWindow;
+
+    const [recentFailures, lastFailure] = await Promise.all([
+        prisma.loginHistory.count({
             where: {
                 userId,
+                ipAddress,
                 success: false,
-                createdAt: { gte: lockoutWindow }
+                createdAt: { gt: failureStart }
+            }
+        }),
+        prisma.loginHistory.findFirst({
+            where: {
+                userId,
+                ipAddress,
+                success: false,
+                createdAt: { gt: failureStart }
             },
             orderBy: { createdAt: 'desc' }
-        });
+        })
+    ]);
 
-        if (lastFailure) {
-            const lockoutEnd = new Date(lastFailure.createdAt.getTime() + LOCKOUT_DURATION_MS);
-            const remainingMs = lockoutEnd.getTime() - Date.now();
-
-            if (remainingMs > 0) {
-                return {
-                    isLocked: true,
-                    remainingTime: Math.ceil(remainingMs / 1000 / 60),
-                    failedAttempts: recentFailures
-                };
-            }
+    if (recentFailures >= MAX_FAILED_ATTEMPTS && lastFailure) {
+        const lockoutEnd = new Date(lastFailure.createdAt.getTime() + LOCKOUT_DURATION_MS);
+        const remainingMs = lockoutEnd.getTime() - Date.now();
+        if (remainingMs > 0) {
+            return {
+                isLocked: true,
+                remainingTime: Math.ceil(remainingMs / 1000 / 60),
+                failedAttempts: recentFailures
+            };
         }
     }
 
@@ -70,10 +90,6 @@ export function parseUserAgent(userAgent: string) {
     else if (/Linux/i.test(userAgent)) os = 'Linux';
 
     return { device, browser, os };
-}
-
-export function getClientIp(req: Request): string {
-    return req.ip || req.socket.remoteAddress || 'Unknown';
 }
 
 export async function logLogin(userId: number, req: Request, success = true) {
