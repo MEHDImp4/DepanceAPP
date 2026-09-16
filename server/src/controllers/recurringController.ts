@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { toCents, fromCents } from '../utils/money';
 import * as recurringService from '../services/recurringService';
+import { AuditAction, logAudit } from '../utils/auditService';
 
 interface CreateRecurringBody {
     amount: number;
@@ -13,8 +14,6 @@ interface CreateRecurringBody {
     category_id?: number | null;
 }
 
-
-
 export const getRecurring = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const userId = req.user!.userId;
@@ -23,7 +22,7 @@ export const getRecurring = async (req: Request, res: Response, next: NextFuncti
             include: { category: true, account: true },
             orderBy: { created_at: 'desc' }
         });
-        const recurringWithFloat = recurring.map(r => ({ ...r, amount: fromCents(r.amount) }));
+        const recurringWithFloat = recurring.map(rule => ({ ...rule, amount: fromCents(rule.amount) }));
         res.json(recurringWithFloat);
     } catch (error) {
         next(error);
@@ -35,7 +34,6 @@ export const createRecurring = async (req: Request, res: Response, next: NextFun
         const { amount, description, type, interval, start_date, account_id, category_id } = req.body as CreateRecurringBody;
         const userId = req.user!.userId;
 
-        // SECURITY: Verify account ownership to prevent IDOR
         const account = await prisma.account.findFirst({
             where: { id: account_id, user_id: userId }
         });
@@ -44,7 +42,6 @@ export const createRecurring = async (req: Request, res: Response, next: NextFun
             return;
         }
 
-        // Verify category ownership if provided
         if (category_id) {
             const category = await prisma.category.findFirst({
                 where: { id: category_id, user_id: userId }
@@ -61,12 +58,22 @@ export const createRecurring = async (req: Request, res: Response, next: NextFun
                 description,
                 type,
                 interval,
-                next_run_date: new Date(start_date || new Date()),
+                next_run_date: start_date ? new Date(start_date) : new Date(),
                 account_id,
                 category_id: category_id || null,
                 user_id: userId
             }
         });
+
+        await logAudit({
+            userId,
+            action: AuditAction.RECURRING_CREATE,
+            entityType: 'recurring',
+            entityId: recurring.id,
+            newValue: recurring,
+            req
+        });
+
         res.status(201).json({ ...recurring, amount: fromCents(recurring.amount) });
     } catch (error) {
         next(error);
@@ -77,9 +84,26 @@ export const deleteRecurring = async (req: Request, res: Response, next: NextFun
     try {
         const { id } = req.params;
         const userId = req.user!.userId;
-        await prisma.recurringTransaction.deleteMany({
-            where: { id: parseInt(id as string), user_id: userId }
+        const recurringId = parseInt(id as string, 10);
+
+        const existing = await prisma.recurringTransaction.findFirst({
+            where: { id: recurringId, user_id: userId }
         });
+        if (!existing) {
+            res.status(404).json({ error: 'Recurring transaction not found' });
+            return;
+        }
+
+        await prisma.recurringTransaction.delete({ where: { id: recurringId } });
+        await logAudit({
+            userId,
+            action: AuditAction.RECURRING_DELETE,
+            entityType: 'recurring',
+            entityId: recurringId,
+            oldValue: existing,
+            req
+        });
+
         res.json({ message: 'Deleted' });
     } catch (error) {
         next(error);
@@ -91,8 +115,17 @@ export const processRecurring = async (req: Request, res: Response, next: NextFu
         const userId = req.user!.userId;
         const createdTransactions = await recurringService.processDueTransactions(userId);
 
-        const txsWithFloat = createdTransactions.map(tx => ({ ...tx, amount: fromCents(tx.amount) }));
+        if (createdTransactions.length > 0) {
+            await logAudit({
+                userId,
+                action: AuditAction.RECURRING_PROCESS,
+                entityType: 'recurring',
+                newValue: { transactionIds: createdTransactions.map(tx => tx.id) },
+                req
+            });
+        }
 
+        const txsWithFloat = createdTransactions.map(tx => ({ ...tx, amount: fromCents(tx.amount) }));
         res.json({ processed: txsWithFloat.length, transactions: txsWithFloat });
     } catch (error) {
         next(error);
