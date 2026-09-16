@@ -39,14 +39,25 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       APP_URL: ${APP_URL:-http://localhost:3000}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
-      TRUST_PROXY: ${TRUST_PROXY:-1}
+      # Keep false when port 3000 is exposed directly. Set a precise proxy hop
+      # count/subnet only when the application is actually behind a trusted proxy.
+      TRUST_PROXY: ${TRUST_PROXY:-false}
       ENABLE_API_DOCS: ${ENABLE_API_DOCS:-false}
+      BACKUP_DIR: /app/backups
+      RETENTION_DAYS: ${RETENTION_DAYS:-7}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_REGION: ${AWS_REGION:-}
+    volumes:
+      - depance_backups:/app/backups
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/ready"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -54,3 +65,4 @@ services:
 
 volumes:
   depance_db_data:
+  depance_backups:
