@@ -34,6 +34,13 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
                 res.status(403).json({ error: 'Invalid category or access denied' });
                 return;
             }
+            if (category.type !== type) {
+                res.status(409).json({
+                    error: `A ${type} transaction requires a ${type} category`,
+                    code: 'CATEGORY_TYPE_MISMATCH'
+                });
+                return;
+            }
         }
 
         const transactionAmount = toCents(amount);
@@ -43,31 +50,38 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
         }
 
         const balanceChange = type === 'income' ? transactionAmount : -transactionAmount;
+        const requestPayload = { amount, description, type, account_id, category_id: category_id ?? null };
 
-        const result = await runIdempotent(userId, 'transaction.create', req.get('Idempotency-Key'), async database => {
-            const transaction = await database.transaction.create({
-                data: {
-                    amount: transactionAmount,
-                    description,
-                    type,
-                    account_id,
-                    user_id: userId,
-                    category_id: category_id || null
-                }
-            });
-            const updatedAccount = await database.account.update({
-                where: { id: account_id },
-                data: { balance: { increment: balanceChange } }
-            });
+        const result = await runIdempotent(
+            userId,
+            'transaction.create',
+            req.get('Idempotency-Key'),
+            requestPayload,
+            async database => {
+                const transaction = await database.transaction.create({
+                    data: {
+                        amount: transactionAmount,
+                        description,
+                        type,
+                        account_id,
+                        user_id: userId,
+                        category_id: category_id || null
+                    }
+                });
+                const updatedAccount = await database.account.update({
+                    where: { id: account_id },
+                    data: { balance: { increment: balanceChange } }
+                });
 
-            return {
-                statusCode: 201,
-                body: {
-                    transaction: { ...transaction, amount: fromCents(transaction.amount) },
-                    newBalance: fromCents(updatedAccount.balance)
-                }
-            };
-        });
+                return {
+                    statusCode: 201,
+                    body: {
+                        transaction: { ...transaction, amount: fromCents(transaction.amount) },
+                        newBalance: fromCents(updatedAccount.balance)
+                    }
+                };
+            }
+        );
 
         if (result.replayed) {
             res.set('Idempotency-Replayed', 'true');
