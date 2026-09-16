@@ -1,16 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
+import { TokenExpiredError } from 'jsonwebtoken';
 import type { JwtPayload } from '../types';
 import { verifyAccessToken } from '../utils/tokens';
 
 const authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
     const cookieToken = req.cookies?.token;
     const authHeader = req.headers.authorization;
-    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : undefined;
-
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;
     const token = cookieToken || bearerToken;
 
     if (!token) {
-        res.status(401).json({ error: 'No token provided' });
+        res.status(401).json({ error: 'No access token provided', code: 'AUTH_TOKEN_MISSING' });
         return;
     }
 
@@ -19,8 +19,12 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction): void =
         req.user = decoded;
         next();
     } catch (error) {
-        res.status(401).json({ error: 'Invalid token' });
-        return;
+        if (error instanceof TokenExpiredError) {
+            res.status(401).json({ error: 'Access token expired', code: 'ACCESS_TOKEN_EXPIRED' });
+            return;
+        }
+
+        res.status(401).json({ error: 'Invalid access token', code: 'ACCESS_TOKEN_INVALID' });
     }
 };
 
