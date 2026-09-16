@@ -21,6 +21,22 @@ ON `RefreshToken`(`userId`, `sessionId`);
 ALTER TABLE `IdempotencyKey`
     ADD COLUMN `request_hash` VARCHAR(64) NULL;
 
+-- Preserve the semantic currency of existing budgets and goals before users are
+-- allowed to change their reporting currency independently.
+ALTER TABLE `Budget`
+    ADD COLUMN `currency` VARCHAR(3) NOT NULL DEFAULT 'USD';
+
+UPDATE `Budget` b
+JOIN `User` u ON u.`id` = b.`user_id`
+SET b.`currency` = UPPER(u.`currency`);
+
+ALTER TABLE `Goal`
+    ADD COLUMN `currency` VARCHAR(3) NOT NULL DEFAULT 'USD';
+
+UPDATE `Goal` g
+JOIN `User` u ON u.`id` = g.`user_id`
+SET g.`currency` = UPPER(u.`currency`);
+
 -- MySQL permits multiple NULL values in a UNIQUE composite index. Remove any
 -- duplicate global budgets that may already exist, then replace the nullable
 -- category uniqueness with a deterministic non-null scope key.
