@@ -180,4 +180,62 @@ describe('Second audit regression fixes', () => {
         expect(storedGoal?.currency).toBe('USD');
         expect(storedBudget?.currency).toBe('USD');
     });
+
+    it('rejects an FX transfer when rounding would credit zero destination units', async () => {
+        await prisma.exchangeRate.createMany({
+            data: [
+                { currency: 'USD', rate: 1 },
+                { currency: 'MAD', rate: 0.001 }
+            ]
+        });
+        const source = await prisma.account.create({
+            data: { name: 'Tiny source', type: 'bank', balance: 100, currency: 'USD', user_id: userId }
+        });
+        const destination = await prisma.account.create({
+            data: { name: 'Tiny destination', type: 'bank', balance: 0, currency: 'MAD', user_id: userId }
+        });
+
+        const response = await request(app)
+            .post('/api/transfers')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ from_account_id: source.id, to_account_id: destination.id, amount: 0.01 });
+
+        expect(response.statusCode).toBe(422);
+        expect(response.body.code).toBe('TRANSFER_CONVERTED_AMOUNT_TOO_SMALL');
+        expect(await prisma.transaction.count({ where: { user_id: userId } })).toBe(0);
+        expect((await prisma.account.findUnique({ where: { id: source.id } }))?.balance).toBe(100);
+        expect((await prisma.account.findUnique({ where: { id: destination.id } }))?.balance).toBe(0);
+    });
+
+    it('detects refresh-token replay and revokes the session family', async () => {
+        const login = await request(app)
+            .post('/api/auth/login')
+            .send({ identifier: 'reaudit@example.com', password });
+        expect(login.statusCode).toBe(200);
+
+        const firstRefreshCookie = (login.headers['set-cookie'] as unknown as string[])
+            .find(cookie => cookie.startsWith('refreshToken='))!
+            .split(';')[0];
+
+        const rotated = await request(app)
+            .post('/api/auth/refresh')
+            .set('Cookie', firstRefreshCookie);
+        expect(rotated.statusCode).toBe(200);
+
+        const secondRefreshCookie = (rotated.headers['set-cookie'] as unknown as string[])
+            .find(cookie => cookie.startsWith('refreshToken='))!
+            .split(';')[0];
+
+        const replay = await request(app)
+            .post('/api/auth/refresh')
+            .set('Cookie', firstRefreshCookie);
+        expect(replay.statusCode).toBe(401);
+        expect(replay.body.code).toBe('REFRESH_TOKEN_REUSE_DETECTED');
+
+        const familyRevoked = await request(app)
+            .post('/api/auth/refresh')
+            .set('Cookie', secondRefreshCookie);
+        expect(familyRevoked.statusCode).toBe(401);
+        expect(['REFRESH_TOKEN_REUSE_DETECTED', 'REFRESH_TOKEN_REVOKED']).toContain(familyRevoked.body.code);
+    });
 });
