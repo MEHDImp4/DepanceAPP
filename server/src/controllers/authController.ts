@@ -17,6 +17,7 @@ import {
 const BCRYPT_SALT_ROUNDS = 10;
 const REFRESH_TOKEN_MS = 30 * 24 * 60 * 60 * 1000;
 const ACCESS_TOKEN_MS = 15 * 60 * 1000;
+const REFRESH_ROTATION_GRACE_MS = 10_000;
 
 const cookieBaseOptions = () => ({
     httpOnly: true,
@@ -60,12 +61,11 @@ export const register = async (req: Request, res: Response, next: NextFunction):
             prisma.user.findUnique({ where: { username } })
         ]);
 
-        if (existingEmail) {
-            res.status(409).json({ error: 'Email already registered', code: 'EMAIL_ALREADY_REGISTERED' });
-            return;
-        }
-        if (existingUsername) {
-            res.status(409).json({ error: 'Username already taken', code: 'USERNAME_ALREADY_TAKEN' });
+        if (existingEmail || existingUsername) {
+            res.status(409).json({
+                error: 'An account with that email or username already exists',
+                code: 'ACCOUNT_IDENTIFIER_UNAVAILABLE'
+            });
             return;
         }
 
@@ -95,7 +95,10 @@ export const register = async (req: Request, res: Response, next: NextFunction):
         });
     } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-            res.status(409).json({ error: 'Account identifier already exists', code: 'ACCOUNT_CONFLICT' });
+            res.status(409).json({
+                error: 'An account with that email or username already exists',
+                code: 'ACCOUNT_IDENTIFIER_UNAVAILABLE'
+            });
             return;
         }
         next(error);
@@ -311,16 +314,12 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
                 await prisma.refreshToken.deleteMany({
                     where: { userId: decoded.userId, sessionId: decoded.sid }
                 });
-                clearAuthCookies(res);
-                res.status(401).json({
-                    error: 'Refresh token reuse detected. Session revoked.',
-                    code: 'REFRESH_TOKEN_REUSE_DETECTED'
-                });
-                return;
             }
-
             clearAuthCookies(res);
-            res.status(401).json({ error: 'Invalid or revoked refresh token', code: 'REFRESH_TOKEN_REVOKED' });
+            res.status(401).json({
+                error: 'Refresh token reuse detected. Session revoked.',
+                code: 'REFRESH_TOKEN_REUSE_DETECTED'
+            });
             return;
         }
 
@@ -333,22 +332,53 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
             return;
         }
 
+        if (storedToken.rotatedAt) {
+            const rotationAge = Date.now() - storedToken.rotatedAt.getTime();
+            if (rotationAge <= REFRESH_ROTATION_GRACE_MS) {
+                res.set('Retry-After', '1');
+                res.status(409).json({
+                    error: 'Refresh token was rotated by another request',
+                    code: 'REFRESH_TOKEN_RACE'
+                });
+                return;
+            }
+
+            await prisma.refreshToken.deleteMany({
+                where: { userId: storedToken.userId, sessionId: storedToken.sessionId }
+            });
+            clearAuthCookies(res);
+            res.status(401).json({
+                error: 'Refresh token reuse detected. Session revoked.',
+                code: 'REFRESH_TOKEN_REUSE_DETECTED'
+            });
+            return;
+        }
+
         const user = storedToken.user;
         const sessionId = storedToken.sessionId;
         const newRefreshToken = signRefreshToken(user.id, sessionId);
         const newAccessToken = signAccessToken(user);
+        const newRefreshTokenHash = hashToken(newRefreshToken);
+        const rotatedAt = new Date();
 
         try {
             await prisma.$transaction(async database => {
-                const deleted = await database.refreshToken.deleteMany({ where: { token: tokenHash } });
-                if (deleted.count !== 1) {
+                const claimed = await database.refreshToken.updateMany({
+                    where: { token: tokenHash, rotatedAt: null },
+                    data: {
+                        rotatedAt,
+                        replacedByTokenHash: newRefreshTokenHash
+                    }
+                });
+                if (claimed.count !== 1) {
                     const rotationError = new Error('Refresh token was already rotated');
                     Object.assign(rotationError, { code: 'REFRESH_TOKEN_RACE' });
                     throw rotationError;
                 }
+
                 await database.refreshToken.create({
                     data: {
-                        token: hashToken(newRefreshToken),
+                        token: newRefreshTokenHash,
                         sessionId,
                         userId: user.id,
                         expiresAt: new Date(Date.now() + REFRESH_TOKEN_MS)
@@ -357,9 +387,9 @@ export const refreshToken = async (req: Request, res: Response, next: NextFuncti
             });
         } catch (error: any) {
             if (error?.code === 'REFRESH_TOKEN_RACE') {
-                clearAuthCookies(res);
+                res.set('Retry-After', '1');
                 res.status(409).json({
-                    error: 'Refresh token was rotated by another request. Sign in again if the session does not recover.',
+                    error: 'Refresh token was rotated by another request',
                     code: 'REFRESH_TOKEN_RACE'
                 });
                 return;
@@ -383,6 +413,17 @@ export const logout = async (req: Request, res: Response, next: NextFunction): P
                 await prisma.refreshToken.deleteMany({
                     where: { userId: stored.userId, sessionId: stored.sessionId }
                 });
+            } else {
+                try {
+                    const decoded = verifyRefreshToken(refreshTokenValue);
+                    if (decoded.sid) {
+                        await prisma.refreshToken.deleteMany({
+                            where: { userId: decoded.userId, sessionId: decoded.sid }
+                        });
+                    }
+                } catch {
+                    // Invalid cookies are simply cleared below.
+                }
             }
         }
 
