@@ -15,7 +15,7 @@ export const signAccessToken = (user: { id: number; email: string }): string => 
   { expiresIn: ACCESS_TOKEN_EXPIRY, issuer: TOKEN_ISSUER, audience: TOKEN_AUDIENCE, algorithm: 'HS256' }
 );
 
-export const signRefreshToken = (userId: number, sessionId = randomUUID()): string => jwt.sign(
+export const signRefreshToken = (userId: number, sessionId: string = randomUUID()): string => jwt.sign(
   { userId, jti: randomUUID(), sid: sessionId, typ: 'refresh' },
   refreshSecret(),
   { expiresIn: REFRESH_TOKEN_EXPIRY, issuer: TOKEN_ISSUER, audience: TOKEN_AUDIENCE, algorithm: 'HS256' }
