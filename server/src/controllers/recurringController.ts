@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
-import { toCents, fromCents } from '../utils/money';
+import { assertCurrencyAmount, toCents, fromCents } from '../utils/money';
 import * as recurringService from '../services/recurringService';
-import { AuditAction, logAudit } from '../utils/auditService';
+import { AuditAction, createAuditEntry } from '../utils/auditService';
+import { getZonedParts, normalizeTimeZone } from '../utils/reportingTime';
 
 interface CreateRecurringBody {
     amount: number;
@@ -33,13 +34,18 @@ export const createRecurring = async (req: Request, res: Response, next: NextFun
         const { amount, description, type, interval, start_date, account_id, category_id } = req.body as CreateRecurringBody;
         const userId = req.user!.userId;
 
-        const [account, category] = await Promise.all([
+        const [user, account, category] = await Promise.all([
+            prisma.user.findUnique({ where: { id: userId }, select: { timezone: true } }),
             prisma.account.findFirst({ where: { id: account_id, user_id: userId } }),
             category_id
                 ? prisma.category.findFirst({ where: { id: category_id, user_id: userId } })
                 : Promise.resolve(null)
         ]);
 
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
         if (!account) {
             res.status(404).json({ error: 'Account not found' });
             return;
@@ -56,28 +62,35 @@ export const createRecurring = async (req: Request, res: Response, next: NextFun
             return;
         }
 
+        assertCurrencyAmount(amount, account.currency);
         const nextRunDate = start_date ? new Date(start_date) : new Date();
-        const recurring = await prisma.recurringTransaction.create({
-            data: {
-                amount: toCents(amount),
-                description,
-                type,
-                interval,
-                anchor_day: nextRunDate.getDate(),
-                next_run_date: nextRunDate,
-                account_id,
-                category_id: category_id || null,
-                user_id: userId
-            }
-        });
+        const timeZone = normalizeTimeZone(user.timezone);
+        const anchorDay = getZonedParts(nextRunDate, timeZone).day;
 
-        await logAudit({
-            userId,
-            action: AuditAction.RECURRING_CREATE,
-            entityType: 'recurring',
-            entityId: recurring.id,
-            newValue: recurring,
-            req
+        const recurring = await prisma.$transaction(async database => {
+            const created = await database.recurringTransaction.create({
+                data: {
+                    amount: toCents(amount),
+                    description,
+                    type,
+                    interval,
+                    anchor_day: anchorDay,
+                    timezone: timeZone,
+                    next_run_date: nextRunDate,
+                    account_id,
+                    category_id: category_id || null,
+                    user_id: userId
+                }
+            });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.RECURRING_CREATE,
+                entityType: 'recurring',
+                entityId: created.id,
+                newValue: created,
+                req
+            });
+            return created;
         });
 
         res.status(201).json({ ...recurring, amount: fromCents(recurring.amount) });
@@ -97,14 +110,16 @@ export const deleteRecurring = async (req: Request, res: Response, next: NextFun
             return;
         }
 
-        await prisma.recurringTransaction.delete({ where: { id: recurringId } });
-        await logAudit({
-            userId,
-            action: AuditAction.RECURRING_DELETE,
-            entityType: 'recurring',
-            entityId: recurringId,
-            oldValue: existing,
-            req
+        await prisma.$transaction(async database => {
+            await database.recurringTransaction.delete({ where: { id: recurringId } });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.RECURRING_DELETE,
+                entityType: 'recurring',
+                entityId: recurringId,
+                oldValue: existing,
+                req
+            });
         });
 
         res.json({ message: 'Deleted' });
@@ -115,19 +130,7 @@ export const deleteRecurring = async (req: Request, res: Response, next: NextFun
 
 export const processRecurring = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const userId = req.user!.userId;
-        const createdTransactions = await recurringService.processDueTransactions(userId);
-
-        if (createdTransactions.length > 0) {
-            await logAudit({
-                userId,
-                action: AuditAction.RECURRING_PROCESS,
-                entityType: 'recurring',
-                newValue: { transactionIds: createdTransactions.map(tx => tx.id) },
-                req
-            });
-        }
-
+        const createdTransactions = await recurringService.processDueTransactions(req.user!.userId);
         res.json({
             processed: createdTransactions.length,
             transactions: createdTransactions.map(tx => ({ ...tx, amount: fromCents(tx.amount) }))
