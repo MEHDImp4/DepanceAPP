@@ -185,6 +185,7 @@ export const getCurrentMonthWindow = (timeZone: string, now = new Date()) => {
         1,
         0,
         0,
+        0,
         zone
     );
 
