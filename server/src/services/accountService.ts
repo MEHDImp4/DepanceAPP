@@ -1,7 +1,7 @@
 import type { Request } from 'express';
 import prisma from '../utils/prisma';
 import { convertCurrency } from '../utils/currencyService';
-import { toCents, fromCents } from '../utils/money';
+import { assertCurrencyAmount, toCents, fromCents } from '../utils/money';
 import { AuditAction, createAuditEntry } from '../utils/auditService';
 import bcrypt from 'bcryptjs';
 
@@ -29,11 +29,17 @@ export const getAccountSummary = async (userId: number) => {
     ]);
 
     const targetCurrency = (user?.currency || 'USD').toUpperCase();
-    const amounts = await Promise.all(accounts.map(async account =>
-        Math.round(await convertCurrency(account.balance, account.currency, targetCurrency))
-    ));
+    const needsConversion = accounts.some(account => account.currency.toUpperCase() !== targetCurrency);
 
-    const totalBalanceCents = amounts.reduce((sum, amount) => sum + amount, 0);
+    let totalBalanceCents = 0;
+    if (!needsConversion) {
+        totalBalanceCents = accounts.reduce((sum, account) => sum + account.balance, 0);
+    } else {
+        const amounts = await Promise.all(accounts.map(async account =>
+            Math.round(await convertCurrency(account.balance, account.currency, targetCurrency))
+        ));
+        totalBalanceCents = amounts.reduce((sum, amount) => sum + amount, 0);
+    }
 
     return {
         totalBalance: fromCents(totalBalanceCents),
@@ -44,18 +50,17 @@ export const getAccountSummary = async (userId: number) => {
 
 export const createAccount = async (data: CreateAccountData) => {
     const { name, type, balance, currency, color, userId } = data;
-    const balanceInCents = toCents(balance ?? 0);
-
-    if (!Number.isSafeInteger(balanceInCents)) {
-        throw new Error('Invalid balance');
-    }
+    const normalizedCurrency = (currency || 'USD').toUpperCase();
+    const initialBalance = balance ?? 0;
+    assertCurrencyAmount(initialBalance, normalizedCurrency, { allowNegative: true, allowZero: true });
+    const balanceInCents = toCents(initialBalance);
 
     const account = await prisma.account.create({
         data: {
             name,
             type: type || 'normal',
             color: color || 'bg-primary',
-            currency: (currency || 'USD').toUpperCase(),
+            currency: normalizedCurrency,
             balance: balanceInCents,
             user_id: userId
         }
@@ -121,29 +126,26 @@ export const deleteAccount = async (id: number, userId: number, password?: strin
         throw new Error('Invalid password');
     }
 
-    const account = await prisma.account.findFirst({
-        where: { id, user_id: userId }
-    });
+    return prisma.$transaction(async database => {
+        const account = await database.account.findFirst({
+            where: { id, user_id: userId }
+        });
 
-    if (!account) {
-        throw new Error('Account not found');
-    }
-
-    const transferCount = await prisma.transaction.count({
-        where: {
-            account_id: id,
-            user_id: userId,
-            transfer_id: { not: null }
+        if (!account) {
+            throw new Error('Account not found');
         }
-    });
 
-    if (transferCount > 0) {
-        const error = new Error('Account has transfer history that must be cancelled before deletion');
-        Object.assign(error, { code: 'ACCOUNT_HAS_TRANSFERS' });
-        throw error;
-    }
+        const [transactionCount, recurringCount] = await Promise.all([
+            database.transaction.count({ where: { account_id: id, user_id: userId } }),
+            database.recurringTransaction.count({ where: { account_id: id, user_id: userId } })
+        ]);
 
-    await prisma.$transaction(async database => {
+        if (transactionCount > 0 || recurringCount > 0) {
+            const error = new Error('Account has financial history or recurring rules and cannot be deleted');
+            Object.assign(error, { code: 'ACCOUNT_HAS_ACTIVITY' });
+            throw error;
+        }
+
         await database.account.delete({ where: { id } });
         await createAuditEntry(database, {
             userId,
@@ -158,7 +160,7 @@ export const deleteAccount = async (id: number, userId: number, password?: strin
             },
             req
         });
-    });
 
-    return account;
+        return account;
+    });
 };
