@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
 import * as accountService from '../services/accountService';
-import { AuditAction, logAudit } from '../utils/auditService';
 
 interface CreateAccountBody {
     name: string;
@@ -30,16 +29,7 @@ export const createAccount = async (req: Request, res: Response, next: NextFunct
     try {
         const body = req.body as CreateAccountBody;
         const userId = Number(req.user!.userId);
-
-        const account = await accountService.createAccount({ ...body, userId });
-        await logAudit({
-            userId,
-            action: AuditAction.ACCOUNT_CREATE,
-            entityType: 'account',
-            entityId: account.id,
-            newValue: account,
-            req
-        });
+        const account = await accountService.createAccount({ ...body, userId, req });
         res.status(201).json(account);
     } catch (error) {
         next(error);
@@ -66,14 +56,7 @@ export const updateAccount = async (req: Request, res: Response, next: NextFunct
             const updated = await accountService.updateAccount({
                 id: parseInt(id, 10),
                 userId,
-                ...body
-            });
-            await logAudit({
-                userId,
-                action: AuditAction.ACCOUNT_UPDATE,
-                entityType: 'account',
-                entityId: updated.id,
-                newValue: updated,
+                ...body,
                 req
             });
             res.json(updated);
