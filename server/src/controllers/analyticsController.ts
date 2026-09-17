@@ -1,7 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { fromCents } from '../utils/money';
-import { calculateExchange, getRates } from '../utils/currencyService';
+import {
+    calculateExchange,
+    getRates,
+    parseRatesSnapshot,
+    serializeRatesSnapshot
+} from '../utils/currencyService';
+import type { ExchangeRates } from '../types';
 import {
     dateKeyInTimeZone,
     getCurrentMonthWindow,
@@ -11,14 +17,54 @@ import {
     normalizeTimeZone
 } from '../utils/reportingTime';
 
-const toReportingAmount = (
-    amount: number,
-    sourceCurrency: string,
+type ReportingTransaction = {
+    id: number;
+    amount: number;
+    fx_rates_snapshot: string | null;
+    account: { currency: string };
+};
+
+const canConvert = (rates: ExchangeRates | null, fromCurrency: string, toCurrency: string) => {
+    const from = fromCurrency.toUpperCase();
+    const to = toCurrency.toUpperCase();
+    if (from === to) return true;
+    return Boolean(rates?.[from] && rates?.[to]);
+};
+
+const requiresLiveRates = (transactions: ReportingTransaction[], targetCurrency: string) =>
+    transactions.some(tx => {
+        const sourceCurrency = tx.account.currency.toUpperCase();
+        if (sourceCurrency === targetCurrency.toUpperCase()) return false;
+        return !canConvert(parseRatesSnapshot(tx.fx_rates_snapshot), sourceCurrency, targetCurrency);
+    });
+
+const reportingAmount = (
+    tx: ReportingTransaction,
     targetCurrency: string,
-    rates: Record<string, number>
-) => sourceCurrency.toUpperCase() === targetCurrency.toUpperCase()
-    ? amount
-    : Math.round(calculateExchange(amount, sourceCurrency, targetCurrency, rates));
+    liveRates: ExchangeRates | null,
+    missingSnapshotIds: Set<number>
+) => {
+    const sourceCurrency = tx.account.currency.toUpperCase();
+    const target = targetCurrency.toUpperCase();
+    if (sourceCurrency === target) return tx.amount;
+
+    const snapshotRates = parseRatesSnapshot(tx.fx_rates_snapshot);
+    const rates = canConvert(snapshotRates, sourceCurrency, target) ? snapshotRates : liveRates;
+    if (!rates) {
+        throw new Error(`Exchange rate unavailable for historical transaction ${tx.id}`);
+    }
+
+    if (!tx.fx_rates_snapshot && liveRates) missingSnapshotIds.add(tx.id);
+    return Math.round(calculateExchange(tx.amount, sourceCurrency, target, rates));
+};
+
+const persistFallbackSnapshot = async (ids: Set<number>, liveRates: ExchangeRates | null) => {
+    if (ids.size === 0 || !liveRates) return;
+    await prisma.transaction.updateMany({
+        where: { id: { in: [...ids] }, fx_rates_snapshot: null, transfer_id: null },
+        data: { fx_rates_snapshot: serializeRatesSnapshot(liveRates) }
+    });
+};
 
 export const getMonthlyRecap = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -59,10 +105,8 @@ export const getMonthlyRecap = async (req: Request, res: Response, next: NextFun
         ]);
 
         const allTransactions = [...currentTransactions, ...previousTransactions];
-        const needsConversion = allTransactions.some(
-            tx => tx.account.currency.toUpperCase() !== targetCurrency
-        );
-        const rates = needsConversion ? await getRates() : {};
+        const liveRates = requiresLiveRates(allTransactions, targetCurrency) ? await getRates() : null;
+        const missingSnapshotIds = new Set<number>();
 
         let currentExpense = 0;
         let currentIncome = 0;
@@ -71,7 +115,7 @@ export const getMonthlyRecap = async (req: Request, res: Response, next: NextFun
         let biggestPurchaseAmount = -1;
 
         for (const tx of currentTransactions) {
-            const converted = toReportingAmount(tx.amount, tx.account.currency, targetCurrency, rates);
+            const converted = reportingAmount(tx, targetCurrency, liveRates, missingSnapshotIds);
             if (tx.type === 'income') currentIncome += converted;
             if (tx.type === 'expense') {
                 currentExpense += converted;
@@ -91,8 +135,10 @@ export const getMonthlyRecap = async (req: Request, res: Response, next: NextFun
 
         const lastExpense = previousTransactions.reduce((sum, tx) => {
             if (tx.type !== 'expense') return sum;
-            return sum + toReportingAmount(tx.amount, tx.account.currency, targetCurrency, rates);
+            return sum + reportingAmount(tx, targetCurrency, liveRates, missingSnapshotIds);
         }, 0);
+
+        await persistFallbackSnapshot(missingSnapshotIds, liveRates);
 
         const topCategoryEntry = [...categoryTotals.values()].sort((a, b) => b.amount - a.amount)[0];
         const topCategory = topCategoryEntry ? {
@@ -111,6 +157,18 @@ export const getMonthlyRecap = async (req: Request, res: Response, next: NextFun
 
         const monthLabel = new Intl.DateTimeFormat('en', { month: 'long', timeZone }).format(new Date());
 
+        let serializedBiggestPurchase = null;
+        if (biggestPurchase) {
+            const { fx_rates_snapshot: _snapshot, ...safePurchase } = biggestPurchase;
+            serializedBiggestPurchase = {
+                ...safePurchase,
+                amount: fromCents(biggestPurchaseAmount),
+                originalAmount: fromCents(biggestPurchase.amount),
+                originalCurrency: biggestPurchase.account.currency,
+                convertedCurrency: targetCurrency
+            };
+        }
+
         res.json({
             month: monthLabel,
             year: window.year,
@@ -119,13 +177,7 @@ export const getMonthlyRecap = async (req: Request, res: Response, next: NextFun
             totalIncome: fromCents(currentIncome),
             transactionCount: currentTransactions.length,
             topCategory,
-            biggestPurchase: biggestPurchase ? {
-                ...biggestPurchase,
-                amount: fromCents(biggestPurchaseAmount),
-                originalAmount: fromCents(biggestPurchase.amount),
-                originalCurrency: biggestPurchase.account.currency,
-                convertedCurrency: targetCurrency
-            } : null,
+            biggestPurchase: serializedBiggestPurchase,
             comparison: {
                 lastMonthSpent: fromCents(lastExpense),
                 percentageChange: comparisonPercentage
@@ -161,18 +213,19 @@ export const getSpendingTrends = async (req: Request, res: Response, next: NextF
             where: {
                 user_id: userId,
                 transfer_id: null,
-                created_at: { gte: startDate }
+                ...(startDate ? { created_at: { gte: startDate } } : {})
             },
             include: { account: { select: { currency: true } } },
             orderBy: { created_at: 'asc' }
         });
 
-        const needsConversion = transactions.some(tx => tx.account.currency.toUpperCase() !== targetCurrency);
-        const rates = needsConversion ? await getRates() : {};
+        const liveRates = requiresLiveRates(transactions, targetCurrency) ? await getRates() : null;
+        const missingSnapshotIds = new Set<number>();
         const formatByMonth = period === 'year' || period === 'all';
         const groupedData: Record<string, { income: number; expense: number }> = {};
 
-        const startParts = getZonedParts(startDate, timeZone);
+        const chartStartDate = startDate ?? transactions[0]?.created_at ?? new Date();
+        const startParts = getZonedParts(chartStartDate, timeZone);
         const endParts = getZonedParts(new Date(), timeZone);
         const cursor = new Date(Date.UTC(startParts.year, startParts.month - 1, formatByMonth ? 1 : startParts.day));
         const endCursor = new Date(Date.UTC(endParts.year, endParts.month - 1, formatByMonth ? 1 : endParts.day));
@@ -192,15 +245,17 @@ export const getSpendingTrends = async (req: Request, res: Response, next: NextF
                 : dateKeyInTimeZone(transaction.created_at, timeZone);
             if (!groupedData[key]) return;
 
-            const converted = toReportingAmount(
-                transaction.amount,
-                transaction.account.currency,
+            const converted = reportingAmount(
+                transaction,
                 targetCurrency,
-                rates
+                liveRates,
+                missingSnapshotIds
             );
             if (transaction.type === 'income') groupedData[key].income += converted;
             if (transaction.type === 'expense') groupedData[key].expense += converted;
         });
+
+        await persistFallbackSnapshot(missingSnapshotIds, liveRates);
 
         const sortedChartData = Object.keys(groupedData)
             .sort()
