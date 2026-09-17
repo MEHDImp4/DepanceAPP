@@ -12,6 +12,7 @@ interface CreateAccountData {
     currency?: string;
     color?: string;
     userId: number;
+    req?: Request;
 }
 
 interface UpdateAccountData {
@@ -20,6 +21,7 @@ interface UpdateAccountData {
     name?: string;
     type?: string;
     currency?: string;
+    req?: Request;
 }
 
 export const getAccountSummary = async (userId: number) => {
@@ -49,21 +51,32 @@ export const getAccountSummary = async (userId: number) => {
 };
 
 export const createAccount = async (data: CreateAccountData) => {
-    const { name, type, balance, currency, color, userId } = data;
+    const { name, type, balance, currency, color, userId, req } = data;
     const normalizedCurrency = (currency || 'USD').toUpperCase();
     const initialBalance = balance ?? 0;
     assertCurrencyAmount(initialBalance, normalizedCurrency, { allowNegative: true, allowZero: true });
     const balanceInCents = toCents(initialBalance);
 
-    const account = await prisma.account.create({
-        data: {
-            name,
-            type: type || 'normal',
-            color: color || 'bg-primary',
-            currency: normalizedCurrency,
-            balance: balanceInCents,
-            user_id: userId
-        }
+    const account = await prisma.$transaction(async database => {
+        const created = await database.account.create({
+            data: {
+                name,
+                type: type || 'normal',
+                color: color || 'bg-primary',
+                currency: normalizedCurrency,
+                balance: balanceInCents,
+                user_id: userId
+            }
+        });
+        await createAuditEntry(database, {
+            userId,
+            action: AuditAction.ACCOUNT_CREATE,
+            entityType: 'account',
+            entityId: created.id,
+            newValue: created,
+            req
+        });
+        return created;
     });
 
     return { ...account, balance: fromCents(account.balance) };
@@ -81,7 +94,7 @@ export const getUserAccounts = async (userId: number) => {
 };
 
 export const updateAccount = async (data: UpdateAccountData) => {
-    const { id, userId, name, type, currency } = data;
+    const { id, userId, name, type, currency, req } = data;
 
     const account = await prisma.account.findFirst({
         where: { id, user_id: userId }
@@ -99,13 +112,25 @@ export const updateAccount = async (data: UpdateAccountData) => {
         }
     }
 
-    const updated = await prisma.account.update({
-        where: { id },
-        data: {
-            name,
-            type,
-            ...(normalizedCurrency !== undefined && { currency: normalizedCurrency })
-        }
+    const updated = await prisma.$transaction(async database => {
+        const saved = await database.account.update({
+            where: { id },
+            data: {
+                name,
+                type,
+                ...(normalizedCurrency !== undefined && { currency: normalizedCurrency })
+            }
+        });
+        await createAuditEntry(database, {
+            userId,
+            action: AuditAction.ACCOUNT_UPDATE,
+            entityType: 'account',
+            entityId: id,
+            oldValue: account,
+            newValue: saved,
+            req
+        });
+        return saved;
     });
 
     return { ...updated, balance: fromCents(updated.balance) };
@@ -141,9 +166,10 @@ export const deleteAccount = async (id: number, userId: number, password?: strin
         ]);
 
         if (transactionCount > 0 || recurringCount > 0) {
-            const error = new Error('Account has financial history or recurring rules and cannot be deleted');
-            Object.assign(error, { code: 'ACCOUNT_HAS_ACTIVITY' });
-            throw error;
+            throw Object.assign(
+                new Error('Account has financial history or recurring rules and cannot be deleted'),
+                { code: 'ACCOUNT_HAS_ACTIVITY' }
+            );
         }
 
         await database.account.delete({ where: { id } });
