@@ -48,6 +48,14 @@ JOIN `Budget` older
  AND older.`category_id` IS NULL
  AND newer.`id` > older.`id`;
 
+-- The old composite UNIQUE is currently also usable as an index for the user FK.
+-- Create dedicated FK indexes first so MariaDB can safely drop the unique index.
+CREATE INDEX `Budget_user_id_idx`
+ON `Budget`(`user_id`);
+
+CREATE INDEX `Budget_category_id_idx`
+ON `Budget`(`category_id`);
+
 ALTER TABLE `Budget` DROP FOREIGN KEY `Budget_category_id_fkey`;
 DROP INDEX `Budget_user_id_category_id_key` ON `Budget`;
 
@@ -62,9 +70,6 @@ END;
 
 CREATE UNIQUE INDEX `Budget_user_id_scope_key_key`
 ON `Budget`(`user_id`, `scope_key`);
-
-CREATE INDEX `Budget_category_id_idx`
-ON `Budget`(`category_id`);
 
 ALTER TABLE `Budget`
     ADD CONSTRAINT `Budget_category_id_fkey`
