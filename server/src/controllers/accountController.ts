@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as accountService from '../services/accountService';
-import { AuditAction, logAccountDelete, logAudit } from '../utils/auditService';
+import { AuditAction, logAudit } from '../utils/auditService';
 
 interface CreateAccountBody {
     name: string;
@@ -101,8 +101,7 @@ export const deleteAccount = async (req: Request, res: Response, next: NextFunct
         const userId = Number(req.user!.userId);
 
         try {
-            const account = await accountService.deleteAccount(parseInt(id, 10), userId, password);
-            await logAccountDelete(userId, account, req);
+            await accountService.deleteAccount(parseInt(id, 10), userId, password, req);
             res.json({ message: 'Account deleted' });
         } catch (error: any) {
             if (error.message === 'Password is required') {
