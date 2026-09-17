@@ -52,8 +52,8 @@ describe('P1 financial integrity regressions', () => {
     const eightDaysAgo = new Date(Date.now() - 8 * 24 * 60 * 60 * 1000);
     const previousYear = new Date(new Date().getFullYear() - 1, 11, 1);
     await prisma.budget.createMany({ data: [
-      { amount: 10000, period: 'weekly', category_id: weeklyCategory.id, user_id: user.id },
-      { amount: 100000, period: 'yearly', category_id: yearlyCategory.id, user_id: user.id }
+      { amount: 10000, currency: 'USD', period: 'weekly', category_id: weeklyCategory.id, scope_key: `category:${weeklyCategory.id}`, user_id: user.id },
+      { amount: 100000, currency: 'USD', period: 'yearly', category_id: yearlyCategory.id, scope_key: `category:${yearlyCategory.id}`, user_id: user.id }
     ] });
     await prisma.transaction.createMany({ data: [
       { amount: 1000, description: 'This week', type: 'expense', account_id: account.id, category_id: weeklyCategory.id, user_id: user.id },
