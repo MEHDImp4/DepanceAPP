@@ -1,6 +1,8 @@
+import type { Request } from 'express';
 import prisma from '../utils/prisma';
 import { convertCurrency } from '../utils/currencyService';
 import { toCents, fromCents } from '../utils/money';
+import { AuditAction, createAuditEntry } from '../utils/auditService';
 import bcrypt from 'bcryptjs';
 
 interface CreateAccountData {
@@ -104,7 +106,7 @@ export const updateAccount = async (data: UpdateAccountData) => {
     return { ...updated, balance: fromCents(updated.balance) };
 };
 
-export const deleteAccount = async (id: number, userId: number, password?: string) => {
+export const deleteAccount = async (id: number, userId: number, password?: string, req?: Request) => {
     if (!password) {
         throw new Error('Password is required');
     }
@@ -141,6 +143,22 @@ export const deleteAccount = async (id: number, userId: number, password?: strin
         throw error;
     }
 
-    await prisma.account.delete({ where: { id } });
+    await prisma.$transaction(async database => {
+        await database.account.delete({ where: { id } });
+        await createAuditEntry(database, {
+            userId,
+            action: AuditAction.ACCOUNT_DELETE,
+            entityType: 'account',
+            entityId: account.id,
+            oldValue: {
+                name: account.name,
+                type: account.type,
+                currency: account.currency,
+                balance: account.balance
+            },
+            req
+        });
+    });
+
     return account;
 };
