@@ -1,188 +1,190 @@
 # DepanceAPP
 
 ![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)
-![GitHub stars](https://img.shields.io/github/stars/mehdimp4/DepanceAPP?style=for-the-badge)
-![GitHub issues](https://img.shields.io/github/issues/mehdimp4/DepanceAPP?style=for-the-badge)
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
-![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=Prisma&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=prisma&logoColor=white)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 
-**DepanceAPP** is a powerful, open-source, self-hosted Personal Finance Management (PFM) application. Built with privacy and performance in mind, it allows you to take full control of your financial data without relying on third-party cloud services.
+**DepanceAPP** is an open-source, self-hosted personal finance manager built with React, Express, Prisma and MariaDB/MySQL.
 
 ![Dashboard Preview](https://github.com/user-attachments/assets/6a658dac-1b21-407f-893f-4fe3751737d1)
 
----
+## Features
 
-## <img src="https://api.iconify.design/lucide:sparkles.svg?color=%23a8a29e" width="28" style="vertical-align: middle;" /> Key Features
+- Dashboard, monthly recap and spending trends
+- Accounts, income, expenses and internal transfers
+- Multi-currency accounts with normalized reporting
+- Category budgets with weekly, monthly and yearly periods
+- Recurring transactions and savings goals
+- Responsive/PWA-oriented frontend
+- Cookie-based JWT authentication with rotating refresh-token sessions
+- Login history, security alerts and audit logs
+- MariaDB/MySQL backups with optional AES encryption and S3 upload
+- Docker deployment with database and backup persistence
 
-- **<img src="https://api.iconify.design/lucide:bar-chart-2.svg?color=%23a8a29e" width="20" style="vertical-align: middle;" /> Comprehensive Dashboard:** Get a real-time overview of your net worth, recent activity, and budget status.
-- **<img src="https://api.iconify.design/lucide:pie-chart.svg?color=%23a8a29e" width="20" style="vertical-align: middle;" /> Analytics & Trends:** Interactive charts and monthly recaps to visualize your income vs. expense progress.
-- **<img src="https://api.iconify.design/lucide:smartphone.svg?color=%23a8a29e" width="20" style="vertical-align: middle;" /> Mobile-Optimized UI:** Responsive layout with smooth bottom navigation and side drawers for easy access on the go.
-- **<img src="https://api.iconify.design/lucide:wallet.svg?color=%23a8a29e" width="20" style="vertical-align: middle;" /> Account Management:** Track unlimited accounts (Bank, Cash, Savings) with multi-currency support.
-- **<img src="https://api.iconify.design/lucide:banknote.svg?color=%23a8a29e" width="20" style="vertical-align: middle;" /> Transaction Tracking:** Easily log income and expenses with smart categorization and custom tags.
-- **<img src="https://api.iconify.design/lucide:trending-up.svg?color=%23a8a29e" width="20" style="vertical-align: middle;" /> Budgeting:** Set monthly limits for specific categories and track your spending progress visually.
-- **<img src="https://api.iconify.design/lucide:refresh-cw.svg?color=%23a8a29e" width="20" style="vertical-align: middle;" /> Recurring Transactions:** Automate your fixed expenses (rent, subscriptions) and income (salary).
-- **<img src="https://api.iconify.design/lucide:lock.svg?color=%23a8a29e" width="20" style="vertical-align: middle;" /> Privacy First:** Your data lives on your server. No external tracking, no data selling.
-- **<img src="https://api.iconify.design/lucide:shield-check.svg?color=%23a8a29e" width="20" style="vertical-align: middle;" /> Enterprise-Grade Security:**
-  - Secure Authentication (JWT + Refresh Tokens)
-  - Account Lockout protection against brute-force attacks
-  - Detailed Login History & Audit Logs
+## Production quick start
 
----
+The repository already contains a production-oriented `docker-compose.yml` using **MariaDB 11.4**. Copy the example environment file, replace every placeholder secret/password, then start the stack:
 
-## <img src="https://api.iconify.design/lucide:rocket.svg?color=%23a8a29e" width="28" style="vertical-align: middle;" /> Getting Started
+```bash
+cp .env.example .env
+openssl rand -base64 48   # generate JWT_ACCESS_SECRET
+openssl rand -base64 48   # generate a different JWT_REFRESH_SECRET
+docker compose up -d
+```
 
-You can run DepanceAPP in minutes using Docker.
+At minimum, set strong unique values for:
 
-### Prerequisites
+```env
+DB_PASSWORD=...
+DB_ROOT_PASSWORD=...
+JWT_ACCESS_SECRET=...
+JWT_REFRESH_SECRET=...
+APP_URL=https://finance.example.com
+ALLOWED_ORIGINS=https://finance.example.com
+```
 
-- [Docker](https://www.docker.com/products/docker-desktop) and [Docker Compose](https://docs.docker.com/compose/install/) installed on your machine.
-- A **MySQL** or **MariaDB** database (can be hosted on the same server or separately).
+`JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` are both required in production. The old single `JWT_SECRET` variable is supported only as a local-development fallback.
 
-### Quick Start (Production)
+### Existing databases
 
-> Existing installations created with `prisma db push` must be baselined once before deploying this version:
->
-> `npx prisma migrate resolve --applied 20260901193000_baseline`
->
-> The container then runs `prisma migrate deploy` and applies the P0/P1 integrity migration safely. New installations apply both migrations automatically.
+Existing installations originally created with `prisma db push` must baseline the original migration once before switching to migration-based deployment:
 
-1.  **Create a `docker-compose.yml` file:**
+```bash
+npx prisma migrate resolve --applied 20260901193000_baseline
+```
 
-    ```yaml
-    version: '3.8'
+The production container runs `prisma migrate deploy` automatically at startup. Back up the database before upgrading an existing installation.
 
-    services:
-      app:
-        image: ghcr.io/mehdimp4/depanceapp:latest
-        container_name: depance-app
-        ports:
-          - "3000:3000"
-        environment:
-          # Database Configuration (REQUIRED)
-          - DB_HOST=db
-          - DB_PORT=3306
-          - DB_USER=depance
-          - DB_PASSWORD=secure_password
-          - DB_NAME=depance_db
-          
-          # Application URL (REQUIRED for CORS)
-          - APP_URL=https://your-domain.com
-          
-          # Security (REQUIRED)
-          - JWT_SECRET=change_this_to_a_long_random_string
-        depends_on:
-          - db
-        restart: always
+## Reverse proxy configuration
 
-      db:
-        image: mariadb:10.6
-        container_name: depance-db
-        environment:
-          - MYSQL_ROOT_PASSWORD=root_secure_password
-          - MYSQL_DATABASE=depance_db
-          - MYSQL_USER=depance
-          - MYSQL_PASSWORD=secure_password
-        volumes:
-          - db_data:/var/lib/mysql
-        restart: always
+`TRUST_PROXY` defaults to `false`. Keep it disabled when port `3000` is directly reachable by clients.
 
-    volumes:
-      db_data:
-    ```
+If the app is behind a trusted reverse proxy, configure an exact hop count or trusted subnet, for example:
 
-2.  **Run the application:**
+```env
+TRUST_PROXY=1
+```
 
-    ```bash
-    docker-compose up -d
-    ```
+Do not enable generic proxy trust unless the network topology actually guarantees that forwarded IP headers are sanitized by your proxy.
 
-3.  **Access the app:**
-    Open your browser and navigate to `http://localhost:3000` (or your domain).
+## Health endpoints
 
----
+- `GET /health` — process liveness; does not depend on the database.
+- `GET /ready` — readiness; returns success only when the application can query the database.
 
-## <img src="https://api.iconify.design/lucide:settings.svg?color=%23a8a29e" width="28" style="vertical-align: middle;" /> Configuration
+Docker Compose uses `/ready` for the application healthcheck.
 
-You can configure the application using environment variables.
+## Backups
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `APP_URL` | Public URL of your application (e.g., `https://finance.me`). Used for CORS. | `http://localhost:3000` | **Yes** |
-| `DB_HOST` | Database hostname | `localhost` | **Yes** |
-| `DB_PORT` | Database port | `3306` | No |
-| `DB_USER` | Database user | `root` | **Yes** |
-| `DB_PASSWORD`| Database password | `root` | **Yes** |
-| `DB_NAME` | Database name | `depance_db` | No |
-| `JWT_SECRET` | Secret key for signing tokens. Must be long and secure. | - | **Yes** |
-| `LOG_LEVEL` | Logging level (`info`, `debug`, `error`) | `info` | No |
+The Compose stack mounts `/app/backups` to the persistent `depance_backups` volume.
 
----
+Create a normal backup:
 
-## <img src="https://api.iconify.design/lucide:wrench.svg?color=%23a8a29e" width="28" style="vertical-align: middle;" /> Development (Contribution)
+```bash
+docker exec depance-app ./scripts/backup.sh
+```
 
-We welcome contributions! Here is how to run the project locally for development.
+Create an encrypted backup:
 
-### Prerequisites
-- Node.js v18+
-- npm or pnpm
-- A local MySQL connection
+```bash
+docker exec depance-app ./scripts/backup.sh --encrypt
+```
 
-### Setup
+Set `BACKUP_ENCRYPTION_KEY` before using encryption. To upload backups to S3, configure `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET` and `AWS_REGION`, then run:
 
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/mehdimp4/DepanceAPP.git
-    cd DepanceAPP
-    ```
+```bash
+docker exec depance-app ./scripts/backup.sh --encrypt --s3
+```
 
-2.  **Install Dependencies**
-    ```bash
-    # Install server dependencies
-    cd server
-    npm install
-    
-    # Install client dependencies
-    cd ../client
-    npm install
-    ```
+The production image includes the MariaDB client, OpenSSL and AWS CLI required by these scripts.
 
-3.  **Configure Environment**
-    Copy `.env.example` to `.env` in both `server` and `client` directories and adjust the settings.
+## Configuration
 
-4.  **Run Development Servers**
-    ```bash
-    # Terminal 1: Start Backend
-    cd server
-    npm run dev
-    
-    # Terminal 2: Start Frontend
-    cd client
-    npm run dev
-    ```
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `APP_PORT` | Published Docker port | `3000` |
+| `APP_URL` | Public application URL | `http://localhost:3000` |
+| `ALLOWED_ORIGINS` | Comma-separated CORS origins | localhost URLs |
+| `DB_HOST` | MariaDB/MySQL host | `db` in Compose |
+| `DB_PORT` | Database port | `3306` |
+| `DB_NAME` | Database name | `depance_db` |
+| `DB_USER` | Database user | `depance` |
+| `DB_PASSWORD` | Database password | change before production |
+| `DB_ROOT_PASSWORD` | MariaDB root password | change before production |
+| `DATABASE_URL` | Optional complete Prisma URL overriding `DB_*` | unset |
+| `JWT_ACCESS_SECRET` | Access-token signing secret | required in production |
+| `JWT_REFRESH_SECRET` | Refresh-token signing secret | required in production |
+| `TRUST_PROXY` | Express proxy trust policy | `false` |
+| `ENABLE_API_DOCS` | Expose Swagger docs in production | `false` |
+| `BACKUP_DIR` | Backup path | `/app/backups` in Docker |
+| `RETENTION_DAYS` | Local backup retention | `7` |
 
----
+See `.env.example` for the full set of options.
 
-## <img src="https://api.iconify.design/lucide:users.svg?color=%23a8a29e" width="28" style="vertical-align: middle;" /> Contributing
+## Development
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+Requirements: Node.js 20+, npm and Docker/MariaDB for production-parity integration tests.
 
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
+```bash
+git clone https://github.com/MEHDImp4/DepanceAPP.git
+cd DepanceAPP
+cp .env.example .env
 
----
+cd server
+npm ci
+npm run dev
+```
 
-## <img src="https://api.iconify.design/lucide:file-text.svg?color=%23a8a29e" width="28" style="vertical-align: middle;" /> License
+In another terminal:
 
-Distributed under the MIT License. See `LICENSE` for more information.
+```bash
+cd client
+npm ci
+npm run dev
+```
 
----
+### Validation
 
-<p align="center">
-  Made with <img src="https://api.iconify.design/lucide:heart.svg?color=%23ef4444" width="16" /> by <a href="https://github.com/mehdimp4">Mehdi</a>
-</p>
+The GitHub Actions CI performs:
+
+- Prisma client generation
+- production migrations against MariaDB
+- backend TypeScript checks
+- dependency audits
+- backend integration tests against MariaDB
+- frontend tests and lint
+- frontend and backend production builds
+- Docker image build
+
+Local commands:
+
+```bash
+cd server
+npm run build:check
+npm test
+
+cd ../client
+npm run test:run
+npm run lint
+npm run build
+```
+
+## Data model notes
+
+- Monetary values are persisted as integers and exposed through the API in normal currency units.
+- Internal transfer rows are excluded from spending/income analytics.
+- Budgets and goals preserve the currency they were created in; changing the user's reporting currency does not relabel historical goal/budget amounts.
+- Reporting periods use the user's stored IANA timezone. Existing users default to `UTC` until another timezone is selected.
+- A category cannot switch between income/expense while it is referenced by financial data.
+- Accounts participating in transfer history must have those transfers cancelled before the account can be deleted.
+
+## Security notes
+
+DepanceAPP includes short-lived access tokens, rotating hashed refresh tokens, refresh-token session families, rate limiting, login history, CSP headers and audit logging. Self-hosters are still responsible for TLS termination, host/container patching, secret management, database backups and network access controls.
+
+## License
+
+Distributed under the MIT License. See `LICENSE` for details.
