@@ -2,6 +2,8 @@ import prisma from '../utils/prisma';
 import { Prisma } from '@prisma/client';
 import logger from '../utils/logger';
 import { AuditAction, createAuditEntry } from '../utils/auditService';
+import { getCachedRates, serializeRatesSnapshot } from '../utils/currencyService';
+import { getZonedParts, normalizeTimeZone, zonedDateTimeToUtc } from '../utils/reportingTime';
 
 const MAX_RECURRING_LOOPS = 12;
 
@@ -12,49 +14,62 @@ interface RecurringRule {
     type: string;
     interval: string;
     anchor_day: number | null;
+    timezone: string;
     next_run_date: Date;
     account_id: number;
     category_id: number | null;
     user_id: number;
 }
 
-const daysInMonth = (year: number, month: number): number =>
-    new Date(year, month + 1, 0).getDate();
+const daysInMonth = (year: number, monthOneBased: number): number =>
+    new Date(Date.UTC(year, monthOneBased, 0)).getUTCDate();
 
 export const advanceRecurringDate = (
     currentDate: Date,
     interval: string,
-    anchorDay = currentDate.getDate()
+    anchorDay?: number,
+    timeZone = 'UTC'
 ): Date => {
-    const next = new Date(currentDate);
+    const zone = normalizeTimeZone(timeZone);
+    const parts = getZonedParts(currentDate, zone);
+    const anchor = anchorDay ?? parts.day;
+
+    let targetYear = parts.year;
+    let targetMonth = parts.month;
+    let targetDay = parts.day;
 
     if (interval === 'weekly') {
-        next.setDate(next.getDate() + 7);
-        return next;
+        const calendar = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
+        calendar.setUTCDate(calendar.getUTCDate() + 7);
+        targetYear = calendar.getUTCFullYear();
+        targetMonth = calendar.getUTCMonth() + 1;
+        targetDay = calendar.getUTCDate();
+    } else if (interval === 'monthly') {
+        const nextMonth = new Date(Date.UTC(parts.year, parts.month, 1));
+        targetYear = nextMonth.getUTCFullYear();
+        targetMonth = nextMonth.getUTCMonth() + 1;
+        targetDay = Math.min(anchor, daysInMonth(targetYear, targetMonth));
+    } else if (interval === 'yearly') {
+        targetYear = parts.year + 1;
+        targetDay = Math.min(anchor, daysInMonth(targetYear, targetMonth));
+    } else {
+        throw new Error(`Unsupported recurring interval: ${interval}`);
     }
 
-    if (interval === 'monthly') {
-        next.setDate(1);
-        next.setMonth(next.getMonth() + 1);
-        next.setDate(Math.min(anchorDay, daysInMonth(next.getFullYear(), next.getMonth())));
-        return next;
-    }
-
-    if (interval === 'yearly') {
-        const month = next.getMonth();
-        next.setDate(1);
-        next.setFullYear(next.getFullYear() + 1);
-        next.setMonth(month);
-        next.setDate(Math.min(anchorDay, daysInMonth(next.getFullYear(), month)));
-        return next;
-    }
-
-    throw new Error(`Unsupported recurring interval: ${interval}`);
+    return zonedDateTimeToUtc(
+        targetYear,
+        targetMonth,
+        targetDay,
+        parts.hour,
+        parts.minute,
+        parts.second,
+        zone
+    );
 };
 
 export const processDueTransactions = async (userId?: number) => {
     const now = new Date();
-    const whereCondition: any = {
+    const whereCondition: Prisma.RecurringTransactionWhereInput = {
         active: true,
         next_run_date: { lte: now }
     };
@@ -65,7 +80,7 @@ export const processDueTransactions = async (userId?: number) => {
     logger.info(`Found ${dueRules.length} due recurring transactions to process${userId ? ` for user ${userId}` : ''}`);
 
     const results = await Promise.all(
-        dueRules.map(rule => processRuleCycles(rule as unknown as RecurringRule, now))
+        dueRules.map(rule => processRuleCycles(rule as RecurringRule, now))
     );
 
     return results.flat();
@@ -76,8 +91,11 @@ async function processRuleCycles(
     now: Date
 ): Promise<{ id: number; amount: number }[]> {
     let nextDate = new Date(rule.next_run_date);
-    const anchorDay = rule.anchor_day ?? rule.next_run_date.getDate();
+    const zone = normalizeTimeZone(rule.timezone);
+    const anchorDay = rule.anchor_day ?? getZonedParts(rule.next_run_date, zone).day;
     const createdTransactions: { id: number; amount: number }[] = [];
+    const cachedRates = await getCachedRates();
+    const fxSnapshot = cachedRates ? serializeRatesSnapshot(cachedRates) : null;
     let safetyCounter = 0;
 
     while (nextDate <= now && safetyCounter < MAX_RECURRING_LOOPS) {
@@ -98,6 +116,7 @@ async function processRuleCycles(
                         account_id: rule.account_id,
                         category_id: rule.category_id,
                         user_id: rule.user_id,
+                        fx_rates_snapshot: fxSnapshot,
                         created_at: scheduledAt
                     }
                 });
@@ -118,7 +137,8 @@ async function processRuleCycles(
                         type: transaction.type,
                         accountId: transaction.account_id,
                         categoryId: transaction.category_id,
-                        scheduledAt: scheduledAt.toISOString()
+                        scheduledAt: scheduledAt.toISOString(),
+                        timezone: zone
                     },
                     metadata: { source: 'scheduler' }
                 });
@@ -137,16 +157,17 @@ async function processRuleCycles(
             }
         }
 
-        nextDate = advanceRecurringDate(nextDate, rule.interval, anchorDay);
+        nextDate = advanceRecurringDate(nextDate, rule.interval, anchorDay, zone);
         safetyCounter++;
     }
 
-    if (createdTransactions.length > 0 || safetyCounter > 0) {
+    if (safetyCounter > 0) {
         await prisma.recurringTransaction.update({
             where: { id: rule.id },
             data: {
                 next_run_date: nextDate,
-                anchor_day: anchorDay
+                anchor_day: anchorDay,
+                timezone: zone
             }
         });
     }
