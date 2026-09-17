@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
-import { AuditAction, logAudit } from '../utils/auditService';
+import { AuditAction, createAuditEntry } from '../utils/auditService';
 
 interface CreateCategoryBody {
     name: string;
@@ -34,17 +34,19 @@ export const createCategory = async (req: Request, res: Response, next: NextFunc
         const { name, type, color, icon } = req.body as CreateCategoryBody;
         const userId = req.user!.userId;
 
-        const category = await prisma.category.create({
-            data: { name, type, color, icon, user_id: userId }
-        });
-
-        await logAudit({
-            userId,
-            action: AuditAction.CATEGORY_CREATE,
-            entityType: 'category',
-            entityId: category.id,
-            newValue: category,
-            req
+        const category = await prisma.$transaction(async database => {
+            const created = await database.category.create({
+                data: { name, type, color, icon, user_id: userId }
+            });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.CATEGORY_CREATE,
+                entityType: 'category',
+                entityId: created.id,
+                newValue: created,
+                req
+            });
+            return created;
         });
 
         res.status(201).json(category);
@@ -87,19 +89,21 @@ export const updateCategory = async (req: Request, res: Response, next: NextFunc
             }
         }
 
-        const updated = await prisma.category.update({
-            where: { id: categoryId },
-            data: { name, type, color, icon }
-        });
-
-        await logAudit({
-            userId,
-            action: AuditAction.CATEGORY_UPDATE,
-            entityType: 'category',
-            entityId: categoryId,
-            oldValue: existing,
-            newValue: updated,
-            req
+        const updated = await prisma.$transaction(async database => {
+            const saved = await database.category.update({
+                where: { id: categoryId },
+                data: { name, type, color, icon }
+            });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.CATEGORY_UPDATE,
+                entityType: 'category',
+                entityId: categoryId,
+                oldValue: existing,
+                newValue: saved,
+                req
+            });
+            return saved;
         });
 
         res.json(updated);
@@ -118,43 +122,37 @@ export const deleteCategory = async (req: Request, res: Response, next: NextFunc
         const userId = req.user!.userId;
         const categoryId = parseInt(id as string, 10);
 
-        const category = await prisma.category.findFirst({
-            where: { id: categoryId, user_id: userId }
-        });
-
+        const category = await prisma.category.findFirst({ where: { id: categoryId, user_id: userId } });
         if (!category) {
             res.status(404).json({ error: 'Category not found' });
             return;
         }
 
-        await prisma.$transaction([
-            prisma.transaction.updateMany({
+        await prisma.$transaction(async database => {
+            await database.transaction.updateMany({
                 where: { category_id: categoryId, user_id: userId },
                 data: { category_id: null }
-            }),
-            // A category-specific budget has no valid meaning after its category is removed.
-            // Delete it instead of turning it into a second global budget.
-            prisma.budget.deleteMany({
+            });
+            await database.budget.deleteMany({
                 where: { category_id: categoryId, user_id: userId }
-            }),
-            prisma.recurringTransaction.updateMany({
+            });
+            await database.recurringTransaction.updateMany({
                 where: { category_id: categoryId, user_id: userId },
                 data: { category_id: null }
-            }),
-            prisma.template.updateMany({
+            });
+            await database.template.updateMany({
                 where: { category_id: categoryId, user_id: userId },
                 data: { category_id: null }
-            }),
-            prisma.category.delete({ where: { id: categoryId } })
-        ]);
-
-        await logAudit({
-            userId,
-            action: AuditAction.CATEGORY_DELETE,
-            entityType: 'category',
-            entityId: categoryId,
-            oldValue: category,
-            req
+            });
+            await database.category.delete({ where: { id: categoryId } });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.CATEGORY_DELETE,
+                entityType: 'category',
+                entityId: categoryId,
+                oldValue: category,
+                req
+            });
         });
 
         res.json({ message: 'Category deleted' });
