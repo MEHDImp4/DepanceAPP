@@ -15,19 +15,32 @@ export interface Account {
     color?: string;
 }
 
+export interface AccountSummary {
+    totalBalance: number;
+    currency: string;
+    accountCount: number;
+}
+
 export interface Transaction {
     id: number;
     amount: number;
+    convertedAmount?: number;
+    convertedCurrency?: string;
     description: string;
     type: 'income' | 'expense';
     account_id: number;
-    category_id?: number;
+    category_id?: number | null;
+    transfer_id?: string | null;
     created_at: string;
+    account?: {
+        name: string;
+        currency: string;
+    };
     category?: {
         name: string;
         icon?: string;
         color?: string;
-    };
+    } | null;
 }
 
 export interface TransactionPage {
@@ -72,6 +85,7 @@ export interface RecurringTransaction {
     description: string;
     type: 'income' | 'expense';
     interval: 'weekly' | 'monthly' | 'yearly';
+    timezone: string;
     next_run_date: string;
     active: boolean;
     category_id?: number | null;
