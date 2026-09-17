@@ -72,7 +72,6 @@ export const zonedDateTimeToUtc = (
     const desiredAsUtc = Date.UTC(year, month - 1, day, hour, minute, second);
     let guess = desiredAsUtc;
 
-    // Iterate because the offset may change around a DST boundary.
     for (let i = 0; i < 3; i += 1) {
         const observed = getZonedParts(new Date(guess), zone);
         const observedAsUtc = Date.UTC(
@@ -129,7 +128,9 @@ export const getRollingStart = (
     period: 'week' | 'month' | 'year' | 'all',
     timeZone: string,
     now = new Date()
-): Date => {
+): Date | null => {
+    if (period === 'all') return null;
+
     const zone = normalizeTimeZone(timeZone);
     const local = localCalendarDate(now, zone);
 
@@ -139,8 +140,6 @@ export const getRollingStart = (
         local.setUTCMonth(local.getUTCMonth() - 1);
     } else if (period === 'year') {
         local.setUTCFullYear(local.getUTCFullYear() - 1);
-    } else {
-        local.setUTCFullYear(local.getUTCFullYear() - 5);
     }
 
     return zonedDateTimeToUtc(
@@ -184,7 +183,6 @@ export const getCurrentMonthWindow = (timeZone: string, now = new Date()) => {
         previousMonth.getUTCFullYear(),
         previousMonth.getUTCMonth() + 1,
         1,
-        0,
         0,
         0,
         zone
