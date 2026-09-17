@@ -110,10 +110,10 @@ export const deleteAccount = async (req: Request, res: Response, next: NextFunct
                 res.status(404).json({ error: error.message });
             } else if (error.message === 'Invalid password') {
                 res.status(403).json({ error: error.message, code: 'INVALID_PASSWORD' });
-            } else if (error.code === 'ACCOUNT_HAS_TRANSFERS') {
+            } else if (error.code === 'ACCOUNT_HAS_ACTIVITY') {
                 res.status(409).json({
                     error: error.message,
-                    code: 'ACCOUNT_HAS_TRANSFERS'
+                    code: 'ACCOUNT_HAS_ACTIVITY'
                 });
             } else {
                 throw error;
