@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
-import { toCents, fromCents } from '../utils/money';
-import { assertOwnedAccount } from '../utils/ownership';
+import { assertCurrencyAmount, toCents, fromCents } from '../utils/money';
+import { AuditAction, createAuditEntry } from '../utils/auditService';
 
 interface CreateTemplateBody {
     name: string;
@@ -16,6 +16,18 @@ interface CreateTemplateBody {
 
 interface UpdateTemplateBody extends Partial<CreateTemplateBody> { }
 
+const getOwnedAccount = async (accountId: number | null | undefined, userId: number) => {
+    if (!accountId) return null;
+    const account = await prisma.account.findFirst({ where: { id: accountId, user_id: userId } });
+    if (!account) {
+        throw Object.assign(new Error('Invalid account or access denied'), {
+            statusCode: 403,
+            code: 'RESOURCE_ACCESS_DENIED'
+        });
+    }
+    return account;
+};
+
 const validateCategoryType = async (
     categoryId: number | null | undefined,
     userId: number,
@@ -24,14 +36,16 @@ const validateCategoryType = async (
     if (!categoryId) return;
     const category = await prisma.category.findFirst({ where: { id: categoryId, user_id: userId } });
     if (!category) {
-        const error = new Error('Invalid category or access denied');
-        Object.assign(error, { statusCode: 403, code: 'CATEGORY_ACCESS_DENIED' });
-        throw error;
+        throw Object.assign(new Error('Invalid category or access denied'), {
+            statusCode: 403,
+            code: 'CATEGORY_ACCESS_DENIED'
+        });
     }
     if (category.type !== type) {
-        const error = new Error(`A ${type} template requires a ${type} category`);
-        Object.assign(error, { statusCode: 409, code: 'CATEGORY_TYPE_MISMATCH' });
-        throw error;
+        throw Object.assign(new Error(`A ${type} template requires a ${type} category`), {
+            statusCode: 409,
+            code: 'CATEGORY_TYPE_MISMATCH'
+        });
     }
 };
 
@@ -41,24 +55,37 @@ export const createTemplate = async (req: Request, res: Response, next: NextFunc
         const userId = req.user!.userId;
         const templateType = type || 'expense';
 
-        await Promise.all([
-            assertOwnedAccount(default_account_id, userId),
+        const [defaultAccount] = await Promise.all([
+            getOwnedAccount(default_account_id, userId),
             validateCategoryType(category_id, userId, templateType)
         ]);
+        if (defaultAccount) assertCurrencyAmount(amount, defaultAccount.currency);
 
-        const template = await prisma.template.create({
-            data: {
-                name,
-                amount: toCents(amount),
-                description,
-                default_account_id: default_account_id || null,
-                category_id: category_id || null,
-                color,
-                icon_name,
-                type: templateType,
-                user_id: userId
-            }
+        const template = await prisma.$transaction(async database => {
+            const created = await database.template.create({
+                data: {
+                    name,
+                    amount: toCents(amount),
+                    description,
+                    default_account_id: default_account_id || null,
+                    category_id: category_id || null,
+                    color,
+                    icon_name,
+                    type: templateType,
+                    user_id: userId
+                }
+            });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.TEMPLATE_CREATE,
+                entityType: 'template',
+                entityId: created.id,
+                newValue: created,
+                req
+            });
+            return created;
         });
+
         res.status(201).json({ ...template, amount: fromCents(template.amount) });
     } catch (error) {
         next(error);
@@ -96,25 +123,40 @@ export const updateTemplate = async (req: Request, res: Response, next: NextFunc
 
         const effectiveType = (type || existing.type) as 'income' | 'expense';
         const effectiveCategoryId = category_id !== undefined ? category_id : existing.category_id;
+        const effectiveAccountId = default_account_id !== undefined ? default_account_id : existing.default_account_id;
 
-        await Promise.all([
-            assertOwnedAccount(default_account_id, userId),
+        const [defaultAccount] = await Promise.all([
+            getOwnedAccount(effectiveAccountId, userId),
             validateCategoryType(effectiveCategoryId, userId, effectiveType)
         ]);
+        if (amount !== undefined && defaultAccount) assertCurrencyAmount(amount, defaultAccount.currency);
 
-        const template = await prisma.template.update({
-            where: { id: templateId },
-            data: {
-                name,
-                ...(amount !== undefined && { amount: toCents(amount) }),
-                description,
-                default_account_id: default_account_id !== undefined ? (default_account_id || null) : undefined,
-                category_id: category_id !== undefined ? (category_id || null) : undefined,
-                color,
-                icon_name,
-                ...(type !== undefined && { type })
-            }
+        const template = await prisma.$transaction(async database => {
+            const updated = await database.template.update({
+                where: { id: templateId },
+                data: {
+                    name,
+                    ...(amount !== undefined && { amount: toCents(amount) }),
+                    description,
+                    default_account_id: default_account_id !== undefined ? (default_account_id || null) : undefined,
+                    category_id: category_id !== undefined ? (category_id || null) : undefined,
+                    color,
+                    icon_name,
+                    ...(type !== undefined && { type })
+                }
+            });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.TEMPLATE_UPDATE,
+                entityType: 'template',
+                entityId: templateId,
+                oldValue: existing,
+                newValue: updated,
+                req
+            });
+            return updated;
         });
+
         res.json({ ...template, amount: fromCents(template.amount) });
     } catch (error) {
         next(error);
@@ -131,7 +173,19 @@ export const deleteTemplate = async (req: Request, res: Response, next: NextFunc
             res.status(404).json({ error: 'Template not found' });
             return;
         }
-        await prisma.template.delete({ where: { id: templateId } });
+
+        await prisma.$transaction(async database => {
+            await database.template.delete({ where: { id: templateId } });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.TEMPLATE_DELETE,
+                entityType: 'template',
+                entityId: templateId,
+                oldValue: existing,
+                req
+            });
+        });
+
         res.json({ message: 'Template deleted successfully' });
     } catch (error) {
         next(error);
