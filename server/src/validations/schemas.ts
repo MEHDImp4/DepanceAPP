@@ -1,19 +1,34 @@
 import { z } from 'zod';
 import { SUPPORTED_CURRENCIES } from '../constants/currencies';
 import { isValidTimeZone } from '../utils/reportingTime';
+import { MAX_MAJOR_UNITS } from '../utils/money';
 
 const currencySchema = z.enum(SUPPORTED_CURRENCIES);
 const timezoneSchema = z.string()
     .min(1)
     .max(100)
     .refine(isValidTimeZone, { message: 'Invalid IANA timezone' });
+const bcryptLength = (value: string) => Buffer.byteLength(value, 'utf8') <= 72;
 const passwordSchema = z.string()
     .min(8, { message: 'Password must be at least 8 characters long' })
     .max(72, { message: 'Password must be at most 72 characters long' })
+    .refine(bcryptLength, { message: 'Password must be at most 72 UTF-8 bytes long' })
     .regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
     .regex(/[a-z]/, { message: 'Password must contain at least one lowercase letter' })
     .regex(/[0-9]/, { message: 'Password must contain at least one number' })
     .regex(/[^A-Za-z0-9]/, { message: 'Password must contain at least one special character' });
+const loginPasswordSchema = z.string()
+    .min(1, { message: 'Password is required' })
+    .max(72, { message: 'Password must be at most 72 characters long' })
+    .refine(bcryptLength, { message: 'Password must be at most 72 UTF-8 bytes long' });
+const positiveMoneySchema = z.number()
+    .finite()
+    .positive({ message: 'Amount must be positive' })
+    .max(MAX_MAJOR_UNITS, { message: 'Amount exceeds supported range' });
+const nonNegativeMoneySchema = z.number()
+    .finite()
+    .nonnegative()
+    .max(MAX_MAJOR_UNITS, { message: 'Amount exceeds supported range' });
 
 export const registerSchema = z.object({
     body: z.object({
@@ -26,7 +41,7 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
     body: z.object({
         identifier: z.string().min(1, { message: 'Identifier is required' }).max(254),
-        password: z.string().min(1, { message: 'Password is required' }).max(72)
+        password: loginPasswordSchema
     })
 });
 
@@ -41,14 +56,14 @@ export const updateProfileSchema = z.object({
 
 export const changePasswordSchema = z.object({
     body: z.object({
-        oldPassword: z.string().min(1, { message: 'Old password is required' }).max(72),
+        oldPassword: loginPasswordSchema,
         newPassword: passwordSchema
     })
 });
 
 export const transactionSchema = z.object({
     body: z.object({
-        amount: z.number().positive({ message: 'Amount must be a positive number' }),
+        amount: positiveMoneySchema,
         description: z.string().min(1, { message: 'Description is required' }).max(500),
         type: z.enum(['income', 'expense']),
         account_id: z.number().int().positive(),
@@ -60,7 +75,7 @@ export const createAccountSchema = z.object({
     body: z.object({
         name: z.string().min(1, { message: 'Account name is required' }).max(100),
         type: z.enum(['normal', 'savings', 'bank', 'cash', 'credit']).optional(),
-        balance: z.number().optional().default(0),
+        balance: z.number().finite().min(-MAX_MAJOR_UNITS).max(MAX_MAJOR_UNITS).optional().default(0),
         currency: currencySchema.optional().default('USD'),
         color: z.string().max(64).optional()
     })
@@ -96,7 +111,7 @@ export const updateCategorySchema = z.object({
 
 export const createBudgetSchema = z.object({
     body: z.object({
-        amount: z.number().positive({ message: 'Budget amount must be positive' }),
+        amount: positiveMoneySchema,
         period: z.enum(['weekly', 'monthly', 'yearly']).optional().default('monthly'),
         category_id: z.number().int().positive().optional().nullable()
     })
@@ -104,7 +119,7 @@ export const createBudgetSchema = z.object({
 
 export const updateBudgetSchema = z.object({
     body: z.object({
-        amount: z.number().positive().optional(),
+        amount: positiveMoneySchema.optional(),
         period: z.enum(['weekly', 'monthly', 'yearly']).optional()
     }),
     params: z.object({ id: z.string().regex(/^\d+$/, { message: 'Invalid budget ID' }) })
@@ -112,7 +127,7 @@ export const updateBudgetSchema = z.object({
 
 export const createRecurringSchema = z.object({
     body: z.object({
-        amount: z.number().positive({ message: 'Amount must be positive' }),
+        amount: positiveMoneySchema,
         description: z.string().min(1, { message: 'Description is required' }).max(500),
         type: z.enum(['income', 'expense']),
         interval: z.enum(['weekly', 'monthly', 'yearly']),
@@ -125,7 +140,7 @@ export const createRecurringSchema = z.object({
 export const createTemplateSchema = z.object({
     body: z.object({
         name: z.string().min(1, { message: 'Template name is required' }).max(100),
-        amount: z.number().positive({ message: 'Amount must be positive' }),
+        amount: positiveMoneySchema,
         description: z.string().max(500).optional(),
         default_account_id: z.number().int().positive().optional().nullable(),
         category_id: z.number().int().positive().optional().nullable(),
@@ -138,7 +153,7 @@ export const createTemplateSchema = z.object({
 export const updateTemplateSchema = z.object({
     body: z.object({
         name: z.string().min(1).max(100).optional(),
-        amount: z.number().positive().optional(),
+        amount: positiveMoneySchema.optional(),
         description: z.string().max(500).optional(),
         default_account_id: z.number().int().positive().optional().nullable(),
         category_id: z.number().int().positive().optional().nullable(),
@@ -153,7 +168,7 @@ export const createTransferSchema = z.object({
     body: z.object({
         from_account_id: z.number().int().positive({ message: 'Source account is required' }),
         to_account_id: z.number().int().positive({ message: 'Destination account is required' }),
-        amount: z.number().positive({ message: 'Amount must be positive' }),
+        amount: positiveMoneySchema,
         description: z.string().max(500).optional()
     })
 });
@@ -161,8 +176,8 @@ export const createTransferSchema = z.object({
 export const createGoalSchema = z.object({
     body: z.object({
         name: z.string().min(1, { message: 'Goal name is required' }).max(100),
-        targetAmount: z.number().positive({ message: 'Target amount must be a positive number' }),
-        currentAmount: z.number().nonnegative().optional().default(0),
+        targetAmount: positiveMoneySchema,
+        currentAmount: nonNegativeMoneySchema.optional().default(0),
         deadline: z.string().datetime().optional().nullable(),
         color: z.string().max(64).optional(),
         icon: z.string().max(100).optional()
@@ -172,8 +187,8 @@ export const createGoalSchema = z.object({
 export const updateGoalSchema = z.object({
     body: z.object({
         name: z.string().min(1).max(100).optional(),
-        targetAmount: z.number().positive().optional(),
-        currentAmount: z.number().nonnegative().optional(),
+        targetAmount: positiveMoneySchema.optional(),
+        currentAmount: nonNegativeMoneySchema.optional(),
         deadline: z.string().datetime().optional().nullable(),
         color: z.string().max(64).optional(),
         icon: z.string().max(100).optional()
