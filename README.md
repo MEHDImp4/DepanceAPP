@@ -4,7 +4,7 @@
 ![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)
 ![React](https://img.shields.io/badge/react-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)
 ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=for-the-badge&logo=node.js&logoColor=white)
-![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge&logo=prisma&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-3982CE?style=for-the-badge)
 ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
 
 **DepanceAPP** is an open-source, self-hosted personal finance manager built with React, Express, Prisma and MariaDB/MySQL.
@@ -14,24 +14,25 @@
 ## Features
 
 - Dashboard, monthly recap and spending trends
-- Accounts, income, expenses and internal transfers
-- Multi-currency accounts with normalized reporting
+- Accounts, income, expenses and concurrency-safe internal transfers
+- Multi-currency accounts with backend-normalized and historically stable reporting
 - Category budgets with weekly, monthly and yearly periods
-- Recurring transactions and savings goals
+- Timezone-aware recurring transactions and savings goals
 - Responsive/PWA-oriented frontend
 - Cookie-based JWT authentication with rotating refresh-token sessions
-- Login history, security alerts and audit logs
-- MariaDB/MySQL backups with optional AES encryption and S3 upload
-- Docker deployment with database and backup persistence
+- Login history, security alerts and transactional audit logs
+- Scheduled MariaDB/MySQL backups with checksum verification, AES encryption and optional S3 upload
+- Docker deployment with persistent database and backup volumes
 
 ## Production quick start
 
-The repository already contains a production-oriented `docker-compose.yml` using **MariaDB 11.4**. Copy the example environment file, replace every placeholder secret/password, then start the stack:
+Production uses **Node.js 22 LTS** and **MariaDB 11.4**. Copy the environment template and replace every placeholder secret/password before starting the stack:
 
 ```bash
 cp .env.example .env
-openssl rand -base64 48   # generate JWT_ACCESS_SECRET
-openssl rand -base64 48   # generate a different JWT_REFRESH_SECRET
+openssl rand -base64 48   # JWT_ACCESS_SECRET
+openssl rand -base64 48   # different JWT_REFRESH_SECRET
+openssl rand -base64 48   # BACKUP_ENCRYPTION_KEY
 docker compose up -d
 ```
 
@@ -42,11 +43,22 @@ DB_PASSWORD=...
 DB_ROOT_PASSWORD=...
 JWT_ACCESS_SECRET=...
 JWT_REFRESH_SECRET=...
+BACKUP_ENCRYPTION_KEY=...
 APP_URL=https://finance.example.com
 ALLOWED_ORIGINS=https://finance.example.com
 ```
 
 `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` are both required in production. The old single `JWT_SECRET` variable is supported only as a local-development fallback.
+
+### Pinning the production image
+
+`latest` is only published after the full main CI succeeds. Every validated release is also published with its full commit SHA. For reproducible deployments, pin that immutable tag:
+
+```env
+DEPANCE_IMAGE=ghcr.io/mehdimp4/depanceapp:<validated-commit-sha>
+```
+
+Then run `docker compose pull && docker compose up -d`.
 
 ### Existing databases
 
@@ -56,55 +68,64 @@ Existing installations originally created with `prisma db push` must baseline th
 npx prisma migrate resolve --applied 20260901193000_baseline
 ```
 
-The production container runs `prisma migrate deploy` automatically at startup. Back up the database before upgrading an existing installation.
+The production application container runs `prisma migrate deploy` automatically at startup. Always have a verified backup before upgrading an existing installation.
 
 ## Reverse proxy configuration
 
-`TRUST_PROXY` defaults to `false`. Keep it disabled when port `3000` is directly reachable by clients.
-
-If the app is behind a trusted reverse proxy, configure an exact hop count or trusted subnet, for example:
+`TRUST_PROXY` defaults to `false`. Keep it disabled when port `3000` is directly reachable by clients. Behind a trusted reverse proxy, configure an exact hop count or trusted subnet, for example:
 
 ```env
 TRUST_PROXY=1
 ```
 
-Do not enable generic proxy trust unless the network topology actually guarantees that forwarded IP headers are sanitized by your proxy.
+Do not enable generic proxy trust unless forwarded IP headers are sanitized by your proxy.
 
 ## Health endpoints
 
-- `GET /health` — process liveness; does not depend on the database.
-- `GET /ready` — readiness; returns success only when the application can query the database.
+- `GET /health` — process liveness, independent from the database.
+- `GET /ready` — readiness, successful only when the database can be queried.
 
 Docker Compose uses `/ready` for the application healthcheck.
 
-## Backups
+## Automatic backups
 
-The Compose stack mounts `/app/backups` to the persistent `depance_backups` volume.
+Docker Compose includes a dedicated `backup` service. It creates one backup when the service starts and repeats on `BACKUP_INTERVAL_SECONDS` (24 hours by default). Scheduled backups fail closed when `BACKUP_ENCRYPTION_KEY` is missing unless `BACKUP_ALLOW_UNENCRYPTED=true` is explicitly configured.
 
-Create a normal backup:
+Important variables:
 
-```bash
-docker exec depance-app ./scripts/backup.sh
+```env
+BACKUP_INTERVAL_SECONDS=86400
+RETENTION_DAYS=7
+BACKUP_ENCRYPTION_KEY=...
+BACKUP_ALLOW_UNENCRYPTED=false
+BACKUP_S3=false
 ```
 
-Create an encrypted backup:
+Backups and their SHA-256 checksum files are stored in the persistent `depance_backups` volume. For an extra manual backup:
 
 ```bash
-docker exec depance-app ./scripts/backup.sh --encrypt
+docker exec depance-backup /app/scripts/backup.sh --encrypt
 ```
 
-Set `BACKUP_ENCRYPTION_KEY` before using encryption. To upload backups to S3, configure `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET` and `AWS_REGION`, then run:
+To upload scheduled backups to S3, set `BACKUP_S3=true` and configure `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_S3_BUCKET` and `AWS_REGION`.
+
+### Restore
+
+Restore verifies the matching `.sha256` file before touching the database:
 
 ```bash
-docker exec depance-app ./scripts/backup.sh --encrypt --s3
+docker exec -it depance-backup /app/scripts/restore.sh /app/backups/<backup>.sql.enc
 ```
 
-The production image includes the MariaDB client, OpenSSL and AWS CLI required by these scripts.
+`--yes` skips the interactive confirmation. `--skip-checksum` exists only for intentionally trusted legacy backups and should not be used for normal restores.
+
+A backup is not operationally proven until a restore has been tested against a disposable MariaDB instance. Test restores periodically.
 
 ## Configuration
 
 | Variable | Purpose | Default |
 | --- | --- | --- |
+| `DEPANCE_IMAGE` | Image/tag used by Compose | validated `latest` |
 | `APP_PORT` | Published Docker port | `3000` |
 | `APP_URL` | Public application URL | `http://localhost:3000` |
 | `ALLOWED_ORIGINS` | Comma-separated CORS origins | localhost URLs |
@@ -119,14 +140,17 @@ The production image includes the MariaDB client, OpenSSL and AWS CLI required b
 | `JWT_REFRESH_SECRET` | Refresh-token signing secret | required in production |
 | `TRUST_PROXY` | Express proxy trust policy | `false` |
 | `ENABLE_API_DOCS` | Expose Swagger docs in production | `false` |
-| `BACKUP_DIR` | Backup path | `/app/backups` in Docker |
+| `LOGIN_HISTORY_RETENTION_DAYS` | Login-history retention | `180` |
+| `AUDIT_RETENTION_DAYS` | Audit-log retention | `365` |
+| `BACKUP_INTERVAL_SECONDS` | Scheduled backup interval | `86400` |
 | `RETENTION_DAYS` | Local backup retention | `7` |
+| `BACKUP_ENCRYPTION_KEY` | AES backup encryption key | required by default |
 
 See `.env.example` for the full set of options.
 
 ## Development
 
-Requirements: Node.js 20+, npm and Docker/MariaDB for production-parity integration tests.
+Requirements: Node.js 22+, npm and Docker/MariaDB for production-parity integration tests.
 
 ```bash
 git clone https://github.com/MEHDImp4/DepanceAPP.git
@@ -146,18 +170,20 @@ npm ci
 npm run dev
 ```
 
-### Validation
+## Validation
 
-The GitHub Actions CI performs:
+The main GitHub Actions CI performs:
 
 - Prisma client generation
-- production migrations against MariaDB
+- production migrations against MariaDB 11.4
 - backend TypeScript checks
-- dependency audits
-- backend integration tests against MariaDB
+- server and client dependency audits
+- backend integration/regression tests against MariaDB
 - frontend tests and lint
 - frontend and backend production builds
-- Docker image build
+- production Docker image build
+
+The GHCR publish workflow runs only after this CI succeeds for a push to `main`/`master`. It publishes both `latest` and an immutable full-SHA tag.
 
 Local commands:
 
@@ -170,20 +196,27 @@ cd ../client
 npm run test:run
 npm run lint
 npm run build
+
+cd ..
+docker build -t depanceapp-local .
 ```
 
-## Data model notes
+## Data integrity notes
 
-- Monetary values are persisted as integers and exposed through the API in normal currency units.
-- Internal transfer rows are excluded from spending/income analytics.
-- Budgets and goals preserve the currency they were created in; changing the user's reporting currency does not relabel historical goal/budget amounts.
-- Reporting periods use the user's stored IANA timezone. Existing users default to `UTC` until another timezone is selected.
-- A category cannot switch between income/expense while it is referenced by financial data.
-- Accounts participating in transfer history must have those transfers cancelled before the account can be deleted.
+- Monetary values use a fixed 1/100 storage scale; currencies such as JPY reject fractional major-unit input.
+- Internal transfer rows are excluded from spending/income analytics and must be cancelled as a pair.
+- Accounts with financial history or recurring rules cannot be physically deleted.
+- Historical cross-currency reporting uses per-transaction FX snapshots when available instead of silently repricing old activity with today's market rate.
+- Budgets and goals preserve the currency they were created in; changing the user's reporting currency does not relabel historical values.
+- Reporting periods and recurring wall-clock schedules use stored IANA timezones.
+- A category cannot switch between income/expense while referenced by financial data.
+- Idempotency keys are bound to request payloads and can be reused once their TTL has actually expired.
 
 ## Security notes
 
-DepanceAPP includes short-lived access tokens, rotating hashed refresh tokens, refresh-token session families, rate limiting, login history, CSP headers and audit logging. Self-hosters are still responsible for TLS termination, host/container patching, secret management, database backups and network access controls.
+DepanceAPP includes short-lived access tokens, rotating hashed refresh tokens, refresh-token session families with replay detection, cross-tab refresh coordination, rate limiting, login history, CSP headers and transactional financial audit logging. Self-hosters remain responsible for TLS termination, host/container patching, secret management, backup key custody and network access controls.
+
+Login history and audit logs have configurable retention windows so operational security data does not grow indefinitely.
 
 ## License
 
