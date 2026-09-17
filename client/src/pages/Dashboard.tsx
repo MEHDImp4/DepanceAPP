@@ -1,18 +1,12 @@
 import { useTranslation } from "react-i18next";
 import { CapitalCard } from "@/components/dashboard/CapitalCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
-import { useSummary, useAccounts } from "@/hooks/use-api";
-import { useAuthStore } from "@/store/auth-store";
-import { useCurrencyRates, convertCurrency } from "@/hooks/use-currency";
-
+import { useSummary } from "@/hooks/use-api";
 import { Wallet } from "lucide-react";
 
 export default function Dashboard() {
     const { t, i18n } = useTranslation();
     const { data: summary, isLoading: isSummaryLoading, error } = useSummary();
-    const { data: accounts = [] } = useAccounts();
-    const { data: ratesData } = useCurrencyRates();
-    const user = useAuthStore((state) => state.user);
 
     if (isSummaryLoading) {
         return (
@@ -45,20 +39,10 @@ export default function Dashboard() {
         );
     }
 
-    const totalCapital = accounts.reduce((acc, curr) => {
-        const convertedBalance = convertCurrency(
-            curr.balance,
-            curr.currency,
-            user?.currency || 'USD',
-            ratesData?.rates
-        );
-        return acc + convertedBalance;
-    }, 0);
     const transactions = summary?.transactions?.slice(0, 5) || [];
 
     return (
         <div className="space-y-6 pb-32 relative">
-
             <header className="flex flex-col items-center py-8 px-4 space-y-4 relative">
                 <div className="w-14 h-14 bg-primary/10 rounded-3xl flex items-center justify-center border border-primary/20 shadow-2xl shadow-primary/10">
                     <Wallet className="text-primary" size={32} strokeWidth={1.5} />
@@ -72,13 +56,15 @@ export default function Dashboard() {
             </header>
 
             <section>
-                <CapitalCard amount={totalCapital} currency={user?.currency || 'USD'} />
+                <CapitalCard
+                    amount={summary?.totalCapital ?? 0}
+                    currency={summary?.currency ?? 'USD'}
+                />
             </section>
 
             <section>
                 <RecentTransactions transactions={transactions} />
             </section>
-
         </div>
     );
 }
