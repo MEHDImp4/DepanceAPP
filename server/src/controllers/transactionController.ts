@@ -1,9 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
-import { toCents, fromCents } from '../utils/money';
-import { getRates, calculateExchange } from '../utils/currencyService';
+import { assertCurrencyAmount, toCents, fromCents } from '../utils/money';
+import {
+    getRates,
+    getCachedRates,
+    calculateExchange,
+    parseRatesSnapshot,
+    serializeRatesSnapshot
+} from '../utils/currencyService';
 import { runIdempotent } from '../utils/idempotency';
 import { AuditAction, createAuditEntry } from '../utils/auditService';
+import type { ExchangeRates } from '../types';
 
 interface CreateTransactionBody {
     amount: number;
@@ -12,6 +19,17 @@ interface CreateTransactionBody {
     account_id: number;
     category_id?: number | null;
 }
+
+const canConvert = (rates: ExchangeRates | null, fromCurrency: string, toCurrency: string) => {
+    if (fromCurrency.toUpperCase() === toCurrency.toUpperCase()) return true;
+    if (!rates) return false;
+    return Boolean(rates[fromCurrency.toUpperCase()] && rates[toCurrency.toUpperCase()]);
+};
+
+const serializeTransaction = <T extends { amount: number; fx_rates_snapshot?: string | null }>(transaction: T) => {
+    const { fx_rates_snapshot: _snapshot, ...safeTransaction } = transaction;
+    return { ...safeTransaction, amount: fromCents(transaction.amount) };
+};
 
 export const createTransaction = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -43,14 +61,12 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
             }
         }
 
+        assertCurrencyAmount(amount, account.currency);
         const transactionAmount = toCents(amount);
-        if (!Number.isSafeInteger(transactionAmount) || transactionAmount <= 0) {
-            res.status(400).json({ error: 'Invalid amount' });
-            return;
-        }
-
         const balanceChange = type === 'income' ? transactionAmount : -transactionAmount;
         const requestPayload = { amount, description, type, account_id, category_id: category_id ?? null };
+        const cachedRates = await getCachedRates();
+        const fxSnapshot = cachedRates ? serializeRatesSnapshot(cachedRates) : null;
 
         const result = await runIdempotent(
             userId,
@@ -65,7 +81,8 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
                         type,
                         account_id,
                         user_id: userId,
-                        category_id: category_id || null
+                        category_id: category_id || null,
+                        fx_rates_snapshot: fxSnapshot
                     }
                 });
                 const updatedAccount = await database.account.update({
@@ -91,7 +108,7 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
                 return {
                     statusCode: 201,
                     body: {
-                        transaction: { ...transaction, amount: fromCents(transaction.amount) },
+                        transaction: serializeTransaction(transaction),
                         newBalance: fromCents(updatedAccount.balance)
                     }
                 };
@@ -123,7 +140,7 @@ export const getTransactions = async (req: Request, res: Response, next: NextFun
             return;
         }
 
-        const [user, transactions, rates] = await Promise.all([
+        const [user, transactions] = await Promise.all([
             prisma.user.findUnique({ where: { id: userId }, select: { currency: true } }),
             prisma.transaction.findMany({
                 where: {
@@ -137,35 +154,57 @@ export const getTransactions = async (req: Request, res: Response, next: NextFun
                     account: { select: { name: true, currency: true } },
                     category: true
                 }
-            }),
-            getRates()
+            })
         ]);
 
-        const targetCurrency = user?.currency || 'USD';
+        const targetCurrency = (user?.currency || 'USD').toUpperCase();
         const hasMore = transactions.length > limit;
         const page = hasMore ? transactions.slice(0, limit) : transactions;
 
-        const txsWithConversion = page.map(tx => {
-            try {
-                const sourceCurrency = tx.account?.currency || 'USD';
-                const convertedAmountCents = Math.round(calculateExchange(tx.amount, sourceCurrency, targetCurrency, rates));
-
-                return {
-                    ...tx,
-                    amount: fromCents(tx.amount),
-                    convertedAmount: fromCents(convertedAmountCents),
-                    convertedCurrency: targetCurrency
-                };
-            } catch (err) {
-                console.error(`Conversion error for tx ${tx.id}:`, (err as Error).message);
-                return {
-                    ...tx,
-                    amount: fromCents(tx.amount),
-                    convertedAmount: fromCents(tx.amount),
-                    convertedCurrency: tx.account?.currency || 'USD'
-                };
-            }
+        const requiresLiveRates = page.some(tx => {
+            const sourceCurrency = tx.account.currency.toUpperCase();
+            if (sourceCurrency === targetCurrency) return false;
+            return !canConvert(parseRatesSnapshot(tx.fx_rates_snapshot), sourceCurrency, targetCurrency);
         });
+        const liveRates = requiresLiveRates ? await getRates() : null;
+        const liveSnapshot = liveRates ? serializeRatesSnapshot(liveRates) : null;
+
+        const missingSnapshotIds: number[] = [];
+        const txsWithConversion = page.map(tx => {
+            const sourceCurrency = tx.account.currency.toUpperCase();
+            const snapshotRates = parseRatesSnapshot(tx.fx_rates_snapshot);
+            const rates = canConvert(snapshotRates, sourceCurrency, targetCurrency)
+                ? snapshotRates
+                : liveRates;
+
+            let convertedAmountCents = tx.amount;
+            let convertedCurrency = sourceCurrency;
+
+            if (sourceCurrency === targetCurrency) {
+                convertedCurrency = targetCurrency;
+            } else if (rates) {
+                convertedAmountCents = Math.round(calculateExchange(tx.amount, sourceCurrency, targetCurrency, rates));
+                convertedCurrency = targetCurrency;
+                if (!tx.fx_rates_snapshot && liveSnapshot && !tx.transfer_id) {
+                    missingSnapshotIds.push(tx.id);
+                }
+            }
+
+            const { fx_rates_snapshot: _snapshot, ...safeTx } = tx;
+            return {
+                ...safeTx,
+                amount: fromCents(tx.amount),
+                convertedAmount: fromCents(convertedAmountCents),
+                convertedCurrency
+            };
+        });
+
+        if (missingSnapshotIds.length > 0 && liveSnapshot) {
+            await prisma.transaction.updateMany({
+                where: { id: { in: missingSnapshotIds }, fx_rates_snapshot: null },
+                data: { fx_rates_snapshot: liveSnapshot }
+            });
+        }
 
         res.json({
             items: txsWithConversion,
@@ -191,7 +230,7 @@ export const getTransaction = async (req: Request, res: Response, next: NextFunc
             return;
         }
 
-        res.json({ ...transaction, amount: fromCents(transaction.amount) });
+        res.json(serializeTransaction(transaction));
     } catch (error) {
         next(error);
     }
@@ -201,29 +240,41 @@ export const deleteTransaction = async (req: Request, res: Response, next: NextF
     try {
         const { id } = req.params;
         const userId = req.user!.userId;
-        const transactionId = parseInt(id as string);
-
-        const tx = await prisma.transaction.findFirst({
-            where: { id: transactionId, user_id: userId }
-        });
-        if (!tx) {
-            res.status(404).json({ error: 'Transaction not found' });
-            return;
-        }
-
-        if (tx.transfer_id) {
-            res.status(409).json({
-                error: 'Transfer transactions must be cancelled through the transfer endpoint',
-                code: 'TRANSFER_TRANSACTION_IMMUTABLE',
-                transferId: tx.transfer_id
-            });
-            return;
-        }
-
-        const balanceChange = tx.type === 'income' ? -tx.amount : tx.amount;
+        const transactionId = parseInt(id as string, 10);
 
         await prisma.$transaction(async database => {
-            await database.transaction.delete({ where: { id: transactionId } });
+            const tx = await database.transaction.findFirst({
+                where: { id: transactionId, user_id: userId }
+            });
+            if (!tx) {
+                throw Object.assign(new Error('Transaction not found'), {
+                    statusCode: 404,
+                    code: 'TRANSACTION_NOT_FOUND'
+                });
+            }
+
+            if (tx.transfer_id) {
+                throw Object.assign(
+                    new Error('Transfer transactions must be cancelled through the transfer endpoint'),
+                    {
+                        statusCode: 409,
+                        code: 'TRANSFER_TRANSACTION_IMMUTABLE',
+                        transferId: tx.transfer_id
+                    }
+                );
+            }
+
+            const deleted = await database.transaction.deleteMany({
+                where: { id: transactionId, user_id: userId, transfer_id: null }
+            });
+            if (deleted.count !== 1) {
+                throw Object.assign(new Error('Transaction deletion raced with another request'), {
+                    statusCode: 409,
+                    code: 'TRANSACTION_DELETE_CONFLICT'
+                });
+            }
+
+            const balanceChange = tx.type === 'income' ? -tx.amount : tx.amount;
             await database.account.update({
                 where: { id: tx.account_id },
                 data: { balance: { increment: balanceChange } }
