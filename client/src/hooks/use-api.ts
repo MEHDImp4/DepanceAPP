@@ -88,8 +88,6 @@ export function useSummary() {
     return useQuery({
         queryKey: ['summary'],
         queryFn: async () => {
-            // Need to create this endpoint or aggregate locally
-            // For now, let's assume we can get simple stats
             const accounts = await api.get<Account[]>('/accounts');
             const transactions = await api.get<TransactionPage>('/transactions', { params: { limit: 5 } });
 
@@ -228,10 +226,12 @@ export function useGoals() {
     });
 }
 
+type CreateGoalInput = Omit<Goal, 'id' | 'created_at' | 'percentage' | 'currency'>;
+
 export function useCreateGoal() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (newGoal: Omit<Goal, 'id' | 'created_at' | 'percentage'>) =>
+        mutationFn: (newGoal: CreateGoalInput) =>
             api.post('/goals', newGoal),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['goals'] });
@@ -242,7 +242,7 @@ export function useCreateGoal() {
 export function useUpdateGoal() {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (data: { id: number } & Partial<Goal>) =>
+        mutationFn: (data: { id: number } & Partial<Omit<Goal, 'currency'>>) =>
             api.put<Goal>(`/goals/${data.id}`, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['goals'] });
@@ -268,13 +268,14 @@ export function useRecap() {
             const { data } = await api.get<MonthlyRecap>('/analytics/recap');
             return data;
         },
-        retry: false, // Don't retry if it fails (e.g. no data)
-        staleTime: 1000 * 60 * 60, // 1 hour
+        retry: false,
+        staleTime: 1000 * 60 * 60,
     });
 }
 
 export interface SpendingTrend {
     date: string;
+    currency?: string;
     income: number;
     expense: number;
 }
@@ -286,6 +287,6 @@ export function useSpendingTrends(period: 'week' | 'month' | 'year' | 'all') {
             const { data } = await api.get<SpendingTrend[]>(`/analytics/spending-trends?period=${period}`);
             return data;
         },
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        staleTime: 1000 * 60 * 5,
     });
 }

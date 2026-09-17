@@ -3,7 +3,7 @@ import prisma from '../utils/prisma';
 import { toCents, fromCents } from '../utils/money';
 import { getRates, calculateExchange } from '../utils/currencyService';
 import { runIdempotent } from '../utils/idempotency';
-import { AuditAction, logAudit, logTransactionCreate } from '../utils/auditService';
+import { AuditAction, createAuditEntry } from '../utils/auditService';
 
 interface CreateTransactionBody {
     amount: number;
@@ -34,6 +34,13 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
                 res.status(403).json({ error: 'Invalid category or access denied' });
                 return;
             }
+            if (category.type !== type) {
+                res.status(409).json({
+                    error: `A ${type} transaction requires a ${type} category`,
+                    code: 'CATEGORY_TYPE_MISMATCH'
+                });
+                return;
+            }
         }
 
         const transactionAmount = toCents(amount);
@@ -43,48 +50,55 @@ export const createTransaction = async (req: Request, res: Response, next: NextF
         }
 
         const balanceChange = type === 'income' ? transactionAmount : -transactionAmount;
+        const requestPayload = { amount, description, type, account_id, category_id: category_id ?? null };
 
-        const result = await runIdempotent(userId, 'transaction.create', req.get('Idempotency-Key'), async database => {
-            const transaction = await database.transaction.create({
-                data: {
-                    amount: transactionAmount,
-                    description,
-                    type,
-                    account_id,
-                    user_id: userId,
-                    category_id: category_id || null
-                }
-            });
-            const updatedAccount = await database.account.update({
-                where: { id: account_id },
-                data: { balance: { increment: balanceChange } }
-            });
+        const result = await runIdempotent(
+            userId,
+            'transaction.create',
+            req.get('Idempotency-Key'),
+            requestPayload,
+            async database => {
+                const transaction = await database.transaction.create({
+                    data: {
+                        amount: transactionAmount,
+                        description,
+                        type,
+                        account_id,
+                        user_id: userId,
+                        category_id: category_id || null
+                    }
+                });
+                const updatedAccount = await database.account.update({
+                    where: { id: account_id },
+                    data: { balance: { increment: balanceChange } }
+                });
 
-            return {
-                statusCode: 201,
-                body: {
-                    transaction: { ...transaction, amount: fromCents(transaction.amount) },
-                    newBalance: fromCents(updatedAccount.balance)
-                }
-            };
-        });
+                await createAuditEntry(database, {
+                    userId,
+                    action: AuditAction.TRANSACTION_CREATE,
+                    entityType: 'transaction',
+                    entityId: transaction.id,
+                    newValue: {
+                        amount: transaction.amount,
+                        type: transaction.type,
+                        description: transaction.description,
+                        accountId: transaction.account_id,
+                        categoryId: transaction.category_id
+                    },
+                    req
+                });
 
-        if (result.replayed) {
-            res.set('Idempotency-Replayed', 'true');
-        } else {
-            const responseBody = result.body as { transaction?: Record<string, unknown> };
-            if (responseBody.transaction) {
-                await logTransactionCreate(userId, {
-                    ...responseBody.transaction,
-                    amount: transactionAmount,
-                    account_id,
-                    category_id: category_id || null,
-                    type,
-                    description
-                }, req);
+                return {
+                    statusCode: 201,
+                    body: {
+                        transaction: { ...transaction, amount: fromCents(transaction.amount) },
+                        newBalance: fromCents(updatedAccount.balance)
+                    }
+                };
             }
-        }
+        );
 
+        if (result.replayed) res.set('Idempotency-Replayed', 'true');
         res.status(result.statusCode).json(result.body);
     } catch (error) {
         next(error);
@@ -208,27 +222,26 @@ export const deleteTransaction = async (req: Request, res: Response, next: NextF
 
         const balanceChange = tx.type === 'income' ? -tx.amount : tx.amount;
 
-        await prisma.$transaction([
-            prisma.transaction.delete({ where: { id: transactionId } }),
-            prisma.account.update({
+        await prisma.$transaction(async database => {
+            await database.transaction.delete({ where: { id: transactionId } });
+            await database.account.update({
                 where: { id: tx.account_id },
                 data: { balance: { increment: balanceChange } }
-            })
-        ]);
-
-        await logAudit({
-            userId,
-            action: AuditAction.TRANSACTION_DELETE,
-            entityType: 'transaction',
-            entityId: tx.id,
-            oldValue: {
-                amount: tx.amount,
-                type: tx.type,
-                description: tx.description,
-                accountId: tx.account_id,
-                categoryId: tx.category_id
-            },
-            req
+            });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.TRANSACTION_DELETE,
+                entityType: 'transaction',
+                entityId: tx.id,
+                oldValue: {
+                    amount: tx.amount,
+                    type: tx.type,
+                    description: tx.description,
+                    accountId: tx.account_id,
+                    categoryId: tx.category_id
+                },
+                req
+            });
         });
 
         res.json({ message: 'Transaction deleted' });

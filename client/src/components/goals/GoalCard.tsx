@@ -1,6 +1,5 @@
 import type { Goal } from "@/types";
 import { ProgressBar } from "@/components/ui/ProgressBar";
-import { useAuthStore } from "@/store/auth-store";
 import { Pencil, Trash2, Plus } from "lucide-react";
 
 interface GoalCardProps {
@@ -11,8 +10,7 @@ interface GoalCardProps {
 }
 
 export function GoalCard({ goal, onEdit, onDelete, onAddMoney }: GoalCardProps) {
-    const { user } = useAuthStore();
-    const currency = user?.currency || "USD";
+    const currency = goal.currency || "USD";
 
     const percentage = Math.round((goal.currentAmount / goal.targetAmount) * 100);
     const isCompleted = goal.currentAmount >= goal.targetAmount;

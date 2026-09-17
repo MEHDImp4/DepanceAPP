@@ -70,6 +70,23 @@ export const updateCategory = async (req: Request, res: Response, next: NextFunc
             return;
         }
 
+        if (type && type !== existing.type) {
+            const [transactionCount, templateCount, recurringCount, budgetCount] = await Promise.all([
+                prisma.transaction.count({ where: { category_id: categoryId, user_id: userId } }),
+                prisma.template.count({ where: { category_id: categoryId, user_id: userId } }),
+                prisma.recurringTransaction.count({ where: { category_id: categoryId, user_id: userId } }),
+                prisma.budget.count({ where: { category_id: categoryId, user_id: userId } })
+            ]);
+
+            if (transactionCount + templateCount + recurringCount + budgetCount > 0) {
+                res.status(409).json({
+                    error: 'Category type cannot be changed while the category is in use',
+                    code: 'CATEGORY_TYPE_LOCKED'
+                });
+                return;
+            }
+        }
+
         const updated = await prisma.category.update({
             where: { id: categoryId },
             data: { name, type, color, icon }
@@ -115,9 +132,10 @@ export const deleteCategory = async (req: Request, res: Response, next: NextFunc
                 where: { category_id: categoryId, user_id: userId },
                 data: { category_id: null }
             }),
-            prisma.budget.updateMany({
-                where: { category_id: categoryId, user_id: userId },
-                data: { category_id: null }
+            // A category-specific budget has no valid meaning after its category is removed.
+            // Delete it instead of turning it into a second global budget.
+            prisma.budget.deleteMany({
+                where: { category_id: categoryId, user_id: userId }
             }),
             prisma.recurringTransaction.updateMany({
                 where: { category_id: categoryId, user_id: userId },

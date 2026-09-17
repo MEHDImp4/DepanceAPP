@@ -4,7 +4,7 @@ import prisma from '../utils/prisma';
 import { convertCurrency } from '../utils/currencyService';
 import { toCents, fromCents } from '../utils/money';
 import { runIdempotent } from '../utils/idempotency';
-import { AuditAction, logAudit, logTransferCreate } from '../utils/auditService';
+import { AuditAction, createAuditEntry } from '../utils/auditService';
 
 interface CreateTransferBody {
     from_account_id: number;
@@ -45,60 +45,98 @@ export const createTransfer = async (req: Request, res: Response, next: NextFunc
         if (fromAccount.currency.toUpperCase() !== toAccount.currency.toUpperCase()) {
             const convertedCents = await convertCurrency(originalAmount, fromAccount.currency, toAccount.currency);
             creditedAmount = Math.round(convertedCents);
+            if (!Number.isSafeInteger(creditedAmount) || creditedAmount <= 0) {
+                res.status(422).json({
+                    error: 'Transfer amount is too small after currency conversion',
+                    code: 'TRANSFER_CONVERTED_AMOUNT_TOO_SMALL'
+                });
+                return;
+            }
             conversionRate = creditedAmount / originalAmount;
             isConversion = true;
         }
 
         const transferId = randomUUID();
+        const requestPayload = {
+            from_account_id,
+            to_account_id,
+            amount,
+            description: description ?? null
+        };
 
-        const result = await runIdempotent(userId, 'transfer.create', req.get('Idempotency-Key'), async database => {
-            await database.transaction.create({
-                data: {
-                    amount: originalAmount,
-                    description: description || `Transfer to ${toAccount.name} (${toAccount.currency})`,
-                    type: 'expense',
-                    account_id: fromAccount.id,
-                    user_id: userId,
-                    transfer_id: transferId
-                }
-            });
-            await database.account.update({
-                where: { id: fromAccount.id },
-                data: { balance: { decrement: originalAmount } }
-            });
+        const result = await runIdempotent(
+            userId,
+            'transfer.create',
+            req.get('Idempotency-Key'),
+            requestPayload,
+            async database => {
+                const sourceEntry = await database.transaction.create({
+                    data: {
+                        amount: originalAmount,
+                        description: description || `Transfer to ${toAccount.name} (${toAccount.currency})`,
+                        type: 'expense',
+                        account_id: fromAccount.id,
+                        user_id: userId,
+                        transfer_id: transferId
+                    }
+                });
+                await database.account.update({
+                    where: { id: fromAccount.id },
+                    data: { balance: { decrement: originalAmount } }
+                });
 
-            await database.transaction.create({
-                data: {
-                    amount: creditedAmount,
-                    description: description || `Transfer from ${fromAccount.name} (${fromAccount.currency})${isConversion ? ` @ ${conversionRate.toFixed(4)}` : ''}`,
-                    type: 'income',
-                    account_id: toAccount.id,
-                    user_id: userId,
-                    transfer_id: transferId
-                }
-            });
-            await database.account.update({
-                where: { id: toAccount.id },
-                data: { balance: { increment: creditedAmount } }
-            });
+                const destinationEntry = await database.transaction.create({
+                    data: {
+                        amount: creditedAmount,
+                        description: description || `Transfer from ${fromAccount.name} (${fromAccount.currency})${isConversion ? ` @ ${conversionRate.toFixed(6)}` : ''}`,
+                        type: 'income',
+                        account_id: toAccount.id,
+                        user_id: userId,
+                        transfer_id: transferId
+                    }
+                });
+                await database.account.update({
+                    where: { id: toAccount.id },
+                    data: { balance: { increment: creditedAmount } }
+                });
 
-            return {
-                statusCode: 201,
-                body: {
-                    message: 'Transfer successful',
-                    transferId,
-                    creditedAmount: fromCents(creditedAmount),
-                    rate: conversionRate
-                }
-            };
-        });
+                await createAuditEntry(database, {
+                    userId,
+                    action: AuditAction.TRANSFER_CREATE,
+                    entityType: 'transfer',
+                    entityId: null,
+                    newValue: {
+                        transferId,
+                        sourceTransactionId: sourceEntry.id,
+                        destinationTransactionId: destinationEntry.id,
+                        fromAccountId: fromAccount.id,
+                        toAccountId: toAccount.id,
+                        sourceAmount: originalAmount,
+                        creditedAmount,
+                        sourceCurrency: fromAccount.currency,
+                        destinationCurrency: toAccount.currency,
+                        conversionRate
+                    },
+                    req,
+                    metadata: { transferId }
+                });
 
-        if (result.replayed) {
-            res.set('Idempotency-Replayed', 'true');
-        } else {
-            await logTransferCreate(userId, transferId, fromAccount.id, toAccount.id, originalAmount, req);
-        }
+                return {
+                    statusCode: 201,
+                    body: {
+                        message: 'Transfer successful',
+                        transferId,
+                        sourceAmount: fromCents(originalAmount),
+                        sourceCurrency: fromAccount.currency,
+                        creditedAmount: fromCents(creditedAmount),
+                        destinationCurrency: toAccount.currency,
+                        rate: conversionRate
+                    }
+                };
+            }
+        );
 
+        if (result.replayed) res.set('Idempotency-Replayed', 'true');
         res.status(result.statusCode).json(result.body);
     } catch (error) {
         next(error);
@@ -126,7 +164,10 @@ export const cancelTransfer = async (req: Request, res: Response, next: NextFunc
         }
 
         if (entries.length !== 2 || entries.some(entry => entry.type !== 'income' && entry.type !== 'expense')) {
-            res.status(409).json({ error: 'Transfer is inconsistent and cannot be cancelled automatically' });
+            res.status(409).json({
+                error: 'Transfer is inconsistent and cannot be cancelled automatically',
+                code: 'TRANSFER_INCONSISTENT'
+            });
             return;
         }
 
@@ -142,21 +183,21 @@ export const cancelTransfer = async (req: Request, res: Response, next: NextFunc
             await database.transaction.deleteMany({
                 where: { transfer_id: transferId, user_id: userId }
             });
-        });
 
-        await logAudit({
-            userId,
-            action: AuditAction.TRANSFER_CANCEL,
-            entityType: 'transfer',
-            entityId: null,
-            oldValue: entries.map(entry => ({
-                id: entry.id,
-                amount: entry.amount,
-                type: entry.type,
-                accountId: entry.account_id
-            })),
-            req,
-            metadata: { transferId }
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.TRANSFER_CANCEL,
+                entityType: 'transfer',
+                entityId: null,
+                oldValue: entries.map(entry => ({
+                    id: entry.id,
+                    amount: entry.amount,
+                    type: entry.type,
+                    accountId: entry.account_id
+                })),
+                req,
+                metadata: { transferId }
+            });
         });
 
         res.json({ message: 'Transfer cancelled', transferId });

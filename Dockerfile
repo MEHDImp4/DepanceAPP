@@ -18,7 +18,7 @@ RUN npm prune --omit=dev
 
 FROM node:20-alpine
 
-RUN apk --no-cache add bash openssl curl mariadb-client \
+RUN apk --no-cache add bash openssl curl mariadb-client aws-cli \
     && addgroup -S depance \
     && adduser -S depance -G depance \
     && mkdir -p /app/backups \

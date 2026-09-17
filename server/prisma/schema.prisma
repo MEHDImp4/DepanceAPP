@@ -14,6 +14,7 @@ model User {
   username        String                 @unique
   password_hash   String
   currency        String                 @default("USD")
+  timezone        String                 @default("UTC")
   created_at      DateTime               @default(now())
   accounts        Account[]
   transactions    Transaction[]
@@ -31,10 +32,13 @@ model User {
 model RefreshToken {
   id        String   @id @default(uuid())
   token     String   @unique @db.VarChar(512)
+  sessionId String   @default(uuid()) @db.VarChar(36)
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  @@index([userId, sessionId])
 }
 
 model LoginHistory {
@@ -152,8 +156,10 @@ model Template {
 model Budget {
   id          Int      @id @default(autoincrement())
   amount      Int
+  currency    String   @default("USD") @db.VarChar(3)
   period      String   @default("monthly")
   category_id Int?
+  scope_key   String   @default("global") @db.VarChar(191)
   user_id     Int
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
@@ -161,7 +167,8 @@ model Budget {
   category Category? @relation(fields: [category_id], references: [id], onDelete: SetNull)
   user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([user_id, category_id])
+  @@unique([user_id, scope_key])
+  @@index([category_id])
 }
 
 model RecurringTransaction {
@@ -207,6 +214,7 @@ model IdempotencyKey {
   user_id       Int
   key           String   @db.VarChar(128)
   operation     String   @db.VarChar(64)
+  request_hash  String?  @db.VarChar(64)
   response_body String?  @db.Text
   status_code   Int?
   created_at    DateTime @default(now())
@@ -222,6 +230,7 @@ model Goal {
   name          String
   targetAmount  Int
   currentAmount Int       @default(0)
+  currency      String    @default("USD") @db.VarChar(3)
   deadline      DateTime?
   color         String?
   icon          String?

@@ -3,6 +3,7 @@ export interface User {
     email: string;
     username: string;
     currency: string;
+    timezone: string;
 }
 
 export interface Account {
@@ -86,17 +87,28 @@ export interface Goal {
     name: string;
     targetAmount: number;
     currentAmount: number;
+    currency: string;
     deadline?: string | null;
     color?: string;
     icon?: string;
     created_at: string;
-    // Add these just in case for UI
     percentage?: number;
+}
+
+export interface Budget {
+    id: number;
+    amount: number;
+    spent: number;
+    currency: string;
+    period: 'weekly' | 'monthly' | 'yearly';
+    category_id?: number | null;
+    category?: Category | null;
 }
 
 export interface MonthlyRecap {
     month: string;
     year: number;
+    currency: string;
     totalSpent: number;
     totalIncome: number;
     transactionCount: number;

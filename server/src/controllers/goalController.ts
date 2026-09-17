@@ -41,16 +41,23 @@ export const getGoals = async (req: Request, res: Response, next: NextFunction):
 export const createGoal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { name, targetAmount, currentAmount, deadline, color, icon } = req.body as CreateGoalBody;
+        const userId = req.user!.userId;
+        const user = await prisma.user.findUnique({ where: { id: userId }, select: { currency: true } });
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
 
         const goal = await prisma.goal.create({
             data: {
                 name,
                 targetAmount: toCents(targetAmount),
                 currentAmount: toCents(currentAmount ?? 0),
+                currency: user.currency.toUpperCase(),
                 deadline: deadline ? new Date(deadline) : null,
                 color,
                 icon,
-                user_id: req.user!.userId
+                user_id: userId
             }
         });
         res.status(201).json(serializeGoal(goal));

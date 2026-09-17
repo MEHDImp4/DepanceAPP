@@ -15,8 +15,8 @@ export const signAccessToken = (user: { id: number; email: string }): string => 
   { expiresIn: ACCESS_TOKEN_EXPIRY, issuer: TOKEN_ISSUER, audience: TOKEN_AUDIENCE, algorithm: 'HS256' }
 );
 
-export const signRefreshToken = (userId: number): string => jwt.sign(
-  { userId, jti: randomUUID(), typ: 'refresh' },
+export const signRefreshToken = (userId: number, sessionId: string = randomUUID()): string => jwt.sign(
+  { userId, jti: randomUUID(), sid: sessionId, typ: 'refresh' },
   refreshSecret(),
   { expiresIn: REFRESH_TOKEN_EXPIRY, issuer: TOKEN_ISSUER, audience: TOKEN_AUDIENCE, algorithm: 'HS256' }
 );
@@ -42,7 +42,10 @@ export const verifyRefreshToken = (token: string) => {
   if (typeof payload === 'string' || payload.typ !== 'refresh' || typeof payload.userId !== 'number') {
     throw new jwt.JsonWebTokenError('Invalid refresh token type');
   }
-  return payload;
+  if (payload.sid !== undefined && typeof payload.sid !== 'string') {
+    throw new jwt.JsonWebTokenError('Invalid refresh session identifier');
+  }
+  return payload as jwt.JwtPayload & { userId: number; sid?: string; typ: 'refresh' };
 };
 
 export const hashToken = (token: string): string => createHash('sha256').update(token).digest('hex');

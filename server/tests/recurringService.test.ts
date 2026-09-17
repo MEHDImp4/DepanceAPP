@@ -25,6 +25,7 @@ jest.mock('../src/utils/prisma', () => {
             category: { ...mockDelegate },
             refreshToken: { ...mockDelegate },
             loginHistory: { ...mockDelegate },
+            auditLog: { ...mockDelegate },
             user: { ...mockDelegate },
             goal: { ...mockDelegate },
             template: { ...mockDelegate },
@@ -53,13 +54,15 @@ describe('Recurring Service', () => {
             user_id: 1,
         };
 
-        const mockTx = { id: 101, amount: 1000 };
+        const mockTx = { id: 101, amount: 1000, type: 'expense', account_id: 1, category_id: 1 };
+        const auditCreate = jest.fn().mockResolvedValue({ id: 1 });
 
         (prisma.recurringTransaction.findMany as jest.Mock).mockResolvedValue([mockRecurring]);
         (prisma.$transaction as jest.Mock).mockImplementation(async (callback) => callback({
             recurringOccurrence: { create: jest.fn().mockResolvedValue({}) },
             transaction: { create: jest.fn().mockResolvedValue(mockTx) },
-            account: { update: jest.fn().mockResolvedValue({}) }
+            account: { update: jest.fn().mockResolvedValue({}) },
+            auditLog: { create: auditCreate }
         }));
         (prisma.recurringTransaction.update as jest.Mock).mockResolvedValue({});
 
@@ -67,6 +70,7 @@ describe('Recurring Service', () => {
 
         expect(result).toHaveLength(1);
         expect(result[0]).toEqual({ id: 101, amount: 1000 });
+        expect(auditCreate).toHaveBeenCalledTimes(1);
         expect(prisma.recurringTransaction.update).toHaveBeenCalled();
     });
 
