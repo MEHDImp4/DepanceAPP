@@ -1,9 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../utils/prisma';
-import { toCents, fromCents } from '../utils/money';
-import { AuditAction, logAudit } from '../utils/auditService';
-import { calculateExchange, getRates } from '../utils/currencyService';
+import { assertCurrencyAmount, toCents, fromCents } from '../utils/money';
+import { AuditAction, createAuditEntry } from '../utils/auditService';
+import {
+    calculateExchange,
+    getRates,
+    parseRatesSnapshot,
+    serializeRatesSnapshot
+} from '../utils/currencyService';
+import type { ExchangeRates } from '../types';
 import { getPeriodStart, normalizeTimeZone } from '../utils/reportingTime';
 
 interface CreateBudgetBody {
@@ -20,6 +26,13 @@ interface UpdateBudgetBody {
 const budgetScopeKey = (categoryId?: number | null) =>
     categoryId ? `category:${categoryId}` : 'global';
 
+const canConvert = (rates: ExchangeRates | null, fromCurrency: string, toCurrency: string) => {
+    const from = fromCurrency.toUpperCase();
+    const to = toCurrency.toUpperCase();
+    if (from === to) return true;
+    return Boolean(rates?.[from] && rates?.[to]);
+};
+
 export const getBudgets = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const userId = req.user!.userId;
@@ -32,7 +45,8 @@ export const getBudgets = async (req: Request, res: Response, next: NextFunction
         ]);
 
         const timeZone = normalizeTimeZone(user?.timezone);
-        let ratesPromise: ReturnType<typeof getRates> | null = null;
+        let liveRatesPromise: ReturnType<typeof getRates> | null = null;
+        const missingSnapshots = new Map<number, ExchangeRates>();
 
         const budgetsWithSpent = await Promise.all(budgets.map(async budget => {
             const transactions = await prisma.transaction.findMany({
@@ -44,24 +58,30 @@ export const getBudgets = async (req: Request, res: Response, next: NextFunction
                     ...(budget.category_id ? { category_id: budget.category_id } : {})
                 },
                 select: {
+                    id: true,
                     amount: true,
+                    fx_rates_snapshot: true,
                     account: { select: { currency: true } }
                 }
             });
 
-            const needsConversion = transactions.some(
-                tx => tx.account.currency.toUpperCase() !== budget.currency.toUpperCase()
-            );
-            const rates = needsConversion
-                ? await (ratesPromise ??= getRates())
-                : {};
+            let spentCents = 0;
+            for (const tx of transactions) {
+                const sourceCurrency = tx.account.currency.toUpperCase();
+                const targetCurrency = budget.currency.toUpperCase();
+                if (sourceCurrency === targetCurrency) {
+                    spentCents += tx.amount;
+                    continue;
+                }
 
-            const spentCents = transactions.reduce((sum, tx) => {
-                const converted = tx.account.currency.toUpperCase() === budget.currency.toUpperCase()
-                    ? tx.amount
-                    : Math.round(calculateExchange(tx.amount, tx.account.currency, budget.currency, rates));
-                return sum + converted;
-            }, 0);
+                const snapshot = parseRatesSnapshot(tx.fx_rates_snapshot);
+                let rates: ExchangeRates | null = canConvert(snapshot, sourceCurrency, targetCurrency) ? snapshot : null;
+                if (!rates) {
+                    rates = await (liveRatesPromise ??= getRates());
+                    if (!tx.fx_rates_snapshot) missingSnapshots.set(tx.id, rates);
+                }
+                spentCents += Math.round(calculateExchange(tx.amount, sourceCurrency, targetCurrency, rates));
+            }
 
             return {
                 ...budget,
@@ -69,6 +89,15 @@ export const getBudgets = async (req: Request, res: Response, next: NextFunction
                 spent: fromCents(spentCents)
             };
         }));
+
+        if (missingSnapshots.size > 0) {
+            await Promise.all([...missingSnapshots.entries()].map(([id, rates]) =>
+                prisma.transaction.updateMany({
+                    where: { id, fx_rates_snapshot: null, transfer_id: null },
+                    data: { fx_rates_snapshot: serializeRatesSnapshot(rates) }
+                })
+            ));
+        }
 
         res.json(budgetsWithSpent);
     } catch (error) {
@@ -104,24 +133,29 @@ export const createBudget = async (req: Request, res: Response, next: NextFuncti
             return;
         }
 
-        const budget = await prisma.budget.create({
-            data: {
-                amount: toCents(amount),
-                currency: user.currency.toUpperCase(),
-                period: period || 'monthly',
-                category_id: category_id || null,
-                scope_key: budgetScopeKey(category_id),
-                user_id: userId
-            }
-        });
+        const currency = user.currency.toUpperCase();
+        assertCurrencyAmount(amount, currency);
 
-        await logAudit({
-            userId,
-            action: AuditAction.BUDGET_CREATE,
-            entityType: 'budget',
-            entityId: budget.id,
-            newValue: budget,
-            req
+        const budget = await prisma.$transaction(async database => {
+            const created = await database.budget.create({
+                data: {
+                    amount: toCents(amount),
+                    currency,
+                    period: period || 'monthly',
+                    category_id: category_id || null,
+                    scope_key: budgetScopeKey(category_id),
+                    user_id: userId
+                }
+            });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.BUDGET_CREATE,
+                entityType: 'budget',
+                entityId: created.id,
+                newValue: created,
+                req
+            });
+            return created;
         });
 
         res.status(201).json({ ...budget, amount: fromCents(budget.amount) });
@@ -146,23 +180,26 @@ export const updateBudget = async (req: Request, res: Response, next: NextFuncti
             res.status(404).json({ error: 'Budget not found' });
             return;
         }
+        if (amount !== undefined) assertCurrencyAmount(amount, existing.currency);
 
-        const updated = await prisma.budget.update({
-            where: { id: budgetId },
-            data: {
-                ...(amount !== undefined && { amount: toCents(amount) }),
-                ...(period && { period })
-            }
-        });
-
-        await logAudit({
-            userId,
-            action: AuditAction.BUDGET_UPDATE,
-            entityType: 'budget',
-            entityId: budgetId,
-            oldValue: existing,
-            newValue: updated,
-            req
+        const updated = await prisma.$transaction(async database => {
+            const saved = await database.budget.update({
+                where: { id: budgetId },
+                data: {
+                    ...(amount !== undefined && { amount: toCents(amount) }),
+                    ...(period && { period })
+                }
+            });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.BUDGET_UPDATE,
+                entityType: 'budget',
+                entityId: budgetId,
+                oldValue: existing,
+                newValue: saved,
+                req
+            });
+            return saved;
         });
 
         res.json({ ...updated, amount: fromCents(updated.amount) });
@@ -183,14 +220,16 @@ export const deleteBudget = async (req: Request, res: Response, next: NextFuncti
             return;
         }
 
-        await prisma.budget.delete({ where: { id: budgetId } });
-        await logAudit({
-            userId,
-            action: AuditAction.BUDGET_DELETE,
-            entityType: 'budget',
-            entityId: budgetId,
-            oldValue: existing,
-            req
+        await prisma.$transaction(async database => {
+            await database.budget.delete({ where: { id: budgetId } });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.BUDGET_DELETE,
+                entityType: 'budget',
+                entityId: budgetId,
+                oldValue: existing,
+                req
+            });
         });
 
         res.json({ message: 'Budget deleted' });

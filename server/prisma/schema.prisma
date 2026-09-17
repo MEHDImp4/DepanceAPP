@@ -30,15 +30,18 @@ model User {
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique @db.VarChar(512)
-  sessionId String   @default(uuid()) @db.VarChar(36)
-  userId    Int
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+  id                  String    @id @default(uuid())
+  token               String    @unique @db.VarChar(512)
+  sessionId           String    @default(uuid()) @db.VarChar(36)
+  userId              Int
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt           DateTime
+  createdAt           DateTime  @default(now())
+  rotatedAt           DateTime?
+  replacedByTokenHash String?   @db.VarChar(64)
 
   @@index([userId, sessionId])
+  @@index([rotatedAt])
 }
 
 model LoginHistory {
@@ -116,18 +119,19 @@ model Category {
 }
 
 model Transaction {
-  id          Int       @id @default(autoincrement())
-  amount      Int
-  description String
-  type        String
-  account_id  Int
-  account     Account   @relation(fields: [account_id], references: [id], onDelete: Cascade)
-  user_id     Int
-  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  category_id Int?
-  category    Category? @relation(fields: [category_id], references: [id], onDelete: SetNull)
-  transfer_id String?
-  created_at  DateTime  @default(now())
+  id                Int       @id @default(autoincrement())
+  amount            Int
+  description       String
+  type              String
+  account_id        Int
+  account           Account   @relation(fields: [account_id], references: [id], onDelete: Restrict)
+  user_id           Int
+  user              User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  category_id       Int?
+  category          Category? @relation(fields: [category_id], references: [id], onDelete: SetNull)
+  transfer_id       String?
+  fx_rates_snapshot String?   @db.Text
+  created_at        DateTime  @default(now())
 
   @@index([user_id])
   @@index([account_id])
@@ -178,6 +182,7 @@ model RecurringTransaction {
   type          String
   interval      String
   anchor_day    Int?
+  timezone      String                @default("UTC") @db.VarChar(100)
   next_run_date DateTime
   active        Boolean               @default(true)
   category_id   Int?
@@ -188,7 +193,7 @@ model RecurringTransaction {
   occurrences   RecurringOccurrence[]
 
   category Category? @relation(fields: [category_id], references: [id], onDelete: SetNull)
-  account  Account   @relation(fields: [account_id], references: [id], onDelete: Cascade)
+  account  Account   @relation(fields: [account_id], references: [id], onDelete: Restrict)
   user     User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 

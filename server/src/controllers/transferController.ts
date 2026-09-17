@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
 import { convertCurrency } from '../utils/currencyService';
-import { toCents, fromCents } from '../utils/money';
+import { assertCurrencyAmount, toCents, fromCents } from '../utils/money';
 import { runIdempotent } from '../utils/idempotency';
 import { AuditAction, createAuditEntry } from '../utils/auditService';
 
@@ -12,6 +12,9 @@ interface CreateTransferBody {
     amount: number;
     description?: string;
 }
+
+const domainError = (message: string, statusCode: number, code: string) =>
+    Object.assign(new Error(message), { statusCode, code });
 
 export const createTransfer = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -32,11 +35,8 @@ export const createTransfer = async (req: Request, res: Response, next: NextFunc
             return;
         }
 
+        assertCurrencyAmount(amount, fromAccount.currency);
         const originalAmount = toCents(amount);
-        if (!Number.isSafeInteger(originalAmount) || originalAmount <= 0) {
-            res.status(400).json({ error: 'Invalid amount' });
-            return;
-        }
 
         let creditedAmount = originalAmount;
         let conversionRate = 1;
@@ -153,25 +153,43 @@ export const cancelTransfer = async (req: Request, res: Response, next: NextFunc
             return;
         }
 
-        const entries = await prisma.transaction.findMany({
-            where: { transfer_id: transferId, user_id: userId },
-            orderBy: { id: 'asc' }
-        });
-
-        if (entries.length === 0) {
-            res.status(404).json({ error: 'Transfer not found' });
-            return;
-        }
-
-        if (entries.length !== 2 || entries.some(entry => entry.type !== 'income' && entry.type !== 'expense')) {
-            res.status(409).json({
-                error: 'Transfer is inconsistent and cannot be cancelled automatically',
-                code: 'TRANSFER_INCONSISTENT'
-            });
-            return;
-        }
-
         await prisma.$transaction(async database => {
+            const entries = await database.transaction.findMany({
+                where: { transfer_id: transferId, user_id: userId },
+                orderBy: { id: 'asc' }
+            });
+
+            if (entries.length === 0) {
+                throw domainError('Transfer not found', 404, 'TRANSFER_NOT_FOUND');
+            }
+
+            if (
+                entries.length !== 2 ||
+                entries.some(entry => entry.type !== 'income' && entry.type !== 'expense') ||
+                entries.filter(entry => entry.type === 'income').length !== 1 ||
+                entries.filter(entry => entry.type === 'expense').length !== 1
+            ) {
+                throw domainError(
+                    'Transfer is inconsistent and cannot be cancelled automatically',
+                    409,
+                    'TRANSFER_INCONSISTENT'
+                );
+            }
+
+            // Claim the transfer rows before touching balances. If another request
+            // already cancelled the transfer, its delete wins and this transaction
+            // aborts without applying a second balance reversal.
+            const deleted = await database.transaction.deleteMany({
+                where: { transfer_id: transferId, user_id: userId }
+            });
+            if (deleted.count !== 2) {
+                throw domainError(
+                    'Transfer cancellation raced with another request',
+                    409,
+                    'TRANSFER_CANCEL_CONFLICT'
+                );
+            }
+
             for (const entry of entries) {
                 const reverseBalanceChange = entry.type === 'income' ? -entry.amount : entry.amount;
                 await database.account.update({
@@ -179,10 +197,6 @@ export const cancelTransfer = async (req: Request, res: Response, next: NextFunc
                     data: { balance: { increment: reverseBalanceChange } }
                 });
             }
-
-            await database.transaction.deleteMany({
-                where: { transfer_id: transferId, user_id: userId }
-            });
 
             await createAuditEntry(database, {
                 userId,

@@ -13,7 +13,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     services:
       mariadb:
@@ -38,10 +38,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node.js 20
+      - name: Use Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
+          node-version: 22.x
           cache: npm
           cache-dependency-path: |
             server/package-lock.json
@@ -94,3 +94,6 @@ jobs:
       - name: Build server
         working-directory: ./server
         run: npm run build
+
+      - name: Build production Docker image
+        run: docker build -t depanceapp-ci:${{ github.sha }} .

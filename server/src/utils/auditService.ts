@@ -20,6 +20,12 @@ export const AuditAction = {
     RECURRING_CREATE: 'recurring.create',
     RECURRING_DELETE: 'recurring.delete',
     RECURRING_PROCESS: 'recurring.process',
+    GOAL_CREATE: 'goal.create',
+    GOAL_UPDATE: 'goal.update',
+    GOAL_DELETE: 'goal.delete',
+    TEMPLATE_CREATE: 'template.create',
+    TEMPLATE_UPDATE: 'template.update',
+    TEMPLATE_DELETE: 'template.delete',
     PASSWORD_CHANGE: 'auth.password_change',
     SETTINGS_UPDATE: 'auth.settings_update'
 } as const;
@@ -71,7 +77,8 @@ export async function createAuditEntry(database: AuditDatabase, options: AuditLo
 }
 
 /**
- * Best-effort audit helper for non-transactional informational/settings events.
+ * Best-effort audit helper reserved for informational/settings events where a
+ * failed audit write must not make the user-facing action unavailable.
  */
 export async function logAudit(options: AuditLogOptions) {
     try {

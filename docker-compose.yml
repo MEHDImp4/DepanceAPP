@@ -18,11 +18,7 @@ services:
       start_period: 20s
 
   app:
-    image: ghcr.io/mehdimp4/depanceapp:latest
-    # To build locally instead of pulling the published image:
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
+    image: ${DEPANCE_IMAGE:-ghcr.io/mehdimp4/depanceapp:latest}
     container_name: depance-app
     ports:
       - "${APP_PORT:-3000}:3000"
@@ -39,19 +35,10 @@ services:
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
       APP_URL: ${APP_URL:-http://localhost:3000}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
-      # Keep false when port 3000 is exposed directly. Set a precise proxy hop
-      # count/subnet only when the application is actually behind a trusted proxy.
       TRUST_PROXY: ${TRUST_PROXY:-false}
       ENABLE_API_DOCS: ${ENABLE_API_DOCS:-false}
-      BACKUP_DIR: /app/backups
-      RETENTION_DAYS: ${RETENTION_DAYS:-7}
-      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
-      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
-      AWS_REGION: ${AWS_REGION:-}
-    volumes:
-      - depance_backups:/app/backups
+      LOGIN_HISTORY_RETENTION_DAYS: ${LOGIN_HISTORY_RETENTION_DAYS:-180}
+      AUDIT_RETENTION_DAYS: ${AUDIT_RETENTION_DAYS:-365}
     depends_on:
       db:
         condition: service_healthy
@@ -62,6 +49,33 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+
+  backup:
+    image: ${DEPANCE_IMAGE:-ghcr.io/mehdimp4/depanceapp:latest}
+    container_name: depance-backup
+    entrypoint: ["/app/scripts/backup-loop.sh"]
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-depance}
+      DB_PASSWORD: ${DB_PASSWORD:-change_me_db_password}
+      DB_NAME: ${DB_NAME:-depance_db}
+      BACKUP_DIR: /app/backups
+      RETENTION_DAYS: ${RETENTION_DAYS:-7}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-}
+      BACKUP_ALLOW_UNENCRYPTED: ${BACKUP_ALLOW_UNENCRYPTED:-false}
+      BACKUP_S3: ${BACKUP_S3:-false}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_REGION: ${AWS_REGION:-}
+    volumes:
+      - depance_backups:/app/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
 
 volumes:
   depance_db_data:

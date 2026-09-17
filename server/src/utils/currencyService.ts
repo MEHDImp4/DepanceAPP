@@ -15,11 +15,40 @@ const ratesFromRows = (rows: Array<{ currency: string; rate: number }>): Exchang
     return rates;
 };
 
+const getCacheState = async () => {
+    const rows = await prisma.exchangeRate.findMany();
+    const usdRate = rows.find(rate => rate.currency === 'USD');
+    const ageMs = usdRate
+        ? Date.now() - new Date(usdRate.updatedAt).getTime()
+        : Number.POSITIVE_INFINITY;
+    return { rows, usdRate, ageMs };
+};
+
+export const getCachedRates = async (maxAgeMs = MAX_STALE_CACHE_MS): Promise<ExchangeRates | null> => {
+    const { rows, usdRate, ageMs } = await getCacheState();
+    if (!usdRate || ageMs > maxAgeMs) return null;
+    return ratesFromRows(rows);
+};
+
+export const serializeRatesSnapshot = (rates: ExchangeRates): string => JSON.stringify({
+    capturedAt: new Date().toISOString(),
+    rates
+});
+
+export const parseRatesSnapshot = (snapshot?: string | null): ExchangeRates | null => {
+    if (!snapshot) return null;
+    try {
+        const parsed = JSON.parse(snapshot) as { rates?: ExchangeRates } | ExchangeRates;
+        const rates = 'rates' in parsed ? parsed.rates : parsed;
+        if (!rates || typeof rates !== 'object') return null;
+        return rates as ExchangeRates;
+    } catch {
+        return null;
+    }
+};
+
 export const getRates = async (): Promise<ExchangeRates> => {
-    const cachedRates = await prisma.exchangeRate.findMany();
-    const usdRate = cachedRates.find(rate => rate.currency === 'USD');
-    const now = Date.now();
-    const cacheAge = usdRate ? now - new Date(usdRate.updatedAt).getTime() : Number.POSITIVE_INFINITY;
+    const { rows: cachedRates, usdRate, ageMs: cacheAge } = await getCacheState();
 
     if (usdRate && cacheAge < CACHE_DURATION_MS) {
         return ratesFromRows(cachedRates);
@@ -35,8 +64,7 @@ export const getRates = async (): Promise<ExchangeRates> => {
             throw new Error('Exchange-rate provider returned an invalid response');
         }
 
-        const newRates = response.data.rates;
-        const relevantRates = Object.entries(newRates)
+        const relevantRates = Object.entries(response.data.rates)
             .filter(([currency]) => SUPPORTED_CURRENCIES.includes(currency as (typeof SUPPORTED_CURRENCIES)[number]));
 
         await prisma.$transaction(relevantRates.map(([currency, rate]) =>
@@ -70,15 +98,7 @@ export const convertCurrency = async (
     if (from === to) return amount;
 
     const rates = await getRates();
-    const fromRate = rates[from];
-    const toRate = rates[to];
-
-    if (!fromRate || !toRate) {
-        throw new Error(`Exchange rate not available for ${from} or ${to}`);
-    }
-
-    const amountInUSD = amount / fromRate;
-    return amountInUSD * toRate;
+    return calculateExchange(amount, from, to, rates);
 };
 
 export const calculateExchange = (

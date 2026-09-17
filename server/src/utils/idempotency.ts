@@ -77,6 +77,21 @@ export const runIdempotent = async <T>(
       where: { user_id_operation_key: { user_id: userId, operation, key } }
     });
 
+    if (stored && stored.expires_at.getTime() <= Date.now()) {
+      const deleted = await prisma.idempotencyKey.deleteMany({
+        where: {
+          id: stored.id,
+          expires_at: { lte: new Date() }
+        }
+      });
+
+      if (deleted.count === 1) {
+        return runIdempotent(userId, operation, key, requestPayload, action);
+      }
+
+      return runIdempotent(userId, operation, key, requestPayload, action);
+    }
+
     if (stored?.request_hash && stored.request_hash !== requestHash) {
       throw conflictError();
     }

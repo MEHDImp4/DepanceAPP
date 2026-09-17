@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/prisma';
-import { toCents, fromCents } from '../utils/money';
+import { assertCurrencyAmount, toCents, fromCents } from '../utils/money';
+import { AuditAction, createAuditEntry } from '../utils/auditService';
 
 interface CreateGoalBody {
     name: string;
@@ -48,18 +49,34 @@ export const createGoal = async (req: Request, res: Response, next: NextFunction
             return;
         }
 
-        const goal = await prisma.goal.create({
-            data: {
-                name,
-                targetAmount: toCents(targetAmount),
-                currentAmount: toCents(currentAmount ?? 0),
-                currency: user.currency.toUpperCase(),
-                deadline: deadline ? new Date(deadline) : null,
-                color,
-                icon,
-                user_id: userId
-            }
+        const currency = user.currency.toUpperCase();
+        assertCurrencyAmount(targetAmount, currency);
+        assertCurrencyAmount(currentAmount ?? 0, currency, { allowZero: true });
+
+        const goal = await prisma.$transaction(async database => {
+            const created = await database.goal.create({
+                data: {
+                    name,
+                    targetAmount: toCents(targetAmount),
+                    currentAmount: toCents(currentAmount ?? 0),
+                    currency,
+                    deadline: deadline ? new Date(deadline) : null,
+                    color,
+                    icon,
+                    user_id: userId
+                }
+            });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.GOAL_CREATE,
+                entityType: 'goal',
+                entityId: created.id,
+                newValue: created,
+                req
+            });
+            return created;
         });
+
         res.status(201).json(serializeGoal(goal));
     } catch (error) {
         next(error);
@@ -70,26 +87,40 @@ export const updateGoal = async (req: Request, res: Response, next: NextFunction
     try {
         const { id } = req.params;
         const { name, targetAmount, currentAmount, deadline, color, icon } = req.body as UpdateGoalBody;
+        const userId = req.user!.userId;
         const goalId = parseInt(id as string, 10);
 
-        const existing = await prisma.goal.findFirst({
-            where: { id: goalId, user_id: req.user!.userId }
-        });
+        const existing = await prisma.goal.findFirst({ where: { id: goalId, user_id: userId } });
         if (!existing) {
             res.status(404).json({ error: 'Goal not found' });
             return;
         }
 
-        const updated = await prisma.goal.update({
-            where: { id: goalId },
-            data: {
-                name,
-                color,
-                icon,
-                ...(targetAmount !== undefined && { targetAmount: toCents(targetAmount) }),
-                ...(currentAmount !== undefined && { currentAmount: toCents(currentAmount) }),
-                ...(deadline !== undefined && { deadline: deadline ? new Date(deadline) : null })
-            }
+        if (targetAmount !== undefined) assertCurrencyAmount(targetAmount, existing.currency);
+        if (currentAmount !== undefined) assertCurrencyAmount(currentAmount, existing.currency, { allowZero: true });
+
+        const updated = await prisma.$transaction(async database => {
+            const saved = await database.goal.update({
+                where: { id: goalId },
+                data: {
+                    name,
+                    color,
+                    icon,
+                    ...(targetAmount !== undefined && { targetAmount: toCents(targetAmount) }),
+                    ...(currentAmount !== undefined && { currentAmount: toCents(currentAmount) }),
+                    ...(deadline !== undefined && { deadline: deadline ? new Date(deadline) : null })
+                }
+            });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.GOAL_UPDATE,
+                entityType: 'goal',
+                entityId: goalId,
+                oldValue: existing,
+                newValue: saved,
+                req
+            });
+            return saved;
         });
 
         res.json(serializeGoal(updated));
@@ -101,18 +132,27 @@ export const updateGoal = async (req: Request, res: Response, next: NextFunction
 export const deleteGoal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { id } = req.params;
+        const userId = req.user!.userId;
         const goalId = parseInt(id as string, 10);
 
-        const goal = await prisma.goal.findFirst({
-            where: { id: goalId, user_id: req.user!.userId }
-        });
-
+        const goal = await prisma.goal.findFirst({ where: { id: goalId, user_id: userId } });
         if (!goal) {
             res.status(404).json({ error: 'Goal not found' });
             return;
         }
 
-        await prisma.goal.delete({ where: { id: goalId } });
+        await prisma.$transaction(async database => {
+            await database.goal.delete({ where: { id: goalId } });
+            await createAuditEntry(database, {
+                userId,
+                action: AuditAction.GOAL_DELETE,
+                entityType: 'goal',
+                entityId: goalId,
+                oldValue: goal,
+                req
+            });
+        });
+
         res.json({ message: 'Goal deleted' });
     } catch (error) {
         next(error);

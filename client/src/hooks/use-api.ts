@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import api from '@/lib/axios';
-import type { Transaction, TransactionPage, Account, Template, User, Category, RecurringTransaction, Goal, MonthlyRecap } from '@/types';
+import type { Transaction, TransactionPage, AccountSummary, Template, User, Category, RecurringTransaction, Goal, MonthlyRecap } from '@/types';
 
 export function useTransaction(id: number) {
     return useQuery({
@@ -71,7 +71,6 @@ export function useTransactions() {
     });
 }
 
-// Accounts
 export * from './api/useAccounts';
 
 export function useTemplates() {
@@ -88,15 +87,16 @@ export function useSummary() {
     return useQuery({
         queryKey: ['summary'],
         queryFn: async () => {
-            const accounts = await api.get<Account[]>('/accounts');
-            const transactions = await api.get<TransactionPage>('/transactions', { params: { limit: 5 } });
-
-            const totalCapital = accounts.data.reduce((acc, curr) => acc + curr.balance, 0);
+            const [accountSummary, transactions] = await Promise.all([
+                api.get<AccountSummary>('/accounts/summary'),
+                api.get<TransactionPage>('/transactions', { params: { limit: 5 } })
+            ]);
 
             return {
-                totalCapital,
-                transactions: transactions.data.items,
-                accounts: accounts.data
+                totalCapital: accountSummary.data.totalBalance,
+                currency: accountSummary.data.currency,
+                accountCount: accountSummary.data.accountCount,
+                transactions: transactions.data.items
             };
         }
     });
@@ -111,6 +111,7 @@ export function useCreateTransaction() {
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
             queryClient.invalidateQueries({ queryKey: ['summary'] });
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
+            queryClient.invalidateQueries({ queryKey: ['account-summary'] });
         },
     });
 }
@@ -160,6 +161,7 @@ export function useCreateCategory() {
         },
     });
 }
+
 export function useRecurring() {
     return useQuery({
         queryKey: ['recurring'],
@@ -209,6 +211,7 @@ export function useProcessRecurring() {
             if (data.data.processed > 0) {
                 queryClient.invalidateQueries({ queryKey: ['transactions'] });
                 queryClient.invalidateQueries({ queryKey: ['accounts'] });
+                queryClient.invalidateQueries({ queryKey: ['account-summary'] });
                 queryClient.invalidateQueries({ queryKey: ['summary'] });
                 queryClient.invalidateQueries({ queryKey: ['recurring'] });
             }

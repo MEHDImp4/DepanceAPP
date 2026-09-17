@@ -1,12 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '@/lib/axios';
-import type { Account } from '@/types';
+import type { Account, AccountSummary } from '@/types';
 
 export function useAccounts() {
     return useQuery({
         queryKey: ['accounts'],
         queryFn: async () => {
             const { data } = await api.get<Account[]>('/accounts');
+            return data;
+        },
+    });
+}
+
+export function useAccountSummary() {
+    return useQuery({
+        queryKey: ['account-summary'],
+        queryFn: async () => {
+            const { data } = await api.get<AccountSummary>('/accounts/summary');
             return data;
         },
     });
@@ -19,6 +29,7 @@ export function useCreateAccount() {
             api.post('/accounts', newAccount),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
+            queryClient.invalidateQueries({ queryKey: ['account-summary'] });
             queryClient.invalidateQueries({ queryKey: ['summary'] });
         },
     });
@@ -31,6 +42,7 @@ export function useUpdateAccount() {
             api.put<Account>(`/accounts/${data.id}`, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
+            queryClient.invalidateQueries({ queryKey: ['account-summary'] });
             queryClient.invalidateQueries({ queryKey: ['summary'] });
         },
     });
@@ -43,6 +55,7 @@ export function useDeleteAccount() {
             api.delete(`/accounts/${data.id}`, { data: { password: data.password } }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
+            queryClient.invalidateQueries({ queryKey: ['account-summary'] });
             queryClient.invalidateQueries({ queryKey: ['summary'] });
         },
     });
@@ -55,6 +68,7 @@ export function useCreateTransfer() {
             api.post('/transfers', newTransfer),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
+            queryClient.invalidateQueries({ queryKey: ['account-summary'] });
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
             queryClient.invalidateQueries({ queryKey: ['summary'] });
         },

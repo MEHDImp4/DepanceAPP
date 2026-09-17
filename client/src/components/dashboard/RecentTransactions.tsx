@@ -1,6 +1,6 @@
-
 import type { Transaction } from "@/types";
 import { cn } from "@/lib/utils";
+import { getTransactionDisplayMoney } from "@/lib/transaction-money";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
@@ -29,48 +29,54 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
             </div>
 
             <div className="bg-card border border-border rounded-[2rem] overflow-hidden divide-y divide-border/40">
-                {transactions.map((transaction) => (
-                    <div
-                        key={transaction.id}
-                        onClick={() => navigate(`/transactions/${transaction.id}`)}
-                        className="group flex items-center justify-between p-5 hover:bg-muted/30 active:bg-muted/50 transition-colors cursor-pointer"
-                    >
-                        <div className="flex items-center space-x-4">
-                            <div className={cn(
-                                "w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md",
-                                transaction.type === 'income' ? "bg-emerald-500/90" : "bg-red-500/90"
-                            )}>
-                                {transaction.type === 'income' ? <TrendingUp size={18} strokeWidth={2.5} /> : <TrendingDown size={18} strokeWidth={2.5} />}
-                            </div>
-                            <div>
-                                <p className="font-semibold tracking-tight text-[14px] text-foreground/90">{transaction.description}</p>
-                                <div className="h-4 flex items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-0.5">
-                                    {(() => {
-                                        const category = categories.find(c => c.id === transaction.category_id);
-                                        return category ? (
-                                            <span>{category.name}</span>
-                                        ) : (
-                                            <span>{t('transactions.uncategorized')}</span>
-                                        );
-                                    })()}
+                {transactions.map((transaction) => {
+                    const displayMoney = getTransactionDisplayMoney(transaction, user?.currency || 'USD');
+                    return (
+                        <div
+                            key={transaction.id}
+                            onClick={() => navigate(`/transactions/${transaction.id}`)}
+                            className="group flex items-center justify-between p-5 hover:bg-muted/30 active:bg-muted/50 transition-colors cursor-pointer"
+                        >
+                            <div className="flex items-center space-x-4">
+                                <div className={cn(
+                                    "w-10 h-10 rounded-2xl flex items-center justify-center text-white shadow-md",
+                                    transaction.type === 'income' ? "bg-emerald-500/90" : "bg-red-500/90"
+                                )}>
+                                    {transaction.type === 'income' ? <TrendingUp size={18} strokeWidth={2.5} /> : <TrendingDown size={18} strokeWidth={2.5} />}
+                                </div>
+                                <div>
+                                    <p className="font-semibold tracking-tight text-[14px] text-foreground/90">{transaction.description}</p>
+                                    <div className="h-4 flex items-center text-[10px] font-bold uppercase tracking-wider text-muted-foreground mt-0.5">
+                                        {(() => {
+                                            const category = categories.find(c => c.id === transaction.category_id);
+                                            return category ? (
+                                                <span>{category.name}</span>
+                                            ) : (
+                                                <span>{t('transactions.uncategorized')}</span>
+                                            );
+                                        })()}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="text-right">
-                            <p className={cn(
-                                "font-bold tracking-tight text-[14px]",
-                                transaction.type === 'income' ? "text-emerald-500" : "text-foreground"
-                            )}>
-                                {new Intl.NumberFormat(i18n.language, { style: "currency", currency: user?.currency || 'USD' }).format(transaction.amount)}
-                                {transaction.type === 'income' ? ' +' : ' -'}
-                            </p>
-                            <p className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-tighter">
-                                {new Date(transaction.created_at).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' })}
-                            </p>
+                            <div className="text-right">
+                                <p className={cn(
+                                    "font-bold tracking-tight text-[14px]",
+                                    transaction.type === 'income' ? "text-emerald-500" : "text-foreground"
+                                )}>
+                                    {new Intl.NumberFormat(i18n.language, {
+                                        style: "currency",
+                                        currency: displayMoney.currency
+                                    }).format(displayMoney.amount)}
+                                    {transaction.type === 'income' ? ' +' : ' -'}
+                                </p>
+                                <p className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-tighter">
+                                    {new Date(transaction.created_at).toLocaleDateString(i18n.language, { month: 'short', day: 'numeric' })}
+                                </p>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
 
             {transactions.length === 0 && (

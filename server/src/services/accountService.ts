@@ -1,7 +1,7 @@
 import type { Request } from 'express';
 import prisma from '../utils/prisma';
 import { convertCurrency } from '../utils/currencyService';
-import { toCents, fromCents } from '../utils/money';
+import { assertCurrencyAmount, toCents, fromCents } from '../utils/money';
 import { AuditAction, createAuditEntry } from '../utils/auditService';
 import bcrypt from 'bcryptjs';
 
@@ -12,6 +12,7 @@ interface CreateAccountData {
     currency?: string;
     color?: string;
     userId: number;
+    req?: Request;
 }
 
 interface UpdateAccountData {
@@ -20,6 +21,7 @@ interface UpdateAccountData {
     name?: string;
     type?: string;
     currency?: string;
+    req?: Request;
 }
 
 export const getAccountSummary = async (userId: number) => {
@@ -29,11 +31,17 @@ export const getAccountSummary = async (userId: number) => {
     ]);
 
     const targetCurrency = (user?.currency || 'USD').toUpperCase();
-    const amounts = await Promise.all(accounts.map(async account =>
-        Math.round(await convertCurrency(account.balance, account.currency, targetCurrency))
-    ));
+    const needsConversion = accounts.some(account => account.currency.toUpperCase() !== targetCurrency);
 
-    const totalBalanceCents = amounts.reduce((sum, amount) => sum + amount, 0);
+    let totalBalanceCents = 0;
+    if (!needsConversion) {
+        totalBalanceCents = accounts.reduce((sum, account) => sum + account.balance, 0);
+    } else {
+        const amounts = await Promise.all(accounts.map(async account =>
+            Math.round(await convertCurrency(account.balance, account.currency, targetCurrency))
+        ));
+        totalBalanceCents = amounts.reduce((sum, amount) => sum + amount, 0);
+    }
 
     return {
         totalBalance: fromCents(totalBalanceCents),
@@ -43,22 +51,32 @@ export const getAccountSummary = async (userId: number) => {
 };
 
 export const createAccount = async (data: CreateAccountData) => {
-    const { name, type, balance, currency, color, userId } = data;
-    const balanceInCents = toCents(balance ?? 0);
+    const { name, type, balance, currency, color, userId, req } = data;
+    const normalizedCurrency = (currency || 'USD').toUpperCase();
+    const initialBalance = balance ?? 0;
+    assertCurrencyAmount(initialBalance, normalizedCurrency, { allowNegative: true, allowZero: true });
+    const balanceInCents = toCents(initialBalance);
 
-    if (!Number.isSafeInteger(balanceInCents)) {
-        throw new Error('Invalid balance');
-    }
-
-    const account = await prisma.account.create({
-        data: {
-            name,
-            type: type || 'normal',
-            color: color || 'bg-primary',
-            currency: (currency || 'USD').toUpperCase(),
-            balance: balanceInCents,
-            user_id: userId
-        }
+    const account = await prisma.$transaction(async database => {
+        const created = await database.account.create({
+            data: {
+                name,
+                type: type || 'normal',
+                color: color || 'bg-primary',
+                currency: normalizedCurrency,
+                balance: balanceInCents,
+                user_id: userId
+            }
+        });
+        await createAuditEntry(database, {
+            userId,
+            action: AuditAction.ACCOUNT_CREATE,
+            entityType: 'account',
+            entityId: created.id,
+            newValue: created,
+            req
+        });
+        return created;
     });
 
     return { ...account, balance: fromCents(account.balance) };
@@ -76,7 +94,7 @@ export const getUserAccounts = async (userId: number) => {
 };
 
 export const updateAccount = async (data: UpdateAccountData) => {
-    const { id, userId, name, type, currency } = data;
+    const { id, userId, name, type, currency, req } = data;
 
     const account = await prisma.account.findFirst({
         where: { id, user_id: userId }
@@ -94,13 +112,25 @@ export const updateAccount = async (data: UpdateAccountData) => {
         }
     }
 
-    const updated = await prisma.account.update({
-        where: { id },
-        data: {
-            name,
-            type,
-            ...(normalizedCurrency !== undefined && { currency: normalizedCurrency })
-        }
+    const updated = await prisma.$transaction(async database => {
+        const saved = await database.account.update({
+            where: { id },
+            data: {
+                name,
+                type,
+                ...(normalizedCurrency !== undefined && { currency: normalizedCurrency })
+            }
+        });
+        await createAuditEntry(database, {
+            userId,
+            action: AuditAction.ACCOUNT_UPDATE,
+            entityType: 'account',
+            entityId: id,
+            oldValue: account,
+            newValue: saved,
+            req
+        });
+        return saved;
     });
 
     return { ...updated, balance: fromCents(updated.balance) };
@@ -121,29 +151,27 @@ export const deleteAccount = async (id: number, userId: number, password?: strin
         throw new Error('Invalid password');
     }
 
-    const account = await prisma.account.findFirst({
-        where: { id, user_id: userId }
-    });
+    return prisma.$transaction(async database => {
+        const account = await database.account.findFirst({
+            where: { id, user_id: userId }
+        });
 
-    if (!account) {
-        throw new Error('Account not found');
-    }
-
-    const transferCount = await prisma.transaction.count({
-        where: {
-            account_id: id,
-            user_id: userId,
-            transfer_id: { not: null }
+        if (!account) {
+            throw new Error('Account not found');
         }
-    });
 
-    if (transferCount > 0) {
-        const error = new Error('Account has transfer history that must be cancelled before deletion');
-        Object.assign(error, { code: 'ACCOUNT_HAS_TRANSFERS' });
-        throw error;
-    }
+        const [transactionCount, recurringCount] = await Promise.all([
+            database.transaction.count({ where: { account_id: id, user_id: userId } }),
+            database.recurringTransaction.count({ where: { account_id: id, user_id: userId } })
+        ]);
 
-    await prisma.$transaction(async database => {
+        if (transactionCount > 0 || recurringCount > 0) {
+            throw Object.assign(
+                new Error('Account has financial history or recurring rules and cannot be deleted'),
+                { code: 'ACCOUNT_HAS_ACTIVITY' }
+            );
+        }
+
         await database.account.delete({ where: { id } });
         await createAuditEntry(database, {
             userId,
@@ -158,7 +186,7 @@ export const deleteAccount = async (id: number, userId: number, password?: strin
             },
             req
         });
-    });
 
-    return account;
+        return account;
+    });
 };

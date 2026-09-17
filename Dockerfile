@@ -1,11 +1,11 @@
-FROM node:20-alpine AS client-builder
+FROM node:22-alpine AS client-builder
 WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm ci
 COPY client/ .
 RUN npm run build
 
-FROM node:20-alpine AS server-builder
+FROM node:22-alpine AS server-builder
 WORKDIR /app/server
 COPY server/package*.json ./
 COPY server/prisma ./prisma/
@@ -16,7 +16,7 @@ RUN npx prisma generate
 RUN npm run build
 RUN npm prune --omit=dev
 
-FROM node:20-alpine
+FROM node:22-alpine
 
 RUN apk --no-cache add bash openssl curl mariadb-client aws-cli \
     && addgroup -S depance \
@@ -34,7 +34,7 @@ COPY --chown=depance:depance server/package*.json ./
 COPY --chown=depance:depance server/scripts ./scripts
 COPY --chown=depance:depance server/docker-entrypoint.sh ./
 
-RUN chmod +x docker-entrypoint.sh scripts/backup.sh scripts/restore.sh
+RUN chmod +x docker-entrypoint.sh scripts/*.sh
 
 USER depance
 
