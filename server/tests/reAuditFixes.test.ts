@@ -123,7 +123,7 @@ describe('Second audit regression fixes', () => {
         expect(budgets.body[0].currency).toBe('USD');
         expect(budgets.body[0].spent).toBe(110);
 
-        const recap = await request(app).get('/api/analytics/monthly-recap').set('Authorization', `Bearer ${token}`);
+        const recap = await request(app).get('/api/analytics/recap').set('Authorization', `Bearer ${token}`);
         expect(recap.statusCode).toBe(200);
         expect(recap.body.currency).toBe('USD');
         expect(recap.body.totalSpent).toBe(110);
