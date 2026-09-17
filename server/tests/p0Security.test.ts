@@ -47,8 +47,8 @@ describe('P0 security regressions', () => {
       category_id: category.id, default_account_id: account.id
     });
 
-    expect(budget.statusCode).toBe(400);
-    expect(template.statusCode).toBe(400);
+    expect(budget.statusCode).toBe(403);
+    expect(template.statusCode).toBe(403);
     expect(await prisma.budget.count({ where: { user_id: attacker.id } })).toBe(0);
     expect(await prisma.template.count({ where: { user_id: attacker.id } })).toBe(0);
   });
