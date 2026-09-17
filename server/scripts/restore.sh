@@ -1,17 +1,34 @@
 #!/usr/bin/env bash
 # DepanceAPP - MariaDB/MySQL backup restore
-# Usage: ./restore.sh <backup_file> [--yes]
+# Usage: ./restore.sh <backup_file> [--yes] [--skip-checksum]
 
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-    echo "Usage: ./restore.sh <backup_file> [--yes]" >&2
+    echo "Usage: ./restore.sh <backup_file> [--yes] [--skip-checksum]" >&2
     exit 1
 fi
 
 BACKUP_FILE="$1"
+shift
 AUTO_CONFIRM=false
-[[ "${2:-}" == "--yes" ]] && AUTO_CONFIRM=true
+SKIP_CHECKSUM=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --yes)
+            AUTO_CONFIRM=true
+            ;;
+        --skip-checksum)
+            SKIP_CHECKSUM=true
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            exit 1
+            ;;
+    esac
+    shift
+done
 
 if [[ ! -f "$BACKUP_FILE" ]]; then
     echo "Backup file not found: $BACKUP_FILE" >&2
@@ -37,11 +54,15 @@ TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
 CHECKSUM_FILE="${BACKUP_FILE}.sha256"
-if [[ -f "$CHECKSUM_FILE" ]]; then
+if [[ "$SKIP_CHECKSUM" == true ]]; then
+    echo "WARNING: checksum verification explicitly skipped." >&2
+elif [[ -f "$CHECKSUM_FILE" ]]; then
     echo "Verifying checksum..."
     (cd "$(dirname "$BACKUP_FILE")" && sha256sum -c "$(basename "$CHECKSUM_FILE")")
 else
-    echo "Warning: no checksum file found for $BACKUP_FILE" >&2
+    echo "Checksum file is required: $CHECKSUM_FILE" >&2
+    echo "Use --skip-checksum only for a deliberately trusted legacy backup." >&2
+    exit 1
 fi
 
 RESTORE_FILE="$BACKUP_FILE"
