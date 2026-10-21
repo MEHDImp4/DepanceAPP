@@ -26,7 +26,12 @@ import analyticsRoutes from './routes/analyticsRoutes';
 
 const hasDatabaseConfig = Boolean(
     process.env.DATABASE_URL ||
-    (process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD && process.env.DB_NAME)
+    process.env.MYSQL_URL ||
+    process.env.MYSQL_PRIVATE_URL ||
+    ((process.env.DB_HOST || process.env.MYSQLHOST) &&
+     (process.env.DB_USER || process.env.MYSQLUSER) &&
+     (process.env.DB_PASSWORD || process.env.MYSQLPASSWORD) &&
+     (process.env.DB_NAME || process.env.MYSQLDATABASE))
 );
 
 const hasSplitJwtSecrets = Boolean(process.env.JWT_ACCESS_SECRET && process.env.JWT_REFRESH_SECRET);
@@ -79,14 +84,26 @@ app.use(compression());
 app.use(cookieParser());
 
 const configuredTrustProxy = process.env.TRUST_PROXY?.trim();
-if (!configuredTrustProxy || configuredTrustProxy.toLowerCase() === 'false') {
-    app.set('trust proxy', false);
-} else if (configuredTrustProxy.toLowerCase() === 'true') {
+const isBehindReverseProxy = Boolean(
+    process.env.COOLIFY_FQDN ||
+    process.env.COOLIFY_URL ||
+    process.env.RAILWAY_ENVIRONMENT ||
+    process.env.RAILWAY_PUBLIC_DOMAIN
+);
+
+if (configuredTrustProxy && configuredTrustProxy.toLowerCase() === 'true') {
     app.set('trust proxy', true);
-} else if (/^\d+$/.test(configuredTrustProxy)) {
+} else if (configuredTrustProxy && configuredTrustProxy.toLowerCase() === 'false') {
+    app.set('trust proxy', false);
+} else if (configuredTrustProxy && /^\d+$/.test(configuredTrustProxy)) {
     app.set('trust proxy', Number(configuredTrustProxy));
-} else {
+} else if (configuredTrustProxy) {
     app.set('trust proxy', configuredTrustProxy);
+} else if (isBehindReverseProxy) {
+    // Automatically trust reverse proxy headers when running on Coolify / Railway
+    app.set('trust proxy', true);
+} else {
+    app.set('trust proxy', false);
 }
 
 const globalLimiter = rateLimit({
@@ -140,6 +157,34 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,ht
 
 if (process.env.APP_URL && !allowedOrigins.includes(process.env.APP_URL)) {
     allowedOrigins.push(process.env.APP_URL);
+}
+
+// Auto-detect Coolify FQDN / URL (e.g. COOLIFY_FQDN="https://depance.domain.com" or comma-separated)
+const coolifyRaw = [process.env.COOLIFY_URL, process.env.COOLIFY_FQDN]
+    .filter(Boolean)
+    .join(',');
+
+if (coolifyRaw) {
+    coolifyRaw
+        .split(',')
+        .map(u => u.trim())
+        .filter(Boolean)
+        .forEach(domain => {
+            const normalized = domain.startsWith('http://') || domain.startsWith('https://')
+                ? domain
+                : `https://${domain}`;
+            if (!allowedOrigins.includes(normalized)) {
+                allowedOrigins.push(normalized);
+            }
+        });
+}
+
+// Auto-detect Railway public domain
+if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    const railwayUrl = `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+    if (!allowedOrigins.includes(railwayUrl)) {
+        allowedOrigins.push(railwayUrl);
+    }
 }
 
 logger.info(`CORS allowed origins: ${allowedOrigins.join(', ')}`);

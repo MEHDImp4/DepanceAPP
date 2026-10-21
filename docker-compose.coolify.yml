@@ -1,0 +1,62 @@
+services:
+  db:
+    image: mariadb:11.4
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-change_me_root_password}
+      MARIADB_DATABASE: ${DB_NAME:-depance_db}
+      MARIADB_USER: ${DB_USER:-depance}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-change_me_db_password}
+    volumes:
+      - depance_db_data:/var/lib/mysql
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -uroot -p$$MARIADB_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      PORT: 3000
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:-}
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: ${DB_USER:-depance}
+      DB_PASSWORD: ${DB_PASSWORD:-change_me_db_password}
+      DB_NAME: ${DB_NAME:-depance_db}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-}
+      APP_URL: ${COOLIFY_URL:-${APP_URL:-http://localhost:3000}}
+      ALLOWED_ORIGINS: ${COOLIFY_URL:-${ALLOWED_ORIGINS:-http://localhost:3000}}
+      TRUST_PROXY: ${TRUST_PROXY:-true}
+      ENABLE_API_DOCS: ${ENABLE_API_DOCS:-false}
+      BACKUP_DIR: /app/backups
+      RETENTION_DAYS: ${RETENTION_DAYS:-7}
+      BACKUP_ENCRYPTION_KEY: ${BACKUP_ENCRYPTION_KEY:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_S3_BUCKET: ${AWS_S3_BUCKET:-}
+      AWS_REGION: ${AWS_REGION:-}
+    expose:
+      - "3000"
+    volumes:
+      - depance_backups:/app/backups
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  depance_db_data:
+  depance_backups:

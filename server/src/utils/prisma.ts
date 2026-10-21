@@ -4,12 +4,18 @@ const getDatabaseUrl = () => {
     if (process.env.DATABASE_URL) {
         return process.env.DATABASE_URL;
     }
+    if (process.env.MYSQL_URL) {
+        return process.env.MYSQL_URL;
+    }
+    if (process.env.MYSQL_PRIVATE_URL) {
+        return process.env.MYSQL_PRIVATE_URL;
+    }
 
-    const dbUser = encodeURIComponent(process.env.DB_USER || 'root');
-    const dbPassword = encodeURIComponent(process.env.DB_PASSWORD || 'root');
-    const dbHost = process.env.DB_HOST || 'localhost';
-    const dbPort = process.env.DB_PORT || '3306';
-    const dbName = encodeURIComponent(process.env.DB_NAME || 'depance_db');
+    const dbUser = encodeURIComponent(process.env.DB_USER || process.env.MYSQLUSER || 'root');
+    const dbPassword = encodeURIComponent(process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || 'root');
+    const dbHost = process.env.DB_HOST || process.env.MYSQLHOST || 'localhost';
+    const dbPort = process.env.DB_PORT || process.env.MYSQLPORT || '3306';
+    const dbName = encodeURIComponent(process.env.DB_NAME || process.env.MYSQLDATABASE || 'depance_db');
 
     return `mysql://${dbUser}:${dbPassword}@${dbHost}:${dbPort}/${dbName}`;
 };

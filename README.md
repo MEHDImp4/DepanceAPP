@@ -48,6 +48,22 @@ ALLOWED_ORIGINS=https://finance.example.com
 
 `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` are both required in production. The old single `JWT_SECRET` variable is supported only as a local-development fallback.
 
+## Deploying on Coolify
+
+DepanceAPP has built-in support for 1-click self-hosting with **[Coolify](https://coolify.io/)**:
+
+1. In your Coolify dashboard, click **+ New Resource** → **Docker Compose**.
+2. Connect your Git repository.
+3. Set the **Docker Compose Location** to:
+   ```text
+   docker-compose.coolify.yml
+   ```
+4. In the **Domains** field, enter your public domain (e.g. `https://depance.yourdomain.com`).
+5. In **Environment Variables**, copy values from [`.env.coolify.example`](.env.coolify.example) (or set `DB_PASSWORD`, `DB_ROOT_PASSWORD`, `JWT_ACCESS_SECRET`, and `JWT_REFRESH_SECRET`).
+6. Click **Deploy**.
+
+> **Note**: DepanceAPP automatically detects Coolify's Traefik reverse proxy (`TRUST_PROXY=true`), allows your `COOLIFY_FQDN` domain in CORS, runs database migrations on boot, and healthchecks `/health` automatically.
+
 ### Existing databases
 
 Existing installations originally created with `prisma db push` must baseline the original migration once before switching to migration-based deployment:
