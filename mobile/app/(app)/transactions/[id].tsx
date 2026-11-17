@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
     ArrowLeft,
     Calendar,
@@ -183,6 +184,15 @@ export default function TransactionDetailsScreen() {
                         },
                     ]}
                 >
+                    <LinearGradient
+                        colors={[
+                            'rgba(255,255,255,0.28)',
+                            'rgba(255,255,255,0)',
+                        ]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.heroGloss}
+                    />
                     {isIncome ? (
                         <TrendingUp size={40} color="#FFFFFF" strokeWidth={2.5} />
                     ) : (
@@ -602,10 +612,18 @@ const styles = StyleSheet.create({
         borderWidth: 4,
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
         shadowOffset: { width: 0, height: 12 },
         shadowOpacity: 0.28,
         shadowRadius: 18,
         elevation: 10,
+    },
+    heroGloss: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
     },
     heroAmountBlock: {
         alignItems: 'center',

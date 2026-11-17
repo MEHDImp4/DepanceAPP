@@ -4,10 +4,12 @@ import {
     Text,
     Pressable,
     StyleSheet,
+    Platform,
     useWindowDimensions,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import {
     LayoutDashboard,
     ArrowRightLeft,
@@ -26,7 +28,7 @@ export function BottomNav() {
     const { t } = useTranslation();
     const insets = useSafeAreaInsets();
     const { width } = useWindowDimensions();
-    const colors = useThemeStore((state) => state.colors);
+    const { theme, colors } = useThemeStore();
     const [drawerOpen, setDrawerOpen] = useState(false);
 
     const showLabels = width >= 380;
@@ -57,46 +59,135 @@ export function BottomNav() {
                 style={[
                     styles.container,
                     {
-                        bottom: Math.max(insets.bottom, 12) + 10,
+                        bottom: Math.max(insets.bottom, 12) + 8,
                     },
                 ]}
             >
                 <View
                     style={[
-                        styles.navBar,
+                        styles.navOuter,
                         {
-                            backgroundColor: colors.navGlass,
-                            borderColor: colors.navBorder,
+                            borderColor:
+                                theme === 'dark'
+                                    ? 'rgba(255, 255, 255, 0.12)'
+                                    : 'rgba(24, 24, 27, 0.09)',
+                            backgroundColor:
+                                Platform.OS === 'android'
+                                    ? hexWithOpacity(colors.card, 0.92)
+                                    : 'transparent',
                         },
                     ]}
                 >
-                    {navItems.map(({ icon: Icon, label, path }) => {
-                        const isActive = isPathActive(path);
-                        return (
+                    <BlurView
+                        intensity={75}
+                        tint={theme === 'dark' ? 'dark' : 'light'}
+                        style={styles.blurFill}
+                    >
+                        <View
+                            style={[
+                                styles.navInner,
+                                {
+                                    backgroundColor:
+                                        theme === 'dark'
+                                            ? 'rgba(24, 24, 27, 0.55)'
+                                            : 'rgba(255, 255, 255, 0.72)',
+                                },
+                            ]}
+                        >
+                            {navItems.map(({ icon: Icon, label, path }) => {
+                                const isActive = isPathActive(path);
+                                return (
+                                    <Pressable
+                                        key={path}
+                                        onPress={() => router.replace(path)}
+                                        style={({ pressed }) => [
+                                            styles.tabButton,
+                                            isActive && {
+                                                backgroundColor: hexWithOpacity(
+                                                    colors.primary,
+                                                    0.15
+                                                ),
+                                            },
+                                            pressed && {
+                                                transform: [{ scale: 0.94 }],
+                                                opacity: isActive ? 1 : 0.75,
+                                            },
+                                        ]}
+                                        accessibilityRole="tab"
+                                        accessibilityState={{ selected: isActive }}
+                                        accessibilityLabel={label}
+                                    >
+                                        <View
+                                            style={[
+                                                styles.iconContainer,
+                                                isActive && {
+                                                    transform: [{ scale: 1.08 }],
+                                                },
+                                            ]}
+                                        >
+                                            <Icon
+                                                size={21}
+                                                color={
+                                                    isActive
+                                                        ? colors.primary
+                                                        : colors.mutedForeground
+                                                }
+                                                strokeWidth={isActive ? 2.5 : 2}
+                                            />
+                                        </View>
+                                        {showLabels ? (
+                                            <Text
+                                                style={[
+                                                    styles.label,
+                                                    {
+                                                        color: isActive
+                                                            ? colors.primary
+                                                            : colors.mutedForeground,
+                                                    },
+                                                ]}
+                                                numberOfLines={1}
+                                            >
+                                                {label}
+                                            </Text>
+                                        ) : null}
+                                    </Pressable>
+                                );
+                            })}
+
                             <Pressable
-                                key={path}
-                                onPress={() => router.replace(path)}
+                                onPress={() => setDrawerOpen(true)}
                                 style={({ pressed }) => [
                                     styles.tabButton,
-                                    isActive && {
-                                        backgroundColor: hexWithOpacity(colors.primary, 0.15),
+                                    isMoreActive && {
+                                        backgroundColor: hexWithOpacity(
+                                            colors.primary,
+                                            0.15
+                                        ),
                                     },
-                                    pressed && !isActive && { opacity: 0.7 },
+                                    pressed && {
+                                        transform: [{ scale: 0.94 }],
+                                        opacity: isMoreActive ? 1 : 0.75,
+                                    },
                                 ]}
-                                accessibilityRole="tab"
-                                accessibilityState={{ selected: isActive }}
-                                accessibilityLabel={label}
+                                accessibilityRole="button"
+                                accessibilityLabel={t('nav.more', 'More')}
                             >
                                 <View
                                     style={[
                                         styles.iconContainer,
-                                        isActive && { transform: [{ scale: 1.08 }] },
+                                        isMoreActive && {
+                                            transform: [{ scale: 1.08 }],
+                                        },
                                     ]}
                                 >
-                                    <Icon
-                                        size={22}
-                                        color={isActive ? colors.primary : colors.mutedForeground}
-                                        strokeWidth={isActive ? 2.5 : 2}
+                                    <Menu
+                                        size={21}
+                                        color={
+                                            isMoreActive
+                                                ? colors.primary
+                                                : colors.mutedForeground
+                                        }
+                                        strokeWidth={isMoreActive ? 2.5 : 2}
                                     />
                                 </View>
                                 {showLabels ? (
@@ -104,64 +195,26 @@ export function BottomNav() {
                                         style={[
                                             styles.label,
                                             {
-                                                color: isActive
+                                                color: isMoreActive
                                                     ? colors.primary
                                                     : colors.mutedForeground,
                                             },
                                         ]}
                                         numberOfLines={1}
                                     >
-                                        {label}
+                                        {t('nav.more', 'More')}
                                     </Text>
                                 ) : null}
                             </Pressable>
-                        );
-                    })}
-
-                    <Pressable
-                        onPress={() => setDrawerOpen(true)}
-                        style={({ pressed }) => [
-                            styles.tabButton,
-                            isMoreActive && {
-                                backgroundColor: hexWithOpacity(colors.primary, 0.15),
-                            },
-                            pressed && !isMoreActive && { opacity: 0.7 },
-                        ]}
-                        accessibilityRole="button"
-                        accessibilityLabel={t('nav.more', 'More')}
-                    >
-                        <View
-                            style={[
-                                styles.iconContainer,
-                                isMoreActive && { transform: [{ scale: 1.08 }] },
-                            ]}
-                        >
-                            <Menu
-                                size={22}
-                                color={isMoreActive ? colors.primary : colors.mutedForeground}
-                                strokeWidth={isMoreActive ? 2.5 : 2}
-                            />
                         </View>
-                        {showLabels ? (
-                            <Text
-                                style={[
-                                    styles.label,
-                                    {
-                                        color: isMoreActive
-                                            ? colors.primary
-                                            : colors.mutedForeground,
-                                    },
-                                ]}
-                                numberOfLines={1}
-                            >
-                                {t('nav.more', 'More')}
-                            </Text>
-                        ) : null}
-                    </Pressable>
+                    </BlurView>
                 </View>
             </View>
 
-            <MoreMenuDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+            <MoreMenuDrawer
+                open={drawerOpen}
+                onClose={() => setDrawerOpen(false)}
+            />
         </>
     );
 }
@@ -174,37 +227,44 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         zIndex: 50,
     },
-    navBar: {
+    navOuter: {
         width: '100%',
         maxWidth: 448,
         borderRadius: 40,
-        padding: 8,
         borderWidth: 1,
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 14 },
+        shadowOpacity: 0.42,
+        shadowRadius: 24,
+        elevation: 16,
+    },
+    blurFill: {
+        width: '100%',
+    },
+    navInner: {
+        padding: 7,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-around',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.35,
-        shadowRadius: 24,
-        elevation: 16,
     },
     tabButton: {
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
         paddingVertical: 8,
+        paddingHorizontal: 2,
         borderRadius: 24,
     },
     iconContainer: {
-        padding: 4,
-        borderRadius: 16,
+        padding: 3,
+        borderRadius: 14,
     },
     label: {
-        fontSize: 10,
+        fontSize: 9.5,
         fontFamily: FONT_FAMILY.bold,
         textTransform: 'uppercase',
-        letterSpacing: 1.2,
+        letterSpacing: 1.1,
         marginTop: 2,
     },
 });

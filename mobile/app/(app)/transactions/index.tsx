@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
     Plus,
     Search,
@@ -415,9 +416,22 @@ export default function TransactionsScreen() {
                                                                                   colors.red,
                                                                                   0.9
                                                                               ),
+                                                                    shadowColor:
+                                                                        isIncome
+                                                                            ? colors.emerald
+                                                                            : colors.red,
                                                                 },
                                                             ]}
                                                         >
+                                                            <LinearGradient
+                                                                colors={[
+                                                                    'rgba(255,255,255,0.28)',
+                                                                    'rgba(255,255,255,0)',
+                                                                ]}
+                                                                start={{ x: 0, y: 0 }}
+                                                                end={{ x: 1, y: 1 }}
+                                                                style={styles.txIconGloss}
+                                                            />
                                                             {isIncome ? (
                                                                 <TrendingUp
                                                                     size={18}
@@ -679,12 +693,17 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 32,
         overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.14,
+        shadowRadius: 16,
+        elevation: 4,
     },
     txRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 20,
+        padding: 18,
         gap: 12,
     },
     txLeft: {
@@ -695,12 +714,24 @@ const styles = StyleSheet.create({
         minWidth: 0,
     },
     txIconBox: {
-        width: 40,
-        height: 40,
+        width: 42,
+        height: 42,
         borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
+        overflow: 'hidden',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    txIconGloss: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
     },
     txMeta: {
         flex: 1,

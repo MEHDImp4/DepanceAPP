@@ -717,12 +717,13 @@ const styles = StyleSheet.create({
     iconGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        justifyContent: 'space-between',
+        rowGap: 10,
     },
     emojiTile: {
         width: '15%',
         aspectRatio: 1,
-        borderRadius: 12,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },

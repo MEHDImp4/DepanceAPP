@@ -226,7 +226,10 @@ export function AddRecurringModal({ isOpen, onClose }: AddRecurringModalProps) {
                     <View
                         style={[
                             styles.amountBox,
-                            { backgroundColor: hexWithOpacity(colors.muted, 0.6) },
+                            {
+                                backgroundColor: hexWithOpacity(colors.muted, 0.65),
+                                borderColor: hexWithOpacity(colors.border, 0.7),
+                            },
                         ]}
                     >
                         <Text
@@ -511,6 +514,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         borderRadius: 16,
+        borderWidth: 1,
         paddingHorizontal: 16,
         paddingVertical: 12,
         gap: 10,

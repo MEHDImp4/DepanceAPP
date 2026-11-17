@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useThemeStore } from '@/store/theme-store';
 import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
 import { formatDecimal } from '@/hooks/use-currency';
+import { AmbientGlow } from '@/components/ui/AmbientGlow';
 
 interface CapitalCardProps {
     amount: number;
@@ -12,7 +13,7 @@ interface CapitalCardProps {
 
 export function CapitalCard({ amount, currency }: CapitalCardProps) {
     const { t, i18n } = useTranslation();
-    const colors = useThemeStore((state) => state.colors);
+    const { theme, colors } = useThemeStore();
 
     const formattedAmount = formatDecimal(amount, i18n.language, 2, 2);
     const length = formattedAmount.length;
@@ -24,17 +25,18 @@ export function CapitalCard({ amount, currency }: CapitalCardProps) {
                 styles.card,
                 {
                     backgroundColor: colors.card,
-                    borderColor: colors.border,
+                    borderColor:
+                        theme === 'dark'
+                            ? 'rgba(255, 255, 255, 0.08)'
+                            : colors.border,
                 },
             ]}
         >
-            {/* Decorative Mesh Gradient Accent */}
-            <View
-                pointerEvents="none"
-                style={[
-                    styles.glowCircle,
-                    { backgroundColor: hexWithOpacity(colors.primary, 0.08) },
-                ]}
+            <AmbientGlow
+                color={colors.primary}
+                opacity={theme === 'dark' ? 0.16 : 0.1}
+                size={240}
+                style={{ top: -90, right: -85 }}
             />
 
             <View style={styles.content}>
@@ -65,7 +67,12 @@ export function CapitalCard({ amount, currency }: CapitalCardProps) {
                     <View
                         style={[
                             styles.currencyBadge,
-                            { backgroundColor: colors.muted },
+                            {
+                                backgroundColor: hexWithOpacity(
+                                    colors.muted,
+                                    0.85
+                                ),
+                            },
                         ]}
                     >
                         <Text
@@ -82,13 +89,25 @@ export function CapitalCard({ amount, currency }: CapitalCardProps) {
                 <View style={styles.liveRow}>
                     <View
                         style={[
-                            styles.liveDot,
+                            styles.liveDotHalo,
                             {
-                                backgroundColor: colors.emerald,
-                                shadowColor: colors.emerald,
+                                backgroundColor: hexWithOpacity(
+                                    colors.emerald,
+                                    0.22
+                                ),
                             },
                         ]}
-                    />
+                    >
+                        <View
+                            style={[
+                                styles.liveDot,
+                                {
+                                    backgroundColor: colors.emerald,
+                                    shadowColor: colors.emerald,
+                                },
+                            ]}
+                        />
+                    </View>
                     <Text
                         style={[
                             styles.liveText,
@@ -110,14 +129,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 40,
         padding: 32,
-    },
-    glowCircle: {
-        position: 'absolute',
-        top: -96,
-        right: -96,
-        width: 240,
-        height: 240,
-        borderRadius: 120,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.18,
+        shadowRadius: 20,
+        elevation: 6,
     },
     content: {
         gap: 12,
@@ -139,8 +155,8 @@ const styles = StyleSheet.create({
         flexShrink: 1,
     },
     currencyBadge: {
-        paddingHorizontal: 8,
-        paddingVertical: 3,
+        paddingHorizontal: 9,
+        paddingVertical: 4,
         borderRadius: 8,
     },
     currencyText: {
@@ -155,10 +171,17 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 8,
     },
+    liveDotHalo: {
+        width: 14,
+        height: 14,
+        borderRadius: 7,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     liveDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
+        width: 7,
+        height: 7,
+        borderRadius: 3.5,
         shadowOffset: { width: 0, height: 0 },
         shadowOpacity: 0.9,
         shadowRadius: 6,

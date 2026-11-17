@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
     Wallet,
     CreditCard,
@@ -19,7 +20,11 @@ interface AccountCardProps {
     showTopBorder?: boolean;
 }
 
-export function AccountCard({ account, onClick, showTopBorder }: AccountCardProps) {
+export function AccountCard({
+    account,
+    onClick,
+    showTopBorder,
+}: AccountCardProps) {
     const { t, i18n } = useTranslation();
     const colors = useThemeStore((state) => state.colors);
 
@@ -41,7 +46,7 @@ export function AccountCard({ account, onClick, showTopBorder }: AccountCardProp
                 styles.row,
                 showTopBorder && {
                     borderTopWidth: 1,
-                    borderTopColor: hexWithOpacity(colors.border, 0.5),
+                    borderTopColor: hexWithOpacity(colors.border, 0.45),
                 },
                 pressed && {
                     backgroundColor: hexWithOpacity(colors.muted, 0.45),
@@ -52,9 +57,21 @@ export function AccountCard({ account, onClick, showTopBorder }: AccountCardProp
                 <View
                     style={[
                         styles.iconBadge,
-                        { backgroundColor: badgeColor },
+                        {
+                            backgroundColor: badgeColor,
+                            shadowColor: badgeColor,
+                        },
                     ]}
                 >
+                    <LinearGradient
+                        colors={[
+                            'rgba(255,255,255,0.28)',
+                            'rgba(255,255,255,0)',
+                        ]}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.badgeGloss}
+                    />
                     <Icon size={20} color="#FFFFFF" />
                 </View>
                 <View style={styles.nameBlock}>
@@ -67,7 +84,12 @@ export function AccountCard({ account, onClick, showTopBorder }: AccountCardProp
                     <Text
                         style={[
                             styles.type,
-                            { color: hexWithOpacity(colors.mutedForeground, 0.7) },
+                            {
+                                color: hexWithOpacity(
+                                    colors.mutedForeground,
+                                    0.7
+                                ),
+                            },
                         ]}
                     >
                         {account.type}
@@ -94,7 +116,12 @@ export function AccountCard({ account, onClick, showTopBorder }: AccountCardProp
                         <Text
                             style={[
                                 styles.activeLabel,
-                                { color: hexWithOpacity(colors.mutedForeground, 0.55) },
+                                {
+                                    color: hexWithOpacity(
+                                        colors.mutedForeground,
+                                        0.55
+                                    ),
+                                },
                             ]}
                         >
                             {t('accounts.active')}
@@ -103,7 +130,7 @@ export function AccountCard({ account, onClick, showTopBorder }: AccountCardProp
                 </View>
                 <ChevronRight
                     size={18}
-                    color={hexWithOpacity(colors.mutedForeground, 0.4)}
+                    color={hexWithOpacity(colors.mutedForeground, 0.45)}
                 />
             </View>
         </Pressable>
@@ -115,7 +142,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 20,
+        padding: 18,
         gap: 12,
     },
     left: {
@@ -132,6 +159,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
+        overflow: 'hidden',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.25,
+        shadowRadius: 10,
+        elevation: 4,
+    },
+    badgeGloss: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
     },
     nameBlock: {
         flex: 1,
@@ -142,7 +181,7 @@ const styles = StyleSheet.create({
         fontFamily: FONT_FAMILY.bold,
     },
     type: {
-        fontSize: 12,
+        fontSize: 11,
         fontFamily: FONT_FAMILY.bold,
         textTransform: 'uppercase',
         letterSpacing: 1.5,
@@ -151,22 +190,22 @@ const styles = StyleSheet.create({
     right: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 10,
         flexShrink: 0,
     },
     balanceBlock: {
         alignItems: 'flex-end',
     },
     balance: {
-        fontSize: 17,
+        fontSize: 16,
         fontFamily: FONT_FAMILY.bold,
         letterSpacing: -0.3,
     },
     activeRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
-        marginTop: 2,
+        gap: 5,
+        marginTop: 3,
     },
     activeDot: {
         width: 6,
@@ -174,7 +213,7 @@ const styles = StyleSheet.create({
         borderRadius: 3,
     },
     activeLabel: {
-        fontSize: 11,
+        fontSize: 10.5,
         fontFamily: FONT_FAMILY.bold,
         textTransform: 'uppercase',
         letterSpacing: 1.2,

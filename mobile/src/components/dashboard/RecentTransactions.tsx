@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import type { Transaction } from '@/types';
@@ -88,9 +89,21 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                                     <View
                                         style={[
                                             styles.iconBox,
-                                            { backgroundColor: badgeBg },
+                                            {
+                                                backgroundColor: badgeBg,
+                                                shadowColor: badgeBg,
+                                            },
                                         ]}
                                     >
+                                        <LinearGradient
+                                            colors={[
+                                                'rgba(255,255,255,0.28)',
+                                                'rgba(255,255,255,0)',
+                                            ]}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
+                                            style={styles.iconGloss}
+                                        />
                                         {isIncome ? (
                                             <TrendingUp
                                                 size={18}
@@ -215,12 +228,17 @@ const styles = StyleSheet.create({
         borderRadius: 32,
         borderWidth: 1,
         overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.14,
+        shadowRadius: 16,
+        elevation: 4,
     },
     row: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: 20,
+        padding: 18,
         gap: 12,
     },
     rowLeft: {
@@ -231,12 +249,24 @@ const styles = StyleSheet.create({
         minWidth: 0,
     },
     iconBox: {
-        width: 40,
-        height: 40,
+        width: 42,
+        height: 42,
         borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
         flexShrink: 0,
+        overflow: 'hidden',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    iconGloss: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
     },
     textWrap: {
         flex: 1,

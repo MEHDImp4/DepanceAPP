@@ -383,26 +383,36 @@ export function AddAccountModal({
                                     <Pressable
                                         key={tItem.value}
                                         onPress={() => setType(tItem.value)}
-                                        style={[
+                                        style={({ pressed }) => [
                                             styles.typeBtn,
                                             {
                                                 borderColor: isSelected
                                                     ? colors.primary
-                                                    : 'transparent',
+                                                    : hexWithOpacity(
+                                                          colors.border,
+                                                          0.6
+                                                      ),
                                                 backgroundColor: isSelected
                                                     ? hexWithOpacity(
                                                           colors.primary,
-                                                          0.08
+                                                          0.1
                                                       )
                                                     : hexWithOpacity(
                                                           colors.muted,
                                                           0.6
                                                       ),
+                                                transform: [
+                                                    {
+                                                        scale: pressed
+                                                            ? 0.96
+                                                            : 1,
+                                                    },
+                                                ],
                                             },
                                         ]}
                                     >
                                         <tItem.icon
-                                            size={22}
+                                            size={20}
                                             color={
                                                 isSelected
                                                     ? colors.primary
@@ -449,15 +459,28 @@ export function AddAccountModal({
                                                 backgroundColor:
                                                     resolveColorHex(c),
                                                 borderColor: isSelected
-                                                    ? colors.primary
+                                                    ? '#FFFFFF'
                                                     : 'transparent',
-                                                borderWidth: isSelected ? 3 : 0,
+                                                borderWidth: isSelected ? 2.5 : 0,
+                                                opacity: isSelected ? 1 : 0.85,
                                                 transform: [
-                                                    { scale: isSelected ? 1.08 : 1 },
+                                                    {
+                                                        scale: isSelected
+                                                            ? 1.08
+                                                            : 1,
+                                                    },
                                                 ],
                                             },
                                         ]}
-                                    />
+                                    >
+                                        {isSelected ? (
+                                            <Check
+                                                size={15}
+                                                color="#FFFFFF"
+                                                strokeWidth={3.5}
+                                            />
+                                        ) : null}
+                                    </Pressable>
                                 );
                             })}
                         </View>
@@ -548,32 +571,35 @@ const styles = StyleSheet.create({
     },
     typeGrid: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
         gap: 8,
     },
     typeBtn: {
-        width: '31%',
+        flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 12,
-        borderRadius: 12,
-        borderWidth: 2,
-        gap: 4,
+        paddingVertical: 12,
+        paddingHorizontal: 4,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        gap: 5,
     },
     typeText: {
-        fontSize: 12,
-        fontFamily: FONT_FAMILY.medium,
+        fontSize: 11.5,
+        fontFamily: FONT_FAMILY.semibold,
         textTransform: 'capitalize',
     },
     colorGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 10,
+        justifyContent: 'space-between',
+        rowGap: 12,
     },
     colorSwatch: {
-        width: '14%',
+        width: '14.5%',
         aspectRatio: 1,
         borderRadius: 999,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     submitBtn: {
         paddingVertical: 16,

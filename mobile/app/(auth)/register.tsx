@@ -20,6 +20,7 @@ import api from '@/lib/axios';
 import { useAuthStore } from '@/store/auth-store';
 import { useThemeStore } from '@/store/theme-store';
 import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
+import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import type { User as UserType } from '@/types';
 
 export default function RegisterScreen() {
@@ -88,12 +89,11 @@ export default function RegisterScreen() {
         <SafeAreaView
             style={[styles.safe, { backgroundColor: colors.background }]}
         >
-            <View
-                pointerEvents="none"
-                style={[
-                    styles.bgGlow,
-                    { backgroundColor: hexWithOpacity(colors.primary, 0.08) },
-                ]}
+            <AmbientGlow
+                color={colors.primary}
+                opacity={0.18}
+                size={420}
+                style={{ top: -150, alignSelf: 'center' }}
             />
 
             <KeyboardAvoidingView
@@ -422,14 +422,6 @@ const styles = StyleSheet.create({
     flex: {
         flex: 1,
     },
-    bgGlow: {
-        position: 'absolute',
-        top: -120,
-        alignSelf: 'center',
-        width: 380,
-        height: 380,
-        borderRadius: 190,
-    },
     scrollContent: {
         flexGrow: 1,
         justifyContent: 'center',
@@ -443,6 +435,11 @@ const styles = StyleSheet.create({
         padding: 32,
         borderWidth: 1,
         gap: 28,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 14 },
+        shadowOpacity: 0.28,
+        shadowRadius: 24,
+        elevation: 10,
     },
     header: {
         alignItems: 'center',

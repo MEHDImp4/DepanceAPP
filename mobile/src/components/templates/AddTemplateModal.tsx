@@ -443,26 +443,32 @@ export function AddTemplateModal({
                                 <Pressable
                                     key={item.name}
                                     onPress={() => setIconName(item.name)}
-                                    style={[
+                                    style={({ pressed }) => [
                                         styles.iconCell,
                                         {
                                             borderColor: isSelected
                                                 ? colors.primary
-                                                : 'transparent',
+                                                : hexWithOpacity(
+                                                      colors.border,
+                                                      0.5
+                                                  ),
                                             backgroundColor: isSelected
                                                 ? hexWithOpacity(
                                                       colors.primary,
-                                                      0.08
+                                                      0.12
                                                   )
                                                 : hexWithOpacity(
                                                       colors.muted,
-                                                      0.6
+                                                      0.55
                                                   ),
+                                            transform: [
+                                                { scale: pressed ? 0.94 : 1 },
+                                            ],
                                         },
                                     ]}
                                 >
                                     <item.icon
-                                        size={22}
+                                        size={20}
                                         color={
                                             isSelected
                                                 ? colors.primary
@@ -497,15 +503,24 @@ export function AddTemplateModal({
                                             backgroundColor:
                                                 resolveColorHex(c),
                                             borderColor: isSelected
-                                                ? colors.primary
+                                                ? '#FFFFFF'
                                                 : 'transparent',
-                                            borderWidth: isSelected ? 3 : 0,
+                                            borderWidth: isSelected ? 2.5 : 0,
+                                            opacity: isSelected ? 1 : 0.85,
                                             transform: [
-                                                { scale: isSelected ? 1.08 : 1 },
+                                                { scale: isSelected ? 1.1 : 1 },
                                             ],
                                         },
                                     ]}
-                                />
+                                >
+                                    {isSelected ? (
+                                        <Check
+                                            size={15}
+                                            color="#FFFFFF"
+                                            strokeWidth={3.5}
+                                        />
+                                    ) : null}
+                                </Pressable>
                             );
                         })}
                     </View>
@@ -607,24 +622,27 @@ const styles = StyleSheet.create({
     iconGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: 8,
+        justifyContent: 'space-between',
+        rowGap: 8,
     },
     iconCell: {
-        width: '23%',
+        width: '15%',
+        aspectRatio: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 12,
         borderRadius: 12,
-        borderWidth: 2,
+        borderWidth: 1.5,
     },
     colorGrid: {
         flexDirection: 'row',
-        gap: 10,
+        justifyContent: 'space-between',
     },
     colorSwatch: {
-        flex: 1,
-        aspectRatio: 1,
-        borderRadius: 999,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     submitBtn: {
         paddingVertical: 16,

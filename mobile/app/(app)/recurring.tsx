@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
     Plus,
     Repeat,
@@ -27,6 +28,7 @@ import { useRecurring, useDeleteRecurring } from '@/hooks/use-api';
 import { useThemeStore } from '@/store/theme-store';
 import { formatCurrency } from '@/hooks/use-currency';
 import { FONT_FAMILY, hexWithOpacity, resolveColorHex } from '@/constants/theme';
+import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import { AddRecurringModal } from '@/components/recurring/AddRecurringModal';
 
 export default function RecurringScreen() {
@@ -203,42 +205,58 @@ export default function RecurringScreen() {
                         const isIncome = item.type === 'income';
 
                         return (
-                            <View
-                                key={item.id}
-                                style={[
-                                    styles.card,
-                                    {
-                                        backgroundColor: colors.card,
-                                        borderColor: hexWithOpacity(
-                                            colors.border,
-                                            0.6
-                                        ),
-                                    },
-                                ]}
-                            >
-                                <Pressable
-                                    onPress={() => handleDelete(item.id)}
-                                    style={({ pressed }) => [
-                                        styles.deleteBtn,
-                                        pressed && {
-                                            backgroundColor: colors.redSoft,
-                                        },
-                                    ]}
-                                    hitSlop={8}
-                                    accessibilityLabel="Delete recurring transaction"
-                                >
-                                    <Trash2 size={18} color={colors.red} />
-                                </Pressable>
-
+                            <React.Fragment key={item.id}>
                                 <View
                                     style={[
-                                        styles.iconBadge,
+                                        styles.card,
                                         {
-                                            backgroundColor: badgeColor,
-                                            borderColor: colors.whiteBorder,
+                                            backgroundColor: colors.card,
+                                            borderColor: hexWithOpacity(
+                                                colors.border,
+                                                0.7
+                                            ),
                                         },
                                     ]}
                                 >
+                                    <AmbientGlow
+                                        color={badgeColor}
+                                        opacity={0.12}
+                                        size={160}
+                                        style={{ top: -50, left: -50 }}
+                                    />
+                                    <Pressable
+                                        onPress={() => handleDelete(item.id)}
+                                        style={({ pressed }) => [
+                                            styles.deleteBtn,
+                                            pressed && {
+                                                backgroundColor: colors.redSoft,
+                                            },
+                                        ]}
+                                        hitSlop={8}
+                                        accessibilityLabel="Delete recurring transaction"
+                                    >
+                                        <Trash2 size={18} color={colors.red} />
+                                    </Pressable>
+
+                                    <View
+                                        style={[
+                                            styles.iconBadge,
+                                            {
+                                                backgroundColor: badgeColor,
+                                                borderColor: colors.whiteBorder,
+                                                shadowColor: badgeColor,
+                                            },
+                                        ]}
+                                    >
+                                        <LinearGradient
+                                            colors={[
+                                                'rgba(255,255,255,0.28)',
+                                                'rgba(255,255,255,0)',
+                                            ]}
+                                            start={{ x: 0, y: 1 }}
+                                            end={{ x: 1, y: 0 }}
+                                            style={styles.badgeGloss}
+                                        />
                                     <Repeat
                                         size={28}
                                         color="#FFFFFF"
@@ -340,7 +358,8 @@ export default function RecurringScreen() {
                                         Next: {nextRunLabel}
                                     </Text>
                                 </View>
-                            </View>
+                                </View>
+                            </React.Fragment>
                         );
                     })}
                 </View>
@@ -442,11 +461,17 @@ const styles = StyleSheet.create({
     },
     card: {
         position: 'relative',
+        overflow: 'hidden',
         borderRadius: 32,
         borderWidth: 1,
         padding: 24,
         alignItems: 'center',
         gap: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.14,
+        shadowRadius: 16,
+        elevation: 4,
     },
     deleteBtn: {
         position: 'absolute',
@@ -463,6 +488,18 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.28,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    badgeGloss: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
     },
     metaBlock: {
         alignItems: 'center',

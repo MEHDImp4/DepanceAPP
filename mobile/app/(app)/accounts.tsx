@@ -27,6 +27,7 @@ import {
 } from '@/hooks/use-currency';
 import { useAuthStore } from '@/store/auth-store';
 import { useThemeStore } from '@/store/theme-store';
+import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
 import type { Account } from '@/types';
 
@@ -34,7 +35,7 @@ export default function AccountsScreen() {
     const { t, i18n } = useTranslation();
     const insets = useSafeAreaInsets();
     const user = useAuthStore((state) => state.user);
-    const colors = useThemeStore((state) => state.colors);
+    const { theme, colors } = useThemeStore();
 
     const { data: accounts = [], isLoading, refetch } = useAccounts();
     const createAccount = useCreateAccount();
@@ -177,16 +178,18 @@ export default function AccountsScreen() {
                     styles.overviewCard,
                     {
                         backgroundColor: colors.card,
-                        borderColor: colors.border,
+                        borderColor:
+                            theme === 'dark'
+                                ? 'rgba(255, 255, 255, 0.08)'
+                                : colors.border,
                     },
                 ]}
             >
-                <View
-                    pointerEvents="none"
-                    style={[
-                        styles.glowCircle,
-                        { backgroundColor: hexWithOpacity(colors.primary, 0.08) },
-                    ]}
+                <AmbientGlow
+                    color={colors.primary}
+                    opacity={theme === 'dark' ? 0.16 : 0.1}
+                    size={240}
+                    style={{ top: -90, right: -85 }}
                 />
                 <View style={styles.overviewContent}>
                     <Text
@@ -344,14 +347,11 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderRadius: 40,
         padding: 32,
-    },
-    glowCircle: {
-        position: 'absolute',
-        top: -96,
-        right: -96,
-        width: 240,
-        height: 240,
-        borderRadius: 120,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.18,
+        shadowRadius: 20,
+        elevation: 6,
     },
     overviewContent: {
         gap: 12,

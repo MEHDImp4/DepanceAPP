@@ -46,6 +46,11 @@ export function GoalCard({
                 {
                     backgroundColor: colors.card,
                     borderColor: colors.border,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 8 },
+                    shadowOpacity: 0.16,
+                    shadowRadius: 16,
+                    elevation: 5,
                 },
             ]}
         >

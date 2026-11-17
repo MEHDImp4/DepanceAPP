@@ -8,6 +8,7 @@ import {
     StyleSheet,
     type ViewStyle,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { Check, ChevronDown } from 'lucide-react-native';
 import { useThemeStore } from '@/store/theme-store';
 import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
@@ -34,7 +35,7 @@ export function PremiumSelect<T extends string | number>({
     style,
 }: PremiumSelectProps<T>) {
     const [isOpen, setIsOpen] = useState(false);
-    const colors = useThemeStore((state) => state.colors);
+    const { theme, colors } = useThemeStore();
 
     const selectedOption = options.find((opt) => opt.value === value);
 
@@ -52,7 +53,8 @@ export function PremiumSelect<T extends string | number>({
                     {
                         backgroundColor: pressed
                             ? colors.muted
-                            : hexWithOpacity(colors.muted, 0.7),
+                            : hexWithOpacity(colors.muted, 0.72),
+                        borderColor: hexWithOpacity(colors.border, 0.6),
                     },
                     style,
                 ]}
@@ -92,15 +94,27 @@ export function PremiumSelect<T extends string | number>({
             >
                 <View style={styles.modalRoot}>
                     <Pressable
-                        style={[styles.backdrop, { backgroundColor: colors.overlay }]}
+                        style={styles.backdrop}
                         onPress={() => setIsOpen(false)}
-                    />
+                    >
+                        <BlurView
+                            intensity={24}
+                            tint={theme === 'dark' ? 'dark' : 'light'}
+                            style={[
+                                styles.backdropBlur,
+                                { backgroundColor: colors.overlay },
+                            ]}
+                        />
+                    </Pressable>
                     <View
                         style={[
                             styles.dropdown,
                             {
-                                backgroundColor: colors.popover,
-                                borderColor: colors.border,
+                                backgroundColor: colors.card,
+                                borderColor:
+                                    theme === 'dark'
+                                        ? 'rgba(255, 255, 255, 0.12)'
+                                        : colors.border,
                             },
                         ]}
                     >
@@ -113,14 +127,22 @@ export function PremiumSelect<T extends string | number>({
                                 return (
                                     <Pressable
                                         key={String(option.value)}
-                                        onPress={() => handleSelect(option.value)}
+                                        onPress={() =>
+                                            handleSelect(option.value)
+                                        }
                                         style={({ pressed }) => [
                                             styles.optionRow,
                                             {
                                                 backgroundColor: isSelected
-                                                    ? hexWithOpacity(colors.primary, 0.1)
+                                                    ? hexWithOpacity(
+                                                          colors.primary,
+                                                          0.12
+                                                      )
                                                     : pressed
-                                                    ? hexWithOpacity(colors.muted, 0.6)
+                                                    ? hexWithOpacity(
+                                                          colors.muted,
+                                                          0.65
+                                                      )
                                                     : 'transparent',
                                             },
                                         ]}
@@ -133,6 +155,9 @@ export function PremiumSelect<T extends string | number>({
                                                         color: isSelected
                                                             ? colors.primary
                                                             : colors.foreground,
+                                                        fontFamily: isSelected
+                                                            ? FONT_FAMILY.bold
+                                                            : FONT_FAMILY.medium,
                                                     },
                                                 ]}
                                                 numberOfLines={1}
@@ -143,7 +168,9 @@ export function PremiumSelect<T extends string | number>({
                                                 <Text
                                                     style={[
                                                         styles.optionSecondary,
-                                                        { color: colors.mutedForeground },
+                                                        {
+                                                            color: colors.mutedForeground,
+                                                        },
                                                     ]}
                                                 >
                                                     {option.secondaryLabel}
@@ -151,7 +178,11 @@ export function PremiumSelect<T extends string | number>({
                                             ) : null}
                                         </View>
                                         {isSelected ? (
-                                            <Check size={16} color={colors.primary} strokeWidth={2.5} />
+                                            <Check
+                                                size={16}
+                                                color={colors.primary}
+                                                strokeWidth={2.5}
+                                            />
                                         ) : null}
                                     </Pressable>
                                 );
@@ -175,6 +206,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingHorizontal: 12,
         borderRadius: 12,
+        borderWidth: 1,
         gap: 8,
     },
     triggerTextWrap: {
@@ -197,28 +229,33 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
     },
+    backdropBlur: {
+        flex: 1,
+    },
     dropdown: {
         width: '100%',
         maxWidth: 380,
-        maxHeight: 340,
-        borderRadius: 20,
+        maxHeight: 360,
+        borderRadius: 24,
         borderWidth: 1,
-        paddingVertical: 6,
+        paddingVertical: 8,
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 12 },
-        shadowOpacity: 0.35,
-        shadowRadius: 20,
-        elevation: 16,
+        shadowOffset: { width: 0, height: 14 },
+        shadowOpacity: 0.4,
+        shadowRadius: 24,
+        elevation: 18,
     },
     optionsList: {
-        maxHeight: 320,
+        maxHeight: 340,
     },
     optionRow: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        paddingVertical: 12,
+        paddingHorizontal: 18,
+        paddingVertical: 13,
+        marginHorizontal: 6,
+        borderRadius: 12,
         gap: 12,
     },
     optionLabels: {
@@ -230,7 +267,6 @@ const styles = StyleSheet.create({
     },
     optionText: {
         fontSize: 14,
-        fontFamily: FONT_FAMILY.medium,
         flexShrink: 1,
     },
     optionSecondary: {

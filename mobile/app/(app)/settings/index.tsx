@@ -33,6 +33,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useThemeStore } from '@/store/theme-store';
 import { useUpdateProfile } from '@/hooks/use-api';
 import { PremiumSelect } from '@/components/ui/PremiumSelect';
+import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
 import type { User } from '@/types';
 
@@ -219,28 +220,31 @@ export default function SettingsScreen() {
             </View>
 
             {/* Profile Card */}
-            <View
-                style={[
+            <Pressable
+                onPress={() => router.push('/settings/profile')}
+                style={({ pressed }) => [
                     styles.profileCard,
                     {
                         backgroundColor: colors.card,
-                        borderColor: colors.border,
+                        borderColor:
+                            theme === 'dark'
+                                ? 'rgba(255, 255, 255, 0.08)'
+                                : colors.border,
+                        transform: [{ scale: pressed ? 0.985 : 1 }],
                     },
                 ]}
             >
-                <View
-                    pointerEvents="none"
-                    style={[
-                        styles.profileGlowTop,
-                        { backgroundColor: hexWithOpacity(colors.primary, 0.08) },
-                    ]}
+                <AmbientGlow
+                    color={colors.primary}
+                    opacity={theme === 'dark' ? 0.16 : 0.1}
+                    size={220}
+                    style={{ top: -85, right: -85 }}
                 />
-                <View
-                    pointerEvents="none"
-                    style={[
-                        styles.profileGlowBottom,
-                        { backgroundColor: hexWithOpacity(colors.primary, 0.06) },
-                    ]}
+                <AmbientGlow
+                    color={colors.primary}
+                    opacity={theme === 'dark' ? 0.12 : 0.07}
+                    size={200}
+                    style={{ bottom: -85, left: -85 }}
                 />
 
                 <View style={styles.profileInner}>
@@ -303,7 +307,7 @@ export default function SettingsScreen() {
                         </View>
                     </View>
                 </View>
-            </View>
+            </Pressable>
 
             {/* Sections */}
             <View style={styles.sectionsStack}>
@@ -501,22 +505,11 @@ const styles = StyleSheet.create({
         borderRadius: 40,
         borderWidth: 1,
         padding: 32,
-    },
-    profileGlowTop: {
-        position: 'absolute',
-        top: -96,
-        right: -96,
-        width: 240,
-        height: 240,
-        borderRadius: 120,
-    },
-    profileGlowBottom: {
-        position: 'absolute',
-        bottom: -96,
-        left: -96,
-        width: 240,
-        height: 240,
-        borderRadius: 120,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.16,
+        shadowRadius: 20,
+        elevation: 6,
     },
     profileInner: {
         alignItems: 'center',
@@ -631,7 +624,7 @@ const styles = StyleSheet.create({
         fontFamily: FONT_FAMILY.semibold,
     },
     selectBox: {
-        minWidth: 120,
+        minWidth: 132,
     },
     logoutBtn: {
         padding: 16,

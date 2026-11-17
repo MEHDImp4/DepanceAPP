@@ -9,9 +9,10 @@ import {
     Platform,
     StyleSheet,
 } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { X } from 'lucide-react-native';
 import { useThemeStore } from '@/store/theme-store';
-import { FONT_FAMILY } from '@/constants/theme';
+import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
 
 interface ModalWrapperProps {
     isOpen: boolean;
@@ -32,7 +33,7 @@ export function ModalWrapper({
     surfaceColor,
     children,
 }: ModalWrapperProps) {
-    const colors = useThemeStore((state) => state.colors);
+    const { theme, colors } = useThemeStore();
     const bg = surfaceColor || colors.card;
 
     return (
@@ -45,10 +46,19 @@ export function ModalWrapper({
         >
             <View style={styles.root}>
                 <Pressable
-                    style={[styles.backdrop, { backgroundColor: colors.overlay }]}
+                    style={styles.backdrop}
                     onPress={onClose}
                     accessibilityLabel="Close modal"
-                />
+                >
+                    <BlurView
+                        intensity={28}
+                        tint={theme === 'dark' ? 'dark' : 'light'}
+                        style={[
+                            styles.backdropBlur,
+                            { backgroundColor: colors.overlay },
+                        ]}
+                    />
+                </Pressable>
 
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -60,7 +70,10 @@ export function ModalWrapper({
                             styles.card,
                             {
                                 backgroundColor: bg,
-                                borderColor: colors.border,
+                                borderColor:
+                                    theme === 'dark'
+                                        ? 'rgba(255, 255, 255, 0.12)'
+                                        : colors.border,
                             },
                         ]}
                     >
@@ -68,7 +81,10 @@ export function ModalWrapper({
                             style={[
                                 styles.header,
                                 {
-                                    borderBottomColor: colors.whiteBorder,
+                                    borderBottomColor: hexWithOpacity(
+                                        colors.border,
+                                        0.5
+                                    ),
                                 },
                             ]}
                         >
@@ -106,12 +122,15 @@ export function ModalWrapper({
                                         backgroundColor: pressed
                                             ? colors.muted
                                             : colors.whiteSubtle,
+                                        transform: [
+                                            { scale: pressed ? 0.92 : 1 },
+                                        ],
                                     },
                                 ]}
                                 accessibilityRole="button"
                                 accessibilityLabel="Close"
                             >
-                                <X size={20} color={colors.mutedForeground} />
+                                <X size={19} color={colors.mutedForeground} />
                             </Pressable>
                         </View>
 
@@ -144,6 +163,9 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
     },
+    backdropBlur: {
+        flex: 1,
+    },
     keyboardView: {
         width: '100%',
         maxWidth: 448,
@@ -157,10 +179,10 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         overflow: 'hidden',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 16 },
-        shadowOpacity: 0.35,
-        shadowRadius: 24,
-        elevation: 16,
+        shadowOffset: { width: 0, height: 18 },
+        shadowOpacity: 0.4,
+        shadowRadius: 28,
+        elevation: 18,
     },
     header: {
         flexDirection: 'row',
@@ -183,7 +205,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 20,
         fontFamily: FONT_FAMILY.bold,
-        letterSpacing: -0.3,
+        letterSpacing: -0.4,
     },
     subtitle: {
         fontSize: 11,
@@ -193,9 +215,9 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
     closeBtn: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -204,5 +226,6 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         padding: 24,
+        paddingBottom: 28,
     },
 });

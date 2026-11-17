@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { Target, Repeat, Settings, ChevronRight } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useThemeStore } from '@/store/theme-store';
@@ -23,7 +24,7 @@ export function MoreMenuDrawer({ open, onClose }: MoreMenuDrawerProps) {
     const router = useRouter();
     const pathname = usePathname();
     const insets = useSafeAreaInsets();
-    const colors = useThemeStore((state) => state.colors);
+    const { theme, colors } = useThemeStore();
 
     const menuItems = [
         {
@@ -67,76 +68,139 @@ export function MoreMenuDrawer({ open, onClose }: MoreMenuDrawerProps) {
         >
             <View style={styles.root}>
                 <Pressable
-                    style={[styles.backdrop, { backgroundColor: 'rgba(0,0,0,0.75)' }]}
+                    style={styles.backdrop}
                     onPress={onClose}
                     accessibilityLabel="Close menu"
-                />
+                >
+                    <BlurView
+                        intensity={25}
+                        tint={theme === 'dark' ? 'dark' : 'light'}
+                        style={[
+                            styles.backdropBlur,
+                            { backgroundColor: 'rgba(0, 0, 0, 0.68)' },
+                        ]}
+                    />
+                </Pressable>
+
                 <View
                     style={[
                         styles.sheet,
                         {
                             backgroundColor: colors.card,
-                            borderTopColor: colors.border,
-                            paddingBottom: Math.max(insets.bottom, 24) + 16,
+                            borderTopColor:
+                                theme === 'dark'
+                                    ? 'rgba(255, 255, 255, 0.12)'
+                                    : colors.border,
+                            paddingBottom: Math.max(insets.bottom, 24) + 18,
                         },
                     ]}
                 >
-                    <View style={[styles.handle, { backgroundColor: colors.muted }]} />
+                    <View
+                        style={[
+                            styles.handle,
+                            {
+                                backgroundColor: hexWithOpacity(
+                                    colors.mutedForeground,
+                                    0.35
+                                ),
+                            },
+                        ]}
+                    />
                     <Text style={[styles.title, { color: colors.foreground }]}>
                         {t('nav.more_options', 'More Options')}
                     </Text>
 
                     <View style={styles.list}>
-                        {menuItems.map(({ icon: Icon, label, path, matchPrefix, color, bg }) => {
-                            const isActive = pathname.startsWith(matchPrefix);
-                            return (
-                                <Pressable
-                                    key={path}
-                                    onPress={() => handleNavigate(path)}
-                                    style={({ pressed }) => [
-                                        styles.itemRow,
-                                        {
-                                            backgroundColor: isActive
-                                                ? hexWithOpacity(colors.primary, 0.12)
-                                                : pressed
-                                                ? hexWithOpacity(colors.muted, 0.7)
-                                                : hexWithOpacity(colors.muted, 0.35),
-                                            borderColor: isActive
-                                                ? hexWithOpacity(colors.primary, 0.3)
-                                                : colors.whiteBorder,
-                                        },
-                                    ]}
-                                >
-                                    <View
-                                        style={[
-                                            styles.iconWrap,
+                        {menuItems.map(
+                            ({
+                                icon: Icon,
+                                label,
+                                path,
+                                matchPrefix,
+                                color,
+                                bg,
+                            }) => {
+                                const isActive =
+                                    pathname.startsWith(matchPrefix);
+                                return (
+                                    <Pressable
+                                        key={path}
+                                        onPress={() => handleNavigate(path)}
+                                        style={({ pressed }) => [
+                                            styles.itemRow,
                                             {
-                                                backgroundColor: isActive ? colors.primary : bg,
+                                                backgroundColor: isActive
+                                                    ? hexWithOpacity(
+                                                          colors.primary,
+                                                          0.12
+                                                      )
+                                                    : pressed
+                                                    ? hexWithOpacity(
+                                                          colors.muted,
+                                                          0.8
+                                                      )
+                                                    : hexWithOpacity(
+                                                          colors.muted,
+                                                          0.4
+                                                      ),
+                                                borderColor: isActive
+                                                    ? hexWithOpacity(
+                                                          colors.primary,
+                                                          0.3
+                                                      )
+                                                    : colors.whiteBorder,
+                                                transform: [
+                                                    {
+                                                        scale: pressed
+                                                            ? 0.97
+                                                            : 1,
+                                                    },
+                                                ],
                                             },
                                         ]}
                                     >
-                                        <Icon
-                                            size={22}
-                                            color={isActive ? colors.primaryForeground : color}
+                                        <View
+                                            style={[
+                                                styles.iconWrap,
+                                                {
+                                                    backgroundColor: isActive
+                                                        ? colors.primary
+                                                        : bg,
+                                                },
+                                            ]}
+                                        >
+                                            <Icon
+                                                size={22}
+                                                color={
+                                                    isActive
+                                                        ? colors.primaryForeground
+                                                        : color
+                                                }
+                                            />
+                                        </View>
+                                        <Text
+                                            style={[
+                                                styles.itemLabel,
+                                                {
+                                                    color: isActive
+                                                        ? colors.primary
+                                                        : colors.foreground,
+                                                },
+                                            ]}
+                                        >
+                                            {label}
+                                        </Text>
+                                        <ChevronRight
+                                            size={20}
+                                            color={hexWithOpacity(
+                                                colors.mutedForeground,
+                                                0.5
+                                            )}
                                         />
-                                    </View>
-                                    <Text
-                                        style={[
-                                            styles.itemLabel,
-                                            {
-                                                color: isActive ? colors.primary : colors.foreground,
-                                            },
-                                        ]}
-                                    >
-                                        {label}
-                                    </Text>
-                                    <ChevronRight
-                                        size={20}
-                                        color={hexWithOpacity(colors.mutedForeground, 0.5)}
-                                    />
-                                </Pressable>
-                            );
-                        })}
+                                    </Pressable>
+                                );
+                            }
+                        )}
                     </View>
                 </View>
             </View>
@@ -156,25 +220,34 @@ const styles = StyleSheet.create({
         right: 0,
         bottom: 0,
     },
+    backdropBlur: {
+        flex: 1,
+    },
     sheet: {
-        borderTopLeftRadius: 24,
-        borderTopRightRadius: 24,
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
         borderTopWidth: 1,
         paddingHorizontal: 20,
         paddingTop: 14,
         alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -8 },
+        shadowOpacity: 0.35,
+        shadowRadius: 20,
+        elevation: 20,
     },
     handle: {
-        width: 100,
-        height: 8,
-        borderRadius: 4,
-        marginBottom: 16,
+        width: 84,
+        height: 5,
+        borderRadius: 3,
+        marginBottom: 18,
     },
     title: {
         fontSize: 18,
         fontFamily: FONT_FAMILY.bold,
         marginBottom: 18,
         textAlign: 'center',
+        letterSpacing: -0.3,
     },
     list: {
         width: '100%',
@@ -185,7 +258,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         padding: 16,
-        borderRadius: 16,
+        borderRadius: 18,
         borderWidth: 1,
         gap: 16,
     },

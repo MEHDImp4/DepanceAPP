@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
     Plus,
     Wallet,
@@ -47,6 +48,7 @@ import {
 import { useThemeStore } from '@/store/theme-store';
 import { formatCurrency } from '@/hooks/use-currency';
 import { FONT_FAMILY, hexWithOpacity, resolveColorHex } from '@/constants/theme';
+import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import { AddTemplateModal } from '@/components/templates/AddTemplateModal';
 import type { Template } from '@/types';
 
@@ -283,7 +285,7 @@ export default function TemplatesScreen() {
                                         ? hexWithOpacity(colors.primary, 0.08)
                                         : isEditMode
                                         ? hexWithOpacity(colors.emerald, 0.06)
-                                        : hexWithOpacity(colors.card, 0.8),
+                                        : hexWithOpacity(colors.card, 0.85),
                                     borderColor: isApplying
                                         ? hexWithOpacity(colors.primary, 0.5)
                                         : isEditMode
@@ -293,15 +295,32 @@ export default function TemplatesScreen() {
                                 },
                             ]}
                         >
+                            <AmbientGlow
+                                color={badgeBg}
+                                opacity={0.14}
+                                size={170}
+                                style={{ top: -55, right: -55 }}
+                            />
+
                             <View
                                 style={[
                                     styles.iconBadge,
                                     {
                                         backgroundColor: badgeBg,
                                         borderColor: colors.whiteBorder,
+                                        shadowColor: badgeBg,
                                     },
                                 ]}
                             >
+                                <LinearGradient
+                                    colors={[
+                                        'rgba(255,255,255,0.28)',
+                                        'rgba(255,255,255,0)',
+                                    ]}
+                                    start={{ x: 0, y: 1 }}
+                                    end={{ x: 1, y: 0 }}
+                                    style={styles.badgeGloss}
+                                />
                                 {isApplying ? (
                                     <Plus
                                         size={28}
@@ -516,11 +535,18 @@ const styles = StyleSheet.create({
         gap: 16,
     },
     templateCard: {
+        position: 'relative',
+        overflow: 'hidden',
         borderRadius: 32,
         borderWidth: 1,
         padding: 24,
         alignItems: 'center',
         gap: 12,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.16,
+        shadowRadius: 16,
+        elevation: 5,
     },
     iconBadge: {
         width: 64,
@@ -529,6 +555,18 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 12,
+        elevation: 6,
+    },
+    badgeGloss: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
     },
     cardMeta: {
         alignItems: 'center',
