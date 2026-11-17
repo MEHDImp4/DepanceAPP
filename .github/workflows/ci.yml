@@ -94,3 +94,36 @@ jobs:
       - name: Build server
         working-directory: ./server
         run: npm run build
+
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: Install mobile dependencies
+        working-directory: ./mobile
+        run: npm ci
+      - name: Typecheck mobile
+        working-directory: ./mobile
+        run: npm run typecheck
+      - name: Lint mobile
+        working-directory: ./mobile
+        run: npm run lint
+      - name: Test mobile
+        working-directory: ./mobile
+        run: npm test -- --runInBand
+      - name: Expo Doctor
+        working-directory: ./mobile
+        run: npx expo-doctor
+      - name: Bundle Android
+        working-directory: ./mobile
+        run: CI=1 npx expo export --platform android --output-dir /tmp/depance-android-export
+      - name: Bundle iOS
+        working-directory: ./mobile
+        run: CI=1 npx expo export --platform ios --output-dir /tmp/depance-ios-export

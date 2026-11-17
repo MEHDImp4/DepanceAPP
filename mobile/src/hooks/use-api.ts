@@ -26,8 +26,13 @@ export function useTransaction(id: number) {
 }
 
 export function useUpdateProfile() {
+    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: (data: Partial<User>) => api.put<User>('/auth/profile', data),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['summary'] });
+            queryClient.invalidateQueries({ queryKey: ['accountSummary'] });
+        },
     });
 }
 
@@ -83,6 +88,16 @@ export function useTransactions() {
 }
 
 // Accounts
+export function useAccountSummary() {
+    return useQuery({
+        queryKey: ['accountSummary'],
+        queryFn: async () => {
+            const { data } = await api.get<{ totalBalance: number; currency: string; accountCount: number }>('/accounts/summary');
+            return data;
+        },
+    });
+}
+
 export function useAccounts() {
     return useQuery({
         queryKey: ['accounts'],
@@ -100,6 +115,7 @@ export function useCreateAccount() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
             queryClient.invalidateQueries({ queryKey: ['summary'] });
+            queryClient.invalidateQueries({ queryKey: ['accountSummary'] });
         },
     });
 }
@@ -112,6 +128,7 @@ export function useUpdateAccount() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
             queryClient.invalidateQueries({ queryKey: ['summary'] });
+            queryClient.invalidateQueries({ queryKey: ['accountSummary'] });
         },
     });
 }
@@ -124,6 +141,7 @@ export function useDeleteAccount() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
             queryClient.invalidateQueries({ queryKey: ['summary'] });
+            queryClient.invalidateQueries({ queryKey: ['accountSummary'] });
         },
     });
 }
@@ -141,6 +159,7 @@ export function useCreateTransfer() {
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
             queryClient.invalidateQueries({ queryKey: ['summary'] });
+            queryClient.invalidateQueries({ queryKey: ['accountSummary'] });
         },
     });
 }
@@ -160,17 +179,15 @@ export function useSummary() {
     return useQuery({
         queryKey: ['summary'],
         queryFn: async () => {
-            const [accounts, transactions] = await Promise.all([
-                api.get<Account[]>('/accounts'),
+            const [summary, transactions] = await Promise.all([
+                api.get<{ totalBalance: number; currency: string }>('/accounts/summary'),
                 api.get<TransactionPage>('/transactions', { params: { limit: 5 } }),
             ]);
 
-            const totalCapital = accounts.data.reduce((acc, curr) => acc + curr.balance, 0);
-
             return {
-                totalCapital,
+                totalCapital: summary.data.totalBalance,
+                currency: summary.data.currency,
                 transactions: transactions.data.items,
-                accounts: accounts.data,
             };
         },
     });
@@ -184,6 +201,7 @@ export function useCreateTransaction() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
             queryClient.invalidateQueries({ queryKey: ['summary'] });
+            queryClient.invalidateQueries({ queryKey: ['accountSummary'] });
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
         },
     });
@@ -196,6 +214,7 @@ export function useDeleteTransaction() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] });
             queryClient.invalidateQueries({ queryKey: ['summary'] });
+            queryClient.invalidateQueries({ queryKey: ['accountSummary'] });
             queryClient.invalidateQueries({ queryKey: ['accounts'] });
         },
     });
@@ -292,6 +311,7 @@ export function useProcessRecurring() {
                 queryClient.invalidateQueries({ queryKey: ['transactions'] });
                 queryClient.invalidateQueries({ queryKey: ['accounts'] });
                 queryClient.invalidateQueries({ queryKey: ['summary'] });
+            queryClient.invalidateQueries({ queryKey: ['accountSummary'] });
                 queryClient.invalidateQueries({ queryKey: ['recurring'] });
             }
         },

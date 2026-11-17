@@ -30,6 +30,8 @@ interface AddTransactionModalProps {
         }
     ) => void;
     initialData?: Partial<Transaction>;
+    isSubmitting?: boolean;
+    submitError?: string;
 }
 
 export function AddTransactionModal({
@@ -37,6 +39,8 @@ export function AddTransactionModal({
     onClose,
     onAdd,
     initialData,
+    isSubmitting = false,
+    submitError,
 }: AddTransactionModalProps) {
     const { t } = useTranslation();
     const colors = useThemeStore((state) => state.colors);
@@ -172,17 +176,16 @@ export function AddTransactionModal({
                     ? Number(formData.category_id)
                     : undefined,
         });
-        onClose();
     };
 
     return (
         <ModalWrapper
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={() => { if (!isSubmitting) onClose(); }}
             title={t('transactions.add_new')}
         >
             <View style={styles.form}>
-                {error ? (
+                {(error || submitError) ? (
                     <View
                         style={[
                             styles.errorBanner,
@@ -195,7 +198,7 @@ export function AddTransactionModal({
                                 { color: colors.destructive },
                             ]}
                         >
-                            {error}
+                            {error || submitError}
                         </Text>
                     </View>
                 ) : null}
@@ -469,15 +472,16 @@ export function AddTransactionModal({
                 {/* Submit Button */}
                 <Pressable
                     onPress={handleSubmit}
+                    disabled={isSubmitting}
                     style={({ pressed }) => [
                         styles.submitBtn,
                         {
                             backgroundColor: colors.primary,
-                            opacity: pressed ? 0.9 : 1,
+                            opacity: isSubmitting ? 0.5 : pressed ? 0.9 : 1,
                         },
                     ]}
                 >
-                    <Check size={20} color={colors.primaryForeground} />
+                    {isSubmitting ? <ActivityIndicator color={colors.primaryForeground} /> : <Check size={20} color={colors.primaryForeground} />}
                     <Text
                         style={[
                             styles.submitText,

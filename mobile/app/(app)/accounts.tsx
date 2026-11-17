@@ -17,19 +17,17 @@ import { AddAccountModal } from '@/components/accounts/AddAccountModal';
 import { TransferModal } from '@/components/accounts/TransferModal';
 import {
     useAccounts,
+    useAccountSummary,
     useCreateAccount,
     useUpdateAccount,
 } from '@/hooks/use-api';
-import {
-    useCurrencyRates,
-    convertCurrency,
-    formatDecimal,
-} from '@/hooks/use-currency';
+import { formatDecimal } from '@/hooks/use-currency';
 import { useAuthStore } from '@/store/auth-store';
 import { useThemeStore } from '@/store/theme-store';
 import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
 import type { Account } from '@/types';
+import { isAxiosError } from 'axios';
 
 export default function AccountsScreen() {
     const { t, i18n } = useTranslation();
@@ -40,9 +38,10 @@ export default function AccountsScreen() {
     const { data: accounts = [], isLoading, refetch } = useAccounts();
     const createAccount = useCreateAccount();
     const updateAccount = useUpdateAccount();
-    const { data: ratesData, refetch: refetchRates } = useCurrencyRates();
+    const { data: accountSummary, refetch: refetchSummary } = useAccountSummary();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [accountSubmitError, setAccountSubmitError] = useState('');
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
     const [refreshing, setRefreshing] = useState(false);
@@ -50,46 +49,46 @@ export default function AccountsScreen() {
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         try {
-            await Promise.all([refetch(), refetchRates()]);
+            await Promise.all([refetch(), refetchSummary()]);
         } finally {
             setRefreshing(false);
         }
-    }, [refetch, refetchRates]);
+    }, [refetch, refetchSummary]);
 
     const handleSave = (accountData: Omit<Account, 'id'> | Account) => {
+        if (createAccount.isPending || updateAccount.isPending) return;
+        setAccountSubmitError('');
+        const onSuccess = () => {
+            setIsModalOpen(false);
+            setSelectedAccount(null);
+        };
+        const onError = (error: unknown) => {
+            setAccountSubmitError(
+                isAxiosError<{ error?: string }>(error)
+                    ? error.response?.data?.error || 'Could not save account'
+                    : 'Could not save account'
+            );
+        };
         if ('id' in accountData) {
-            updateAccount.mutate(accountData as Account, {
-                onSuccess: () => {
-                    setIsModalOpen(false);
-                    setSelectedAccount(null);
-                },
-            });
+            updateAccount.mutate(accountData as Account, { onSuccess, onError });
         } else {
-            createAccount.mutate(accountData, {
-                onSuccess: () => setIsModalOpen(false),
-            });
+            createAccount.mutate(accountData, { onSuccess, onError });
         }
     };
 
     const handleEditAccount = (account: Account) => {
+        setAccountSubmitError('');
         setSelectedAccount(account);
         setIsModalOpen(true);
     };
 
     const handleAddClick = () => {
+        setAccountSubmitError('');
         setSelectedAccount(null);
         setIsModalOpen(true);
     };
 
-    const totalNetWorth = accounts.reduce((acc, curr) => {
-        const convertedBalance = convertCurrency(
-            curr.balance,
-            curr.currency,
-            user?.currency || 'USD',
-            ratesData?.rates
-        );
-        return acc + convertedBalance;
-    }, 0);
+
 
     if (isLoading) {
         return (
@@ -99,12 +98,10 @@ export default function AccountsScreen() {
         );
     }
 
-    const formattedNetWorth = formatDecimal(
-        totalNetWorth,
-        i18n.language,
-        2,
-        2
-    );
+    // Never show an incorrect mixed-currency total if server conversion is unavailable.
+    const formattedNetWorth = accountSummary
+        ? formatDecimal(accountSummary.totalBalance, i18n.language, 2, 2)
+        : '—';
     const len = formattedNetWorth.length;
     const netWorthFontSize = len > 13 ? 24 : len > 10 ? 30 : len > 7 ? 36 : 46;
 
@@ -237,7 +234,7 @@ export default function AccountsScreen() {
                                     { color: colors.mutedForeground },
                                 ]}
                             >
-                                {user?.currency || 'USD'}
+                                {accountSummary?.currency || user?.currency || 'USD'}
                             </Text>
                         </View>
                     </View>
@@ -288,6 +285,8 @@ export default function AccountsScreen() {
                 }}
                 onAdd={handleSave}
                 account={selectedAccount}
+                isSubmitting={createAccount.isPending || updateAccount.isPending}
+                submitError={accountSubmitError}
             />
 
             <TransferModal

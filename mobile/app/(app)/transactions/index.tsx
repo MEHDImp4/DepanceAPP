@@ -9,6 +9,7 @@ import {
     RefreshControl,
     StyleSheet,
 } from 'react-native';
+import { isAxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -28,9 +29,9 @@ import {
     useCreateTransaction,
     useCategories,
 } from '@/hooks/use-api';
-import { useAuthStore } from '@/store/auth-store';
 import { useThemeStore } from '@/store/theme-store';
 import { formatCurrency } from '@/hooks/use-currency';
+import { getTransactionDisplayAmount } from '@/lib/transaction-display';
 import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
 
 function groupTransactionsByDate(
@@ -59,7 +60,6 @@ export default function TransactionsScreen() {
     const insets = useSafeAreaInsets();
     const { t, i18n } = useTranslation();
     const colors = useThemeStore((state) => state.colors);
-    const user = useAuthStore((state) => state.user);
 
     const {
         data,
@@ -72,9 +72,10 @@ export default function TransactionsScreen() {
     const transactions = data?.pages.flatMap((page) => page.items) ?? [];
 
     const { data: categories = [] } = useCategories();
-    const { mutate: createTransaction } = useCreateTransaction();
+    const createTransaction = useCreateTransaction();
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [submitError, setSubmitError] = useState('');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<number | 'all'>('all');
@@ -94,8 +95,15 @@ export default function TransactionsScreen() {
             account_id: number;
         }
     ) => {
-        createTransaction(transactionData, {
+        if (createTransaction.isPending) return;
+        setSubmitError('');
+        createTransaction.mutate(transactionData, {
             onSuccess: () => setIsAddModalOpen(false),
+            onError: (error: unknown) => setSubmitError(
+                isAxiosError<{ error?: string }>(error)
+                    ? error.response?.data?.error || 'Could not save transaction'
+                    : 'Could not save transaction'
+            ),
         });
     };
 
@@ -501,9 +509,8 @@ export default function TransactionsScreen() {
                                                         ]}
                                                     >
                                                         {formatCurrency(
-                                                            transaction.amount,
-                                                            user?.currency ||
-                                                                'USD',
+                                                            getTransactionDisplayAmount(transaction).amount,
+                                                            getTransactionDisplayAmount(transaction).currency,
                                                             i18n.language
                                                         )}
                                                     </Text>
@@ -552,7 +559,7 @@ export default function TransactionsScreen() {
 
             {/* Floating Action Button positioned above BottomNav */}
             <Pressable
-                onPress={() => setIsAddModalOpen(true)}
+                onPress={() => { setSubmitError(''); setIsAddModalOpen(true); }}
                 style={({ pressed }) => [
                     styles.fab,
                     {
@@ -572,6 +579,8 @@ export default function TransactionsScreen() {
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
                 onAdd={handleAddTransaction}
+                isSubmitting={createTransaction.isPending}
+                submitError={submitError}
             />
         </View>
     );
