@@ -1,0 +1,145 @@
+export interface User {
+    id: number;
+    email: string;
+    username: string;
+    currency: string;
+    timezone: string;
+}
+
+export interface Account {
+    id: number;
+    name: string;
+    type: string;
+    currency: string;
+    balance: number;
+    color?: string;
+}
+
+export interface Transaction {
+    id: number;
+    amount: number;
+    description: string;
+    type: 'income' | 'expense';
+    account_id: number;
+    category_id?: number;
+    created_at: string;
+    category?: {
+        name: string;
+        icon?: string;
+        color?: string;
+    };
+}
+
+export interface TransactionPage {
+    items: Transaction[];
+    nextCursor: string | null;
+}
+
+export interface Template {
+    id: number;
+    name: string;
+    amount: number;
+    type: 'income' | 'expense';
+    category_id?: number | null;
+    default_account_id?: number | null;
+    icon_name?: string;
+    color: string;
+    description?: string;
+    category?: {
+        name: string;
+        icon?: string;
+        color?: string;
+    };
+    default_account?: {
+        name: string;
+        currency: string;
+    };
+}
+
+export interface Category {
+    id: number;
+    name: string;
+    type: 'income' | 'expense';
+    color: string;
+    icon: string;
+    user_id: number;
+    created_at?: string;
+}
+
+export interface RecurringTransaction {
+    id: number;
+    amount: number;
+    description: string;
+    type: 'income' | 'expense';
+    interval: 'weekly' | 'monthly' | 'yearly';
+    next_run_date: string;
+    active: boolean;
+    category_id?: number | null;
+    account_id: number;
+    created_at: string;
+    updated_at: string;
+    category?: Category;
+    account?: Account;
+}
+
+export interface Goal {
+    id: number;
+    name: string;
+    targetAmount: number;
+    currentAmount: number;
+    currency: string;
+    deadline?: string | null;
+    color?: string;
+    icon?: string;
+    created_at: string;
+    percentage?: number;
+}
+
+export interface Budget {
+    id: number;
+    amount: number;
+    spent: number;
+    currency: string;
+    period: 'weekly' | 'monthly' | 'yearly';
+    category_id?: number | null;
+    category?: Category | null;
+}
+
+export interface MonthlyRecap {
+    month: string;
+    year: number;
+    currency: string;
+    totalSpent: number;
+    totalIncome: number;
+    transactionCount: number;
+    topCategory: {
+        name: string;
+        amount: number;
+        color?: string;
+        icon?: string;
+    } | null;
+    biggestPurchase: Transaction | null;
+    comparison: {
+        lastMonthSpent: number;
+        percentageChange: number;
+    };
+}
+
+export interface LoginHistoryEntry {
+    id: number;
+    deviceType?: string;
+    device?: string;
+    browser?: string;
+    os?: string;
+    ipAddress?: string;
+    userAgent?: string;
+    success: boolean;
+    createdAt: string;
+}
+
+export interface SpendingTrend {
+    date: string;
+    currency?: string;
+    income: number;
+    expense: number;
+}
