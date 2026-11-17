@@ -45,9 +45,6 @@ const COLORS = [
     'bg-sky-500',
     'bg-blue-500',
     'bg-indigo-500',
-    'bg-teal-500',
-    'bg-emerald-500',
-    'bg-lime-500',
     'bg-pink-500',
     'bg-rose-500',
     'bg-slate-500',
@@ -70,6 +67,9 @@ const CURRENCY_OPTIONS = [
     { label: 'CHF (Fr)', value: 'CHF' },
     { label: 'AUD ($)', value: 'AUD' },
     { label: 'CNY (¥)', value: 'CNY' },
+    { label: 'SEK (kr)', value: 'SEK' },
+    { label: 'NZD ($)', value: 'NZD' },
+    { label: 'AED (د.إ)', value: 'AED' },
 ];
 
 export function AddAccountModal({

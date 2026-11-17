@@ -96,7 +96,7 @@ export function AddTransactionModal({
             food: 'Utensils',
             restaurant: 'Utensils',
             groceries: 'ShoppingBag',
-            shopping: 'ShoppingPalette',
+            shopping: 'ShoppingBag',
             transport: 'Car',
             rent: 'Home',
             salary: 'Banknote',

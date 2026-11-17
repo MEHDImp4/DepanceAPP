@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Pencil, Trash2, Plus } from 'lucide-react-native';
 import type { Goal } from '@/types';
@@ -21,6 +21,7 @@ export function GoalCard({
     onAddMoney,
 }: GoalCardProps) {
     const colors = useThemeStore((state) => state.colors);
+    const [now] = useState(() => Date.now());
     const currency = goal.currency || 'USD';
 
     const percentage =
@@ -33,7 +34,7 @@ export function GoalCard({
     const monthsLeft = goal.deadline
         ? Math.max(
               1,
-              (new Date(goal.deadline).getTime() - Date.now()) /
+              (new Date(goal.deadline).getTime() - now) /
                   (1000 * 60 * 60 * 24 * 30)
           )
         : 1;

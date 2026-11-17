@@ -34,8 +34,10 @@ Le mobile ne doit pas utiliser `/api` en URL relative ni supposer que `localhost
 | --- | --- |
 | Émulateur Android (backend sur le même PC) | `http://10.0.2.2:3000/api` |
 | Simulateur iOS (backend sur le même Mac) | `http://localhost:3000/api` |
-| Appareil physique (même réseau Wi-Fi) | `http://<IP_LOCALE_PC>:3000/api` |
+| Appareil physique (même réseau Wi-Fi) | `http://<IP_LOCALE_PC>:3000/api` (ou `:8081/api` via le proxy Metro) |
 | Production (HTTPS obligatoire) | `https://votre-domaine.com/api` |
+
+> **Proxy Metro intégré (`mobile/metro.config.js`)** : En développement sur réseau local (Expo Go), si le pare-feu du PC bloque le port `3000`, le serveur Metro (`:8081`) relaie automatiquement `/api/*`, `/health` et `/ready` vers `127.0.0.1:3000` en transmettant `set-cookie` via `x-set-cookie`.
 
 > **Note CORS** : Sur `/server`, les requêtes natives iOS/Android sans en-tête `Origin` sont autorisées par la configuration CORS actuelle (`if (!origin) return callback(null, true);`). Aucun secret serveur n'est embarqué dans le bundle mobile.
 

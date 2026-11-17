@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, AppState, StyleSheet } from 'react-native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
@@ -15,9 +15,8 @@ import {
     IBMPlexSans_700Bold,
 } from '@expo-google-fonts/ibm-plex-sans';
 
-import '@/i18n';
 import { hydrateLanguage } from '@/i18n';
-import { queryClient } from '@/lib/query-client';
+import { queryClient, onAppStateChange } from '@/lib/query-client';
 import api from '@/lib/axios';
 import { hydrateSessionTokens } from '@/lib/token-storage';
 import { useAuthStore } from '@/store/auth-store';
@@ -46,6 +45,11 @@ export default function RootLayout() {
     const hydrateTheme = useThemeStore((state) => state.hydrateTheme);
 
     const [bootstrapReady, setBootstrapReady] = useState(false);
+
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', onAppStateChange);
+        return () => subscription.remove();
+    }, []);
 
     useEffect(() => {
         SystemUI.setBackgroundColorAsync(colors.background).catch(() => {});
