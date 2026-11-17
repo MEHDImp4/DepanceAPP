@@ -10,7 +10,7 @@ import {
     ActivityIndicator,
     StyleSheet,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Lock, Mail, User, Eye, EyeOff, ArrowRight } from 'lucide-react-native';
@@ -74,7 +74,11 @@ export default function RegisterScreen() {
             const message = isAxiosError<{ error?: string }>(err)
                 ? err.response?.data?.error
                 : undefined;
-            setError(message || 'Failed to register');
+            const fallbackMessage =
+                err instanceof Error
+                    ? `${err.message} (${api.defaults.baseURL})`
+                    : 'Failed to register';
+            setError(message || fallbackMessage);
         } finally {
             setIsLoading(false);
         }
@@ -387,17 +391,22 @@ export default function RegisterScreen() {
                                     { color: colors.mutedForeground },
                                 ]}
                             >
-                                {t('auth.have_account')}{' '}
-                                <Link
-                                    href="/(auth)/login"
+                                {t('auth.have_account')}
+                            </Text>
+                            <Pressable
+                                onPress={() => router.replace('/(auth)/login')}
+                                hitSlop={12}
+                                accessibilityRole="link"
+                            >
+                                <Text
                                     style={[
                                         styles.footerLink,
                                         { color: colors.primary },
                                     ]}
                                 >
                                     {t('auth.login_button')}
-                                </Link>
-                            </Text>
+                                </Text>
+                            </Pressable>
                         </View>
                     </View>
                 </ScrollView>
@@ -497,7 +506,11 @@ const styles = StyleSheet.create({
         fontFamily: FONT_FAMILY.bold,
     },
     footer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
         alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
     },
     footerText: {
         fontSize: 14,

@@ -10,7 +10,7 @@ import {
     ActivityIndicator,
     StyleSheet,
 } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Lock, User, Eye, EyeOff, ArrowRight } from 'lucide-react-native';
@@ -57,10 +57,14 @@ export default function LoginScreen() {
             setAuth(data.user);
             router.replace('/(app)');
         } catch (err: unknown) {
-            const message = isAxiosError<{ error?: string }>(err)
+            const serverMessage = isAxiosError<{ error?: string }>(err)
                 ? err.response?.data?.error
                 : undefined;
-            setError(message || 'Failed to login');
+            const fallbackMessage =
+                err instanceof Error
+                    ? `${err.message} (${api.defaults.baseURL})`
+                    : 'Failed to login';
+            setError(serverMessage || fallbackMessage);
         } finally {
             setIsLoading(false);
         }
@@ -289,17 +293,22 @@ export default function LoginScreen() {
                                     { color: colors.mutedForeground },
                                 ]}
                             >
-                                {t('auth.no_account')}{' '}
-                                <Link
-                                    href="/(auth)/register"
+                                {t('auth.no_account')}
+                            </Text>
+                            <Pressable
+                                onPress={() => router.push('/(auth)/register')}
+                                hitSlop={12}
+                                accessibilityRole="link"
+                            >
+                                <Text
                                     style={[
                                         styles.footerLink,
                                         { color: colors.primary },
                                     ]}
                                 >
                                     {t('auth.register_button')}
-                                </Link>
-                            </Text>
+                                </Text>
+                            </Pressable>
                         </View>
                     </View>
                 </ScrollView>
@@ -399,7 +408,11 @@ const styles = StyleSheet.create({
         fontFamily: FONT_FAMILY.bold,
     },
     footer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
         alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
     },
     footerText: {
         fontSize: 14,
