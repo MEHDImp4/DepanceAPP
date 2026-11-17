@@ -9,20 +9,21 @@ import {
     updateTokensFromHeaders,
 } from '@/lib/token-storage';
 
-function extractLanHostFromExpo(): string | null {
+function extractExpoHostUri(): string | null {
     const hostUri =
         Constants.expoConfig?.hostUri ||
         (Constants as unknown as { manifest2?: { extra?: { expoGo?: { debuggerHost?: string } } } })
             .manifest2?.extra?.expoGo?.debuggerHost;
     if (!hostUri || typeof hostUri !== 'string') return null;
-    const host = hostUri.split(':')[0]?.trim();
+    const trimmed = hostUri.trim();
+    const host = trimmed.split(':')[0]?.trim();
     if (!host || host === 'localhost' || host === '127.0.0.1') return null;
-    return host;
+    return trimmed;
 }
 
 export function resolveApiBaseUrl(): string {
     const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
-    const lanHost = extractLanHostFromExpo();
+    const expoHostUri = extractExpoHostUri();
 
     if (envUrl) {
         const cleaned = envUrl.replace(/\/+$/, '');
@@ -30,14 +31,16 @@ export function resolveApiBaseUrl(): string {
             cleaned.includes('://localhost') ||
             cleaned.includes('://127.0.0.1') ||
             cleaned.includes('://10.0.2.2');
-        if (isLoopbackOrEmulator && lanHost) {
-            return `http://${lanHost}:3000/api`;
+        if (isLoopbackOrEmulator && expoHostUri) {
+            const protocol = expoHostUri.includes(':') ? 'http' : 'https';
+            return `${protocol}://${expoHostUri}/api`;
         }
         return cleaned;
     }
 
-    if (lanHost) {
-        return `http://${lanHost}:3000/api`;
+    if (expoHostUri) {
+        const protocol = expoHostUri.includes(':') ? 'http' : 'https';
+        return `${protocol}://${expoHostUri}/api`;
     }
     if (Platform.OS === 'android') {
         return 'http://10.0.2.2:3000/api';

@@ -27,6 +27,17 @@ export function splitSetCookieHeader(raw: string | string[]): string[] {
     if (!raw || typeof raw !== 'string') {
         return [];
     }
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('[')) {
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+                return splitSetCookieHeader(parsed);
+            }
+        } catch {
+            // Fall back to comma splitting
+        }
+    }
     // Split on comma only when followed by a cookie key=value pair, preserving commas inside Expires=Thu, ...
     return raw.split(/,(?=\s*[^;,\s]+=)/).map((s) => s.trim()).filter(Boolean);
 }
@@ -114,10 +125,17 @@ export async function updateTokensFromHeaders(
 ): Promise<void> {
     if (!headers || isWebPlatform()) return;
 
-    const rawSetCookie = (headers['set-cookie'] ?? headers['Set-Cookie']) as
-        | string
-        | string[]
-        | undefined;
+    const headerGetter =
+        typeof (headers as { get?: (name: string) => unknown }).get === 'function'
+            ? (headers as { get: (name: string) => unknown }).get.bind(headers)
+            : null;
+
+    const rawSetCookie = (headers['set-cookie'] ??
+        headers['Set-Cookie'] ??
+        headerGetter?.('set-cookie') ??
+        headers['x-set-cookie'] ??
+        headers['X-Set-Cookie'] ??
+        headerGetter?.('x-set-cookie')) as string | string[] | undefined;
 
     if (!rawSetCookie) return;
 
