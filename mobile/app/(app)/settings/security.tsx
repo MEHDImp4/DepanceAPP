@@ -24,6 +24,9 @@ import { formatDistanceToNow, isValid } from 'date-fns';
 import { isAxiosError } from 'axios';
 
 import { useChangePassword, useLoginHistory } from '@/hooks/use-api';
+import { clearSessionTokens } from '@/lib/token-storage';
+import { queryClient } from '@/lib/query-client';
+import { useAuthStore } from '@/store/auth-store';
 import { useThemeStore } from '@/store/theme-store';
 import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
 import type { LoginHistoryEntry } from '@/types';
@@ -69,16 +72,13 @@ export default function SecurityPrivacyScreen() {
         changePassword.mutate(
             { oldPassword, newPassword },
             {
-                onSuccess: () => {
-                    setMessage({
-                        type: 'success',
-                        text: t(
-                            'settings.password_changed',
-                            'Password updated successfully'
-                        ),
-                    });
-                    setOldPassword('');
-                    setNewPassword('');
+                onSuccess: async () => {
+                    // The backend revokes all refresh sessions when the password changes.
+                    // Invalidate local auth immediately rather than leaving a stale session onscreen.
+                    await clearSessionTokens();
+                    queryClient.clear();
+                    useAuthStore.getState().logout();
+                    router.replace('/(auth)/login');
                 },
                 onError: (err: unknown) => {
                     const text = isAxiosError<{ error?: string }>(err)

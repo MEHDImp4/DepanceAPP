@@ -30,6 +30,8 @@ interface AddAccountModalProps {
     onClose: () => void;
     onAdd: (account: Omit<Account, 'id'> | Account) => void;
     account?: Account | null;
+    isSubmitting?: boolean;
+    submitError?: string;
 }
 
 const COLORS = [
@@ -77,6 +79,8 @@ export function AddAccountModal({
     onClose,
     onAdd,
     account,
+    isSubmitting = false,
+    submitError,
 }: AddAccountModalProps) {
     const { t } = useTranslation();
     const colors = useThemeStore((state) => state.colors);
@@ -133,7 +137,6 @@ export function AddAccountModal({
             onAdd(accountData);
         }
 
-        onClose();
     };
 
     const handleDelete = () => {
@@ -160,7 +163,7 @@ export function AddAccountModal({
     return (
         <ModalWrapper
             isOpen={isOpen}
-            onClose={onClose}
+            onClose={() => { if (!isSubmitting) onClose(); }}
             title={
                 account
                     ? t('accounts.edit_account') || 'Edit Account'
@@ -486,17 +489,19 @@ export function AddAccountModal({
                         </View>
                     </View>
 
+                    {submitError ? <Text style={[styles.errorText, { color: colors.destructive }]}>{submitError}</Text> : null}
                     <Pressable
                         onPress={handleSubmit}
+                        disabled={isSubmitting}
                         style={({ pressed }) => [
                             styles.submitBtn,
                             {
                                 backgroundColor: colors.primary,
-                                opacity: pressed ? 0.9 : 1,
+                                opacity: isSubmitting ? 0.5 : pressed ? 0.9 : 1,
                             },
                         ]}
                     >
-                        <Check size={20} color={colors.primaryForeground} />
+                        {isSubmitting ? <ActivityIndicator color={colors.primaryForeground} /> : <Check size={20} color={colors.primaryForeground} />}
                         <Text
                             style={[
                                 styles.submitText,

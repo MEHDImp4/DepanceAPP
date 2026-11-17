@@ -27,6 +27,7 @@ import { useThemeStore } from '@/store/theme-store';
 import { AmbientGlow } from '@/components/ui/AmbientGlow';
 import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
 import type { Account } from '@/types';
+import { isAxiosError } from 'axios';
 
 export default function AccountsScreen() {
     const { t, i18n } = useTranslation();
@@ -40,6 +41,7 @@ export default function AccountsScreen() {
     const { data: accountSummary, refetch: refetchSummary } = useAccountSummary();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [accountSubmitError, setAccountSubmitError] = useState('');
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
     const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
     const [refreshing, setRefreshing] = useState(false);
@@ -54,26 +56,34 @@ export default function AccountsScreen() {
     }, [refetch, refetchSummary]);
 
     const handleSave = (accountData: Omit<Account, 'id'> | Account) => {
+        if (createAccount.isPending || updateAccount.isPending) return;
+        setAccountSubmitError('');
+        const onSuccess = () => {
+            setIsModalOpen(false);
+            setSelectedAccount(null);
+        };
+        const onError = (error: unknown) => {
+            setAccountSubmitError(
+                isAxiosError<{ error?: string }>(error)
+                    ? error.response?.data?.error || 'Could not save account'
+                    : 'Could not save account'
+            );
+        };
         if ('id' in accountData) {
-            updateAccount.mutate(accountData as Account, {
-                onSuccess: () => {
-                    setIsModalOpen(false);
-                    setSelectedAccount(null);
-                },
-            });
+            updateAccount.mutate(accountData as Account, { onSuccess, onError });
         } else {
-            createAccount.mutate(accountData, {
-                onSuccess: () => setIsModalOpen(false),
-            });
+            createAccount.mutate(accountData, { onSuccess, onError });
         }
     };
 
     const handleEditAccount = (account: Account) => {
+        setAccountSubmitError('');
         setSelectedAccount(account);
         setIsModalOpen(true);
     };
 
     const handleAddClick = () => {
+        setAccountSubmitError('');
         setSelectedAccount(null);
         setIsModalOpen(true);
     };
@@ -275,6 +285,8 @@ export default function AccountsScreen() {
                 }}
                 onAdd={handleSave}
                 account={selectedAccount}
+                isSubmitting={createAccount.isPending || updateAccount.isPending}
+                submitError={accountSubmitError}
             />
 
             <TransferModal

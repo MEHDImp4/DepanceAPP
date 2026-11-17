@@ -9,6 +9,7 @@ import {
     RefreshControl,
     StyleSheet,
 } from 'react-native';
+import { isAxiosError } from 'axios';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
@@ -71,9 +72,10 @@ export default function TransactionsScreen() {
     const transactions = data?.pages.flatMap((page) => page.items) ?? [];
 
     const { data: categories = [] } = useCategories();
-    const { mutate: createTransaction } = useCreateTransaction();
+    const createTransaction = useCreateTransaction();
 
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [submitError, setSubmitError] = useState('');
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [search, setSearch] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<number | 'all'>('all');
@@ -93,8 +95,15 @@ export default function TransactionsScreen() {
             account_id: number;
         }
     ) => {
-        createTransaction(transactionData, {
+        if (createTransaction.isPending) return;
+        setSubmitError('');
+        createTransaction.mutate(transactionData, {
             onSuccess: () => setIsAddModalOpen(false),
+            onError: (error: unknown) => setSubmitError(
+                isAxiosError<{ error?: string }>(error)
+                    ? error.response?.data?.error || 'Could not save transaction'
+                    : 'Could not save transaction'
+            ),
         });
     };
 
@@ -550,7 +559,7 @@ export default function TransactionsScreen() {
 
             {/* Floating Action Button positioned above BottomNav */}
             <Pressable
-                onPress={() => setIsAddModalOpen(true)}
+                onPress={() => { setSubmitError(''); setIsAddModalOpen(true); }}
                 style={({ pressed }) => [
                     styles.fab,
                     {
@@ -570,6 +579,8 @@ export default function TransactionsScreen() {
                 isOpen={isAddModalOpen}
                 onClose={() => setIsAddModalOpen(false)}
                 onAdd={handleAddTransaction}
+                isSubmitting={createTransaction.isPending}
+                submitError={submitError}
             />
         </View>
     );

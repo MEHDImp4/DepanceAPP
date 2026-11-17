@@ -46,7 +46,8 @@ export default function TransactionDetailsScreen() {
     const colors = useThemeStore((state) => state.colors);
 
     const [isRedoModalOpen, setIsRedoModalOpen] = useState(false);
-    const { mutate: createTransaction } = useCreateTransaction();
+    const [redoError, setRedoError] = useState('');
+    const createTransaction = useCreateTransaction();
     const { mutateAsync: deleteTransaction } = useDeleteTransaction();
 
     const transactionId = Number(id);
@@ -63,11 +64,18 @@ export default function TransactionDetailsScreen() {
             account_id: number;
         }
     ) => {
-        createTransaction(transactionData, {
+        if (createTransaction.isPending) return;
+        setRedoError('');
+        createTransaction.mutate(transactionData, {
             onSuccess: () => {
                 setIsRedoModalOpen(false);
                 router.replace('/transactions');
             },
+            onError: (error: unknown) => setRedoError(
+                isAxiosError<{ error?: string }>(error)
+                    ? error.response?.data?.error || 'Could not repeat transaction'
+                    : 'Could not repeat transaction'
+            ),
         });
     };
 
@@ -545,6 +553,8 @@ export default function TransactionDetailsScreen() {
                 onClose={() => setIsRedoModalOpen(false)}
                 onAdd={handleRedoTransaction}
                 initialData={transaction}
+                isSubmitting={createTransaction.isPending}
+                submitError={redoError}
             />
         </ScrollView>
     );
