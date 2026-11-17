@@ -5,11 +5,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { TrendingUp, TrendingDown } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import type { Transaction } from '@/types';
-import { useAuthStore } from '@/store/auth-store';
 import { useCategories } from '@/hooks/use-api';
 import { useThemeStore } from '@/store/theme-store';
 import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
 import { formatCurrency } from '@/hooks/use-currency';
+import { getTransactionDisplayAmount } from '@/lib/transaction-display';
 
 interface RecentTransactionsProps {
     transactions: Transaction[];
@@ -18,7 +18,6 @@ interface RecentTransactionsProps {
 export function RecentTransactions({ transactions }: RecentTransactionsProps) {
     const { t, i18n } = useTranslation();
     const router = useRouter();
-    const user = useAuthStore((state) => state.user);
     const { data: categories = [] } = useCategories();
     const colors = useThemeStore((state) => state.colors);
 
@@ -154,8 +153,8 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
                                         ]}
                                     >
                                         {formatCurrency(
-                                            transaction.amount,
-                                            user?.currency || 'USD',
+                                            getTransactionDisplayAmount(transaction).amount,
+                                            getTransactionDisplayAmount(transaction).currency,
                                             i18n.language
                                         )}
                                         {isIncome ? ' +' : ' -'}

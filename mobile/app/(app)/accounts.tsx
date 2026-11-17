@@ -17,14 +17,11 @@ import { AddAccountModal } from '@/components/accounts/AddAccountModal';
 import { TransferModal } from '@/components/accounts/TransferModal';
 import {
     useAccounts,
+    useAccountSummary,
     useCreateAccount,
     useUpdateAccount,
 } from '@/hooks/use-api';
-import {
-    useCurrencyRates,
-    convertCurrency,
-    formatDecimal,
-} from '@/hooks/use-currency';
+import { formatDecimal } from '@/hooks/use-currency';
 import { useAuthStore } from '@/store/auth-store';
 import { useThemeStore } from '@/store/theme-store';
 import { AmbientGlow } from '@/components/ui/AmbientGlow';
@@ -40,7 +37,7 @@ export default function AccountsScreen() {
     const { data: accounts = [], isLoading, refetch } = useAccounts();
     const createAccount = useCreateAccount();
     const updateAccount = useUpdateAccount();
-    const { data: ratesData, refetch: refetchRates } = useCurrencyRates();
+    const { data: accountSummary, refetch: refetchSummary } = useAccountSummary();
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -50,11 +47,11 @@ export default function AccountsScreen() {
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         try {
-            await Promise.all([refetch(), refetchRates()]);
+            await Promise.all([refetch(), refetchSummary()]);
         } finally {
             setRefreshing(false);
         }
-    }, [refetch, refetchRates]);
+    }, [refetch, refetchSummary]);
 
     const handleSave = (accountData: Omit<Account, 'id'> | Account) => {
         if ('id' in accountData) {
@@ -81,15 +78,7 @@ export default function AccountsScreen() {
         setIsModalOpen(true);
     };
 
-    const totalNetWorth = accounts.reduce((acc, curr) => {
-        const convertedBalance = convertCurrency(
-            curr.balance,
-            curr.currency,
-            user?.currency || 'USD',
-            ratesData?.rates
-        );
-        return acc + convertedBalance;
-    }, 0);
+
 
     if (isLoading) {
         return (
@@ -99,12 +88,10 @@ export default function AccountsScreen() {
         );
     }
 
-    const formattedNetWorth = formatDecimal(
-        totalNetWorth,
-        i18n.language,
-        2,
-        2
-    );
+    // Never show an incorrect mixed-currency total if server conversion is unavailable.
+    const formattedNetWorth = accountSummary
+        ? formatDecimal(accountSummary.totalBalance, i18n.language, 2, 2)
+        : '—';
     const len = formattedNetWorth.length;
     const netWorthFontSize = len > 13 ? 24 : len > 10 ? 30 : len > 7 ? 36 : 46;
 
@@ -237,7 +224,7 @@ export default function AccountsScreen() {
                                     { color: colors.mutedForeground },
                                 ]}
                             >
-                                {user?.currency || 'USD'}
+                                {accountSummary?.currency || user?.currency || 'USD'}
                             </Text>
                         </View>
                     </View>

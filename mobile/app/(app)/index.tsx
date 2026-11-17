@@ -14,10 +14,9 @@ import { Wallet } from 'lucide-react-native';
 
 import { CapitalCard } from '@/components/dashboard/CapitalCard';
 import { RecentTransactions } from '@/components/dashboard/RecentTransactions';
-import { useSummary, useAccounts } from '@/hooks/use-api';
+import { useSummary } from '@/hooks/use-api';
 import { useAuthStore } from '@/store/auth-store';
 import { useThemeStore } from '@/store/theme-store';
-import { useCurrencyRates, convertCurrency } from '@/hooks/use-currency';
 import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
 
 export default function DashboardScreen() {
@@ -32,22 +31,16 @@ export default function DashboardScreen() {
         error,
         refetch: refetchSummary,
     } = useSummary();
-    const { data: accounts = [], refetch: refetchAccounts } = useAccounts();
-    const { data: ratesData, refetch: refetchRates } = useCurrencyRates();
     const [refreshing, setRefreshing] = useState(false);
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         try {
-            await Promise.all([
-                refetchSummary(),
-                refetchAccounts(),
-                refetchRates(),
-            ]);
+            await refetchSummary();
         } finally {
             setRefreshing(false);
         }
-    }, [refetchSummary, refetchAccounts, refetchRates]);
+    }, [refetchSummary]);
 
     if (isSummaryLoading) {
         return (
@@ -105,15 +98,7 @@ export default function DashboardScreen() {
         );
     }
 
-    const totalCapital = accounts.reduce((acc, curr) => {
-        const convertedBalance = convertCurrency(
-            curr.balance,
-            curr.currency,
-            user?.currency || 'USD',
-            ratesData?.rates
-        );
-        return acc + convertedBalance;
-    }, 0);
+    const totalCapital = summary?.totalCapital ?? 0;
 
     const transactions = summary?.transactions?.slice(0, 5) || [];
     const todayLabel = new Date().toLocaleDateString(i18n.language, {
@@ -172,7 +157,7 @@ export default function DashboardScreen() {
 
             <CapitalCard
                 amount={totalCapital}
-                currency={user?.currency || 'USD'}
+                currency={summary?.currency || user?.currency || 'USD'}
             />
 
             <RecentTransactions transactions={transactions} />

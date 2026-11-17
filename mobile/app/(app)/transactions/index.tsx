@@ -28,9 +28,9 @@ import {
     useCreateTransaction,
     useCategories,
 } from '@/hooks/use-api';
-import { useAuthStore } from '@/store/auth-store';
 import { useThemeStore } from '@/store/theme-store';
 import { formatCurrency } from '@/hooks/use-currency';
+import { getTransactionDisplayAmount } from '@/lib/transaction-display';
 import { FONT_FAMILY, hexWithOpacity } from '@/constants/theme';
 
 function groupTransactionsByDate(
@@ -59,7 +59,6 @@ export default function TransactionsScreen() {
     const insets = useSafeAreaInsets();
     const { t, i18n } = useTranslation();
     const colors = useThemeStore((state) => state.colors);
-    const user = useAuthStore((state) => state.user);
 
     const {
         data,
@@ -501,9 +500,8 @@ export default function TransactionsScreen() {
                                                         ]}
                                                     >
                                                         {formatCurrency(
-                                                            transaction.amount,
-                                                            user?.currency ||
-                                                                'USD',
+                                                            getTransactionDisplayAmount(transaction).amount,
+                                                            getTransactionDisplayAmount(transaction).currency,
                                                             i18n.language
                                                         )}
                                                     </Text>
